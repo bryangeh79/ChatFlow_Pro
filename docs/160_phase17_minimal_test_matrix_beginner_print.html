@@ -162,6 +162,9 @@ blockquote { margin: 0.8rem 0; padding-left: 1rem; border-left: 4px solid #ccc; 
 <li><strong>SET</strong> 只表示「有非空字符串」，<strong>不保证</strong> token 合法或未过期。  </li>
 <li>是否真能换票、Graph/Zalo 是否返回预期错误码，仍要按 <strong>第 7 / 8 节</strong> 做 webhook 实测。</li>
 </ul>
+<h3>4.4 <code>.env</code> 与本脚本</h3>
+<p>本仓库的 <strong><code>check-staging-env</code></strong> 会在启动时<strong>尝试读取项目根目录的 <code>.env</code></strong>（<code>KEY=VALUE</code> 行），且<strong>不会覆盖</strong>你已在终端里 <code>export</code> / <code>set</code> 过的同名变量。  </p>
+<p>若密钥只在 Docker / 云平台注入、不在本机 <code>.env</code>，请在那类环境里执行本脚本，或把 staging 专用 <code>.env</code> 放在项目根（<strong>勿提交 git</strong>）。</p>
 <hr>
 <h2>5. Phase 0 — 基线（换票功能先关掉）</h2>
 <p><strong>目的</strong>：确认服务正常、七路 webhook 能跑通（或按规则跳过）。</p>

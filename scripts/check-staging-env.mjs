@@ -3,6 +3,9 @@
  * Lists staging-related env vars as SET / MISSING / ANY_OK without printing values.
  * Aligns with docs/157, docs/160, docs/154, docs/156.
  *
+ * If project root `.env` exists, KEY=VALUE lines are loaded into `process.env` only for
+ * keys not already set in the shell (same idea as many app starters; no dependency).
+ *
  * Usage:
  *   node scripts/check-staging-env.mjs
  *   node scripts/check-staging-env.mjs --phase=all
@@ -11,6 +14,35 @@
  *   node scripts/check-staging-env.mjs --phase=c-messenger --strict
  *   node scripts/check-staging-env.mjs --json
  */
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/** Load `.env` from repo root without overriding existing `process.env`. */
+function loadDotEnvOptional() {
+  const envPath = path.join(__dirname, '..', '.env');
+  if (!fs.existsSync(envPath)) return;
+  const text = fs.readFileSync(envPath, 'utf8');
+  for (const line of text.split(/\r?\n/)) {
+    const t = line.trim();
+    if (!t || t.startsWith('#')) continue;
+    const eq = t.indexOf('=');
+    if (eq < 1) continue;
+    const key = t.slice(0, eq).trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue;
+    let val = t.slice(eq + 1).trim();
+    if (
+      (val.startsWith('"') && val.endsWith('"')) ||
+      (val.startsWith("'") && val.endsWith("'"))
+    ) {
+      val = val.slice(1, -1);
+    }
+    if (process.env[key] === undefined) process.env[key] = val;
+  }
+}
 
 function isNonEmpty(name) {
   const v = process.env[name];
@@ -129,6 +161,7 @@ function parseArgs() {
 }
 
 function main() {
+  loadDotEnvOptional();
   const { phase, strict, json } = parseArgs();
 
   const p0 = sectionPhase0();
