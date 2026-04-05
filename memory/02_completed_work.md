@@ -136,6 +136,11 @@
 - **Phase 15.5**: WhatsApp Cloud API real outbound — WhatsApp uses Graph API when token + phone number ID + not sandbox; `docs/146`, `whatsapp‑cloud.ts`, `real‑send.ts`; **Pro_v1.07.8** (`package.json` 1.7.8) — **已交付**
 - **Phase 15.6**: Messenger Graph API real outbound — Messenger uses Graph API when token + page ID + not sandbox; `docs/147`, `messenger‑graph.ts`, `real‑send.ts`; **Pro_v1.07.9** (`package.json` 1.7.9) — **已交付**
 - **Phase 15.7**: Line Messaging API real outbound — Line uses push API when token + not sandbox; `docs/148`, `line‑messaging.ts`, `real‑send.ts`; **Pro_v1.07.10** (`package.json` 1.7.10) — **已交付**
+- **Phase 15.8**: Zalo Open API real outbound — Zalo uses Open API when token + OA ID + not sandbox; `docs/149`, `zalo‑openapi.ts`, `real‑send.ts`; **Pro_v1.07.11** (`package.json` 1.7.11) — **已交付**
+
+## Phase 16 (completed)
+- **Phase 16 (observability slice)**: `X-Request-Id` on every response; optional JSON HTTP access line on `response.finish` when `CHATFLOW_HTTP_ACCESS_LOG` enabled; `docs/150`, `src/observability/http-access.ts`, `server.ts`; **Pro_v1.07.13** (`package.json` 1.7.13) — **已交付**
+- **Phase 16.2 (webhook phases_ms + verification type narrowing)**: Enhanced observability with `phases_ms` (prepare vs outbound send) in access logs; verification type narrowed; `src/webhooks/webhook-timing.ts`, all six webhook handlers updated; **Pro_v1.07.15** (`package.json` 1.7.15) — **已交付**
 
 ## What Is Now in Place
 - Product scope and exclusions
@@ -169,4 +174,5 @@
 - **Seven-channel suite**: All 7 channels (Website, Telegram, WhatsApp, Messenger, Line, Zalo) unified
 - **Real transport**: ADR (138) + Telegram real sender (15.1) — **已交付** + proxy support (15.2) — **已交付**; other channels synthetic
 - **Webhook security**: GET verification (15.3) — **已交付** + Meta POST signature (15.4a) — **已交付** (WhatsApp/Messenger) + Line POST signature (15.4b) — **已交付** + Zalo signature research (15.4c) — **已交付** + Website POST signature (15.4d) — **已交付**
-- **Real transports**: Telegram (15.1) — **已交付** + WhatsApp Cloud (15.5) — **已交付** + Messenger Graph (15.6) — **已交付** + Line Messaging (15.7) — **已交付**
+- **Real transports**: Telegram (15.1) — **已交付** + WhatsApp Cloud (15.5) — **已交付** + Messenger Graph (15.6) — **已交付** + Line Messaging (15.7) — **已交付** + Zalo Open API (15.8) — **已交付**
+- **HTTP observability (16.2)**: Request ID header + optional access JSON + webhook `phases_ms` timings + verification type narrowing (`docs/150`) — **已交付（增强切片）**

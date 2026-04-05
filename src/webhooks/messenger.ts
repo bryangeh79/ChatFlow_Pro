@@ -5,6 +5,8 @@ import { createOrUpdateSessionContext, commitSessionContext } from '../channels/
 import { runUnifiedInboundPipeline } from '../channels/unified-inbound-pipeline';
 import { createMinimalTraceContext } from '../channels/errors/observability';
 import { createSafeFallbackResponse } from '../channels/errors';
+import type { WebhookHandlerOptions } from './telegram';
+import { webhookObservabilityPhases } from './webhook-timing';
 
 /**
  * 解析 Facebook Messenger Webhook 载荷
@@ -54,14 +56,16 @@ function parseMessengerInbound(rawRequestBody: unknown): ReturnType<typeof norma
   return null;
 }
 
-export async function handleMessengerWebhook(rawRequestBody: unknown) {
+export async function handleMessengerWebhook(rawRequestBody: unknown, opts?: WebhookHandlerOptions) {
   try {
+    const wall0 = Date.now();
     const message = parseMessengerInbound(rawRequestBody);
     if (message === null) {
       return {
         ok: true,
         skipped: true,
         reason: 'no_processable_message',
+        ...webhookObservabilityPhases(Date.now() - wall0),
       };
     }
 
@@ -72,6 +76,7 @@ export async function handleMessengerWebhook(rawRequestBody: unknown) {
     const trace = createMinimalTraceContext({
       channel: 'messenger',
       session_id: result.session.session_id,
+      httpRequestId: opts?.httpRequestId,
     });
 
     const outboundPayload = mapMessengerOutboundPayload({
@@ -84,6 +89,8 @@ export async function handleMessengerWebhook(rawRequestBody: unknown) {
     });
 
     const sender = createChannelSender('messenger');
+    const prepare_ms = Date.now() - wall0;
+    const tSend = Date.now();
     const sendResult = await sender.send({
       channel: 'messenger',
       session_id: result.session.session_id,
@@ -97,6 +104,7 @@ export async function handleMessengerWebhook(rawRequestBody: unknown) {
         message_trace_id: trace.message_trace_id,
       },
     });
+    const outbound_send_ms = Date.now() - tSend;
 
     return {
       ok: true,
@@ -105,6 +113,7 @@ export async function handleMessengerWebhook(rawRequestBody: unknown) {
       response: result.response,
       outboundPayload,
       sendResult: { result: sendResult.result },
+      ...webhookObservabilityPhases(prepare_ms, outbound_send_ms),
     };
   } catch (error) {
     const fallback = createSafeFallbackResponse(String(error));

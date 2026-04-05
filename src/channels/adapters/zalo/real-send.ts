@@ -1,11 +1,11 @@
 import { fetch } from 'undici';
-import type { LineMessagingConfig } from '../../../config/line-messaging';
-import { redactLineTokenInMessage } from '../../../config/line-messaging';
+import type { ZaloOpenApiConfig } from '../../../config/zalo-openapi';
+import { redactZaloTokenInMessage } from '../../../config/zalo-openapi';
 
-const LINE_TEXT_MAX_LENGTH = 5000; // Line text message limit
+const ZALO_TEXT_MAX_LENGTH = 5000; // Zalo text message limit (assume similar to Line)
 
 interface SendResult {
-  transport: 'line_real';
+  transport: 'zalo_real';
   skipped?: boolean;
   reason?: string;
   messageId?: string;
@@ -14,13 +14,13 @@ interface SendResult {
 }
 
 /**
- * Parse recipient userId from Line session ID.
- * Format: line:{userId}:{session_id}
- * Returns userId or null if parsing fails.
+ * Parse recipient user_id from Zalo session ID.
+ * Format: zalo:{user_id}:{session_id}
+ * Returns user_id or null if parsing fails.
  */
-export function parseLineRecipientFromSessionId(sessionId: string): string | null {
+export function parseZaloRecipientFromSessionId(sessionId: string): string | null {
   const parts = sessionId.split(':');
-  if (parts.length >= 3 && parts[0] === 'line') {
+  if (parts.length >= 3 && parts[0] === 'zalo') {
     const userId = parts[1];
     return userId && userId !== 'unknown' && userId.trim() !== '' ? userId : null;
   }
@@ -28,10 +28,10 @@ export function parseLineRecipientFromSessionId(sessionId: string): string | nul
 }
 
 /**
- * Send a text message via Line Messaging API push endpoint.
+ * Send a text message via Zalo Open API.
  */
-export async function sendLineTextMessage(
-  config: LineMessagingConfig,
+export async function sendZaloTextMessage(
+  config: ZaloOpenApiConfig,
   sessionId: string,
   text: string | null | undefined
 ): Promise<SendResult> {
@@ -39,25 +39,25 @@ export async function sendLineTextMessage(
   
   try {
     // 1. Parse recipient
-    const recipient = parseLineRecipientFromSessionId(sessionId);
+    const recipient = parseZaloRecipientFromSessionId(sessionId);
     if (!recipient) {
-      debugSteps.push('parseLineRecipientFromSessionId: invalid format, skipped');
+      debugSteps.push('parseZaloRecipientFromSessionId: invalid format, skipped');
       return { 
-        transport: 'line_real', 
+        transport: 'zalo_real', 
         skipped: true, 
         reason: 'invalid_session_format', 
         debug_steps: debugSteps 
       };
     }
     
-    debugSteps.push(`parseLineRecipientFromSessionId: ${recipient}`);
+    debugSteps.push(`parseZaloRecipientFromSessionId: ${recipient}`);
     
     // 2. Validate text
     const trimmed = text?.trim() ?? '';
     if (!trimmed) {
-      debugSteps.push('sendLineTextMessage: empty text, skipped');
+      debugSteps.push('sendZaloTextMessage: empty text, skipped');
       return { 
-        transport: 'line_real', 
+        transport: 'zalo_real', 
         skipped: true, 
         reason: 'empty_text', 
         debug_steps: debugSteps 
@@ -65,27 +65,26 @@ export async function sendLineTextMessage(
     }
     
     // 3. Truncate if needed
-    const messageText = trimmed.length > LINE_TEXT_MAX_LENGTH 
-      ? trimmed.substring(0, LINE_TEXT_MAX_LENGTH - 3) + '...'
+    const messageText = trimmed.length > ZALO_TEXT_MAX_LENGTH 
+      ? trimmed.substring(0, ZALO_TEXT_MAX_LENGTH - 3) + '...'
       : trimmed;
     
-    if (trimmed.length > LINE_TEXT_MAX_LENGTH) {
-      debugSteps.push(`sendLineTextMessage: truncated from ${trimmed.length} to ${LINE_TEXT_MAX_LENGTH} chars`);
+    if (trimmed.length > ZALO_TEXT_MAX_LENGTH) {
+      debugSteps.push(`sendZaloTextMessage: truncated from ${trimmed.length} to ${ZALO_TEXT_MAX_LENGTH} chars`);
     }
     
-    // 4. Build request
-    const url = `${config.apiBaseUrl}/v2/bot/message/push`;
+    // 4. Build request (based on Zalo Open API v2.0 documentation)
+    const url = `${config.apiBaseUrl}/v2.0/oa/message`;
     const body = JSON.stringify({
-      to: recipient,
-      messages: [
-        {
-          type: 'text',
-          text: messageText,
-        },
-      ],
+      recipient: {
+        user_id: recipient,
+      },
+      message: {
+        text: messageText,
+      },
     });
     
-    debugSteps.push(`sendLineTextMessage: POST ${url}`);
+    debugSteps.push(`sendZaloTextMessage: POST ${url}`);
     
     // 5. Send with timeout and retry (each attempt gets its own timeout)
     let attempt = 0;
@@ -93,7 +92,7 @@ export async function sendLineTextMessage(
     
     while (attempt < maxAttempts) {
       attempt++;
-      debugSteps.push(`sendLineTextMessage: attempt ${attempt}/${maxAttempts}`);
+      debugSteps.push(`sendZaloTextMessage: attempt ${attempt}/${maxAttempts}`);
       
       // Each attempt gets its own AbortController and timeout
       const controller = new AbortController();
@@ -103,7 +102,7 @@ export async function sendLineTextMessage(
         const response = await fetch(url, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${config.channelAccessToken}`,
+            'access_token': config.accessToken, // Zalo uses access_token header, not Authorization: Bearer
             'Content-Type': 'application/json',
           },
           body,
@@ -113,15 +112,15 @@ export async function sendLineTextMessage(
         clearTimeout(timeoutId);
         
         if (response.ok) {
-          await response.json(); // Consume response but we don't need it
-          debugSteps.push(`sendLineTextMessage: success (${response.status})`);
+          const responseData = await response.json() as any;
+          debugSteps.push(`sendZaloTextMessage: success (${response.status})`);
           
-          // Line push API doesn't return message IDs in the same way as reply API
-          // Use a stable placeholder for messageId
-          const messageId = `line_push_${Date.now()}`;
+          // Zalo API may or may not return message ID
+          // Use a stable placeholder similar to Line
+          const messageId = responseData.data?.message_id || `zalo_push_${Date.now()}`;
           
           return {
-            transport: 'line_real',
+            transport: 'zalo_real',
             messageId,
             debug_steps: debugSteps,
           };
@@ -131,22 +130,22 @@ export async function sendLineTextMessage(
         const status = response.status;
         const responseText = await response.text().catch(() => '');
         
-        debugSteps.push(`sendLineTextMessage: HTTP ${status} - ${responseText.substring(0, 200)}`);
+        debugSteps.push(`sendZaloTextMessage: HTTP ${status} - ${responseText.substring(0, 200)}`);
         
         // Determine if retryable
         const isRetryable = status >= 500 || status === 429;
         
         if (!isRetryable || attempt >= maxAttempts) {
           // Final failure
-          const safeDesc = redactLineTokenInMessage(`Line API error: ${status} ${responseText.substring(0, 100)}`, config.channelAccessToken);
-          console.error('[Line] sendMessage failed:', { status, description: safeDesc });
-          debugSteps.push('line_real_failed');
+          const safeDesc = redactZaloTokenInMessage(`Zalo API error: ${status} ${responseText.substring(0, 100)}`, config.accessToken);
+          console.error('[Zalo] sendMessage failed:', { status, description: safeDesc });
+          debugSteps.push('zalo_real_failed');
           
           return {
-            transport: 'line_real',
+            transport: 'zalo_real',
             error: status === 401 ? 'invalid_token' : 
                    status === 429 ? 'rate_limited' : 
-                   status >= 500 ? 'line_server_error' : 'line_api_error',
+                   status >= 500 ? 'zalo_server_error' : 'zalo_api_error',
             debug_steps: debugSteps,
           };
         }
@@ -159,9 +158,9 @@ export async function sendLineTextMessage(
         
         const errorName = error.name || 'unknown';
         const errorMessage = error.message || 'unknown';
-        const safeMessage = redactLineTokenInMessage(errorMessage, config.channelAccessToken);
+        const safeMessage = redactZaloTokenInMessage(errorMessage, config.accessToken);
         
-        debugSteps.push(`sendLineTextMessage: ${errorName} - ${safeMessage}`);
+        debugSteps.push(`sendZaloTextMessage: ${errorName} - ${safeMessage}`);
         
         // Determine if retryable (network/timeout)
         const isRetryable = errorName === 'AbortError' || 
@@ -171,11 +170,11 @@ export async function sendLineTextMessage(
                            error.code === 'ETIMEDOUT';
         
         if (!isRetryable || attempt >= maxAttempts) {
-          console.error('[Line] sendMessage exception:', safeMessage);
-          debugSteps.push('line_real_exception');
+          console.error('[Zalo] sendMessage exception:', safeMessage);
+          debugSteps.push('zalo_real_exception');
           
           return {
-            transport: 'line_real',
+            transport: 'zalo_real',
             error: 'network_error',
             debug_steps: debugSteps,
           };
@@ -187,22 +186,22 @@ export async function sendLineTextMessage(
     }
     
     // Should not reach here
-    debugSteps.push('line_real_unexpected_end');
+    debugSteps.push('zalo_real_unexpected_end');
     return {
-      transport: 'line_real',
+      transport: 'zalo_real',
       error: 'unknown_error',
       debug_steps: debugSteps,
     };
     
   } catch (error: any) {
     const errorMessage = error.message || 'unknown';
-    const safeMessage = redactLineTokenInMessage(errorMessage, config.channelAccessToken);
+    const safeMessage = redactZaloTokenInMessage(errorMessage, config.accessToken);
     
-    console.error('[Line] sendMessage unexpected error:', safeMessage);
-    debugSteps.push(`sendLineTextMessage: unexpected error - ${safeMessage}`);
+    console.error('[Zalo] sendMessage unexpected error:', safeMessage);
+    debugSteps.push(`sendZaloTextMessage: unexpected error - ${safeMessage}`);
     
     return {
-      transport: 'line_real',
+      transport: 'zalo_real',
       error: 'unexpected_error',
       debug_steps: debugSteps,
     };

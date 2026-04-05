@@ -5,6 +5,7 @@ import { createOrUpdateSessionContext, commitSessionContext } from '../channels/
 import { runUnifiedInboundPipeline } from '../channels/unified-inbound-pipeline';
 import { createMinimalTraceContext } from '../channels/errors/observability';
 import { createSafeFallbackResponse } from '../channels/errors';
+import { webhookObservabilityPhases } from './webhook-timing';
 
 function isTelegramStartOrHelp(text: string | null | undefined): boolean {
   const normalized = String(text ?? '').trim().toLowerCase();
@@ -15,8 +16,11 @@ function createTelegramHelpText(): string {
   return 'Telegram is connected. Send a message, or use /start or /help to see this guide.';
 }
 
-export async function handleTelegramWebhook(rawRequestBody: unknown) {
+export type WebhookHandlerOptions = { httpRequestId?: string };
+
+export async function handleTelegramWebhook(rawRequestBody: unknown, opts?: WebhookHandlerOptions) {
   try {
+    const wall0 = Date.now();
     if (!rawRequestBody || typeof rawRequestBody !== 'object') {
       throw new Error('normalize_error: invalid telegram payload');
     }
@@ -43,6 +47,7 @@ export async function handleTelegramWebhook(rawRequestBody: unknown) {
     const trace = createMinimalTraceContext({
       channel: 'telegram',
       session_id: result.session.session_id,
+      httpRequestId: opts?.httpRequestId,
     });
 
     const outboundPayload = mapTelegramOutboundPayload({
@@ -55,6 +60,8 @@ export async function handleTelegramWebhook(rawRequestBody: unknown) {
     });
 
     const sender = createChannelSender('telegram');
+    const prepare_ms = Date.now() - wall0;
+    const tSend = Date.now();
     const sendResult = await sender.send({
       channel: 'telegram',
       session_id: result.session.session_id,
@@ -68,6 +75,7 @@ export async function handleTelegramWebhook(rawRequestBody: unknown) {
         message_trace_id: trace.message_trace_id,
       },
     });
+    const outbound_send_ms = Date.now() - tSend;
 
     return {
       ok: true,
@@ -79,6 +87,7 @@ export async function handleTelegramWebhook(rawRequestBody: unknown) {
       trace,
       transport_step: 'mapped-transported',
       trigger: isHelpTrigger ? 'help-start' : 'normal',
+      ...webhookObservabilityPhases(prepare_ms, outbound_send_ms),
     };
   } catch (error) {
     const fallback = createSafeFallbackResponse(String(error));

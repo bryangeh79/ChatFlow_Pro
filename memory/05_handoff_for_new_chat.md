@@ -1,9 +1,9 @@
 # Handoff for New Chat
 
 - This is an existing project handoff, not a fresh project restart.
-- **Current Phase: Phase 15.6** (Messenger real outbound implementation)
-- Current Version: **Pro_v1.07.9** (package.json: 1.7.9)
-- **Pause Status: Active — Phase 15.6 complete (已交付); next is Phase 15.7+** (Line/Zalo real transport or other priority)
+- **Current Phase: Phase 16.2** (HTTP access observability — webhook phases_ms + verification type narrowing)
+- Current Version: **Pro_v1.07.15** (package.json: 1.7.15)
+- **Pause Status: Active — Phase 16.2 observability enhanced delivered; next is Phase 16+** (token refresh ADR or extend observability)
 
 ## Completed Summary
 - Phase 1 blueprint work is complete.
@@ -146,19 +146,40 @@
   - **决策**: 使用 push API (`/v2/bot/message/push`) 而非 reply API (reply token 过期问题)
   - **Session 映射**: `line:{userId}:{session}` → `{userId}` 作为 recipient
   - **环境变量**: `LINE_CHANNEL_ACCESS_TOKEN`, `LINE_SANDBOX`, `LINE_MESSAGING_DISABLED`
-  - **状态**: 代码已交付，第四真实频道完成
+  - **状态**: 代码已交付，第四真实频道完成 (含 15.7.1 稳定性修订)
 
-## Unfinished Summary (Pro_v1.07.9 + post–15.6 limitations)
+- **Phase 15.8: Zalo real outbound implementation**:
+  - docs/149_phase15_8_zalo_real_outbound_adr.md — 架构设计文档 (已创建)
+  - `src/config/zalo‑openapi.ts` — `isZaloSandboxOrDisabled`, `loadZaloOpenApiConfigForRealSend`, `redactZaloTokenInMessage`
+  - `src/channels/adapters/zalo/real‑send.ts` — `parseZaloRecipientFromSessionId`, `sendZaloTextMessage` (undici、10s、5xx/429/网络重试 1 次、`access_token` header)
+  - `src/channels/outbound‑sender/index.ts` — Zalo 分支与其他 transports 对称 (real/synthetic、`should_send`、fallback/failure)
+  - **引用 docs/144**: 入站无官方签名，依赖 IP 白名单
+  - **Session 映射**: `zalo:{user_id}:{session}` → `{user_id}` 作为 recipient (第二段)
+  - **环境变量**: `ZALO_ACCESS_TOKEN`, `ZALO_OA_ID`, `ZALO_SANDBOX`, `ZALO_MESSAGING_DISABLED`
+  - **API 端点**: `POST https://openapi.zalo.me/v2.0/oa/message` (使用 `access_token` header)
+  - **状态**: 代码已交付，第五真实频道完成
+
+- **Phase 16.2: HTTP observability enhanced (webhook phases_ms + verification type narrowing)**:
+  - docs/150_phase16_http_access_observability.md — 更新文档包含 `phases_ms` 字段
+  - `src/observability/http-access.ts` — `webhookPhasesFromHandlerResult` 提取 timing 数据
+  - `src/webhooks/webhook-timing.ts` — `webhookObservabilityPhases`, `WebhookHandlerObservability` 接口
+  - 所有六路 webhook handlers (`telegram.ts`, `whatsapp.ts`, `messenger.ts`, `line.ts`, `zalo.ts`, `website.ts`) — 集成 `phases_ms` timing
+  - `src/server.ts` — 传递 `httpRequestId` 到 handlers，复制 `phases_ms` 到访问日志
+  - `src/webhooks/verification.ts` — verification 类型收窄
+  - **功能**: 访问日志包含 `phases_ms` (prepare vs outbound send)，verification 响应类型更精确
+  - **状态**: 代码已交付，HTTP 可观测性增强完成
+
+## Unfinished Summary (Pro_v1.07.15 + post–16.2 limitations)
 - Session store: in-memory only, single-process, **with 24h TTL expiration**
 - JSONL persistence: **backup accumulation controlled** (max 5 files, 50MB total)
 - Field extraction: regex-based, **with minimal format validation**
 - FAQ content: **multilingual with language-priority matching** (4 languages, 5 topics, 20 entries)
 - Intent dispatch: **implemented with partial session boundary fix**
-- Real transports: **Telegram real** when configured (**optional 138 proxy wired**); **WhatsApp Cloud real** when configured (token + phone number ID + not sandbox); **Messenger Graph real** when configured (token + page ID + not sandbox); **Line real** when configured (token + not sandbox); **Zalo** still synthetic
-- **POST 签名债务收口**: WhatsApp/Messenger/Line/Website 已实现；Zalo 无官方机制（待官方支持）
+- Real transports: **Telegram real** when configured (**optional 138 proxy wired**); **WhatsApp Cloud real** when configured (token + phone number ID + not sandbox); **Messenger Graph real** when configured (token + page ID + not sandbox); **Line real** when configured (token + not sandbox); **Zalo real** when configured (token + OA ID + not sandbox)
+- **POST 签名债务收口**: WhatsApp/Messenger/Line/Website 已实现；Zalo 无官方机制（依赖 IP 白名单）
 
 ## Next Unique Priority Action
-**Phase 15.8+** — Zalo real transport 或其他优先级任务
+**Phase 15.9+** — 其他优先级任务
 
 ## New Chat Rule
 - Read the memory files first, then continue from the current state without reopening product definition or architecture.

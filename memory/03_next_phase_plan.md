@@ -1,7 +1,7 @@
 # Next Phase Plan
 
-- Current Phase: **Phase 15.7** - Line real outbound implementation
-- Previous: Phase 15.6 — Messenger Graph API real outbound implementation
+- Current Phase: **Phase 16.2** — HTTP access observability enhanced (`X-Request-Id`, optional `CHATFLOW_HTTP_ACCESS_LOG`, webhook `phases_ms`, verification type narrowing)
+- Previous: Phase 16 — HTTP access observability first slice
 - Completed in Phase 15.0:
   - ✅ Created real transport architecture design document: docs/138_phase15_0_real_transport_design.md
   - ✅ Selected Telegram as first real transport (simple API, low barrier)
@@ -87,6 +87,7 @@
   - ✅ **构建**: `npm run build` 成功
   - ✅ **版本**: package.json **1.7.10** (Pro_v1.07.10) tags Phase 15.7 delivery
   - ✅ **ADR 更新**: `docs/148` 修正为 push API 端点与请求体
+  - ✅ **Phase 15.7.1 稳定性修订**: 移除 `LINE_MESSAGING_DISABLED` 检查，`parseLineRecipientFromSessionId` 返回 `null` 而非 `'unknown'`
 
 - Technical Debt Progress:
   - ✅ **Real transport design**: Architecture decision record created
@@ -106,10 +107,29 @@
   - Field extraction: regex-based, **with minimal format validation**
   - FAQ content: **multilingual with language-priority matching** (4 languages, 5 topics)
   - Intent dispatch: **implemented with partial session boundary fix**
-  - Real transports: **Telegram real send** when token set and not sandbox (optional proxy); **WhatsApp Cloud real send** when token + phone number ID + not sandbox; **Messenger Graph real send** when token + page ID + not sandbox; **Line/Zalo** still synthetic
-  - **POST signature validation**: **全部完成** — WhatsApp/Messenger/Line/Website 已实现；Zalo 无官方机制（待官方支持）
+  - Real transports: **Telegram real send** when token set and not sandbox (optional proxy); **WhatsApp Cloud real send** when token + phone number ID + not sandbox; **Messenger Graph real send** when token + page ID + not sandbox; **Line real send** when token + not sandbox; **Zalo real send** when token + OA ID + not sandbox
+  - **POST signature validation**: **全部完成** — WhatsApp/Messenger/Line/Website 已实现；Zalo 无官方机制（依赖 IP 白名单）
 
-- **Pause Status**: **Active** — Phase 15.7 Line implementation complete (已交付)
+- Completed in Phase 16 (observability slice):
+  - ✅ `src/observability/http-access.ts` — `createRequestId`, `channelFromPathname`, `writeHttpAccessLog`, env gate
+  - ✅ `src/server.ts` — always `X-Request-Id`; optional JSON access line on `res` `finish` (`duration_ms`, `channel` for `/webhooks/*`)
+  - ✅ `docs/150_phase16_http_access_observability.md`, `.env.example` `CHATFLOW_HTTP_ACCESS_LOG`
+  - ✅ Build: `npm run build`
+  - ✅ Version: package.json **1.7.13** (Pro_v1.07.13)
+
+- Completed in Phase 16.2 (webhook phases_ms + verification type narrowing):
+  - ✅ `src/webhooks/webhook-timing.ts` — `webhookObservabilityPhases`, `WebhookHandlerObservability` interface
+  - ✅ All six webhook handlers (`telegram.ts`, `whatsapp.ts`, `messenger.ts`, `line.ts`, `zalo.ts`, `website.ts`) — integrate `phases_ms` timing
+  - ✅ `src/observability/http-access.ts` — `webhookPhasesFromHandlerResult` extracts timings for access logs
+  - ✅ `src/server.ts` — passes `httpRequestId` to handlers, copies `phases_ms` to access logs
+  - ✅ `src/webhooks/verification.ts` — type narrowing for verification responses
+  - ✅ `docs/150` updated with `phases_ms` documentation
+  - ✅ Build: `npm run build`
+  - ✅ Version: package.json **1.7.15** (Pro_v1.07.15) — HTTP access log slice
+  - ✅ **Phase 16.1 (minimal)**: `httpRequestId` from `server` → all `handle*Webhook` → `createMinimalTraceContext` → outbound `debug_metadata.request_id` matches `X-Request-Id`; **1.7.14** (Pro_v1.07.14); `docs/150` updated
+  - ✅ **Phase 16.2 (minimal)**: `observability.phases_ms` on webhook JSON + copied into `http_access` log (`prepare_ms`, `outbound_send_ms`); `webhook-timing.ts`, `webhookPhasesFromHandlerResult`; **1.7.15** (Pro_v1.07.15)
+
+- **Pause Status**: **Active** — Phase 16.2 observability enhanced with webhook phase timings delivered
 - **Commander preference**: 完成约定 phase 交付后，**自动继续推进**下一立项阶段，无需指挥官每轮提醒「继续」；遇阻塞或范围不明时再停问。
 - **Implementation split**: **实现一律龙虾**；**Cursor 默认只出指令与验收**；仅**极小改动**可由 Cursor 直接改。详见 `memory/05_handoff_for_new_chat.md`。
-- Next Unique Priority Action: **Phase 15.8+** — Zalo real transport 或其他优先级任务
+- Next Unique Priority Action: **docs/152** 运维 **token 轮换 runbook** 已落盘（ADR 151 选项 A）；下一可选：在 **staging 按 152 做一次轮换演练** 并记结果；**Phase 17** in-process 刷新仍后置

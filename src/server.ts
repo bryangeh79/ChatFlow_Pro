@@ -1,6 +1,13 @@
 import http from 'node:http';
 import { URL } from 'node:url';
 import {
+  channelFromPathname,
+  createRequestId,
+  isHttpAccessLogEnabled,
+  webhookPhasesFromHandlerResult,
+  writeHttpAccessLog,
+} from './observability/http-access';
+import {
   getLineWebhookVerifyToken,
   getMessengerWebhookVerifyToken,
   getWebsiteWebhookVerifyToken,
@@ -72,6 +79,30 @@ async function readRequestBody(req: http.IncomingMessage): Promise<{ raw: Buffer
 
 async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  const pathname = url.pathname;
+  const method = req.method ?? 'GET';
+  const requestId = createRequestId();
+  const started = Date.now();
+  const channelTag = channelFromPathname(pathname);
+  let webhookPhases: ReturnType<typeof webhookPhasesFromHandlerResult>;
+
+  res.setHeader('x-request-id', requestId);
+
+  if (isHttpAccessLogEnabled()) {
+    res.on('finish', () => {
+      writeHttpAccessLog({
+        ts: new Date().toISOString(),
+        type: 'http_access',
+        request_id: requestId,
+        method,
+        path: pathname,
+        status: res.statusCode,
+        duration_ms: Date.now() - started,
+        ...(channelTag ? { channel: channelTag } : {}),
+        ...(webhookPhases ? { phases_ms: webhookPhases } : {}),
+      });
+    });
+  }
 
   if (req.method === 'GET' && url.pathname === '/health') {
     res.writeHead(200, { 'content-type': 'application/json' });
@@ -152,7 +183,8 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
 
   if (req.method === 'POST' && url.pathname === '/webhooks/telegram') {
     const { parsed: body } = await readRequestBody(req);
-    const result = await handleTelegramWebhook(body);
+    const result = await handleTelegramWebhook(body, { httpRequestId: requestId });
+    webhookPhases = webhookPhasesFromHandlerResult(result);
     res.writeHead(result.ok ? 200 : 400, { 'content-type': 'application/json' });
     res.end(JSON.stringify(result, null, 2));
     return;
@@ -172,7 +204,8 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
       return;
     }
     
-    const result = await handleWebsiteWebhook(parsed);
+    const result = await handleWebsiteWebhook(parsed, { httpRequestId: requestId });
+    webhookPhases = webhookPhasesFromHandlerResult(result);
     res.writeHead(result.ok ? 200 : 400, { 'content-type': 'application/json' });
     res.end(JSON.stringify(result, null, 2));
     return;
@@ -192,7 +225,8 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
       return;
     }
     
-    const result = await handleWhatsAppWebhook(parsed);
+    const result = await handleWhatsAppWebhook(parsed, { httpRequestId: requestId });
+    webhookPhases = webhookPhasesFromHandlerResult(result);
     const status = result.ok ? 200 : 400;
     res.writeHead(status, { 'content-type': 'application/json' });
     res.end(JSON.stringify(result, null, 2));
@@ -213,7 +247,8 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
       return;
     }
     
-    const result = await handleMessengerWebhook(parsed);
+    const result = await handleMessengerWebhook(parsed, { httpRequestId: requestId });
+    webhookPhases = webhookPhasesFromHandlerResult(result);
     const status = result.ok ? 200 : 400;
     res.writeHead(status, { 'content-type': 'application/json' });
     res.end(JSON.stringify(result, null, 2));
@@ -234,7 +269,8 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
       return;
     }
     
-    const result = await handleLineWebhook(parsed);
+    const result = await handleLineWebhook(parsed, { httpRequestId: requestId });
+    webhookPhases = webhookPhasesFromHandlerResult(result);
     const status = result.ok ? 200 : 400;
     res.writeHead(status, { 'content-type': 'application/json' });
     res.end(JSON.stringify(result, null, 2));
@@ -243,7 +279,8 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
 
   if (req.method === 'POST' && url.pathname === '/webhooks/zalo') {
     const { parsed: body } = await readRequestBody(req);
-    const result = await handleZaloWebhook(body);
+    const result = await handleZaloWebhook(body, { httpRequestId: requestId });
+    webhookPhases = webhookPhasesFromHandlerResult(result);
     const status = result.ok ? 200 : 400;
     res.writeHead(status, { 'content-type': 'application/json' });
     res.end(JSON.stringify(result, null, 2));

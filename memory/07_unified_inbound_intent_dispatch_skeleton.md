@@ -1,7 +1,8 @@
-# 2026-04-05 - Unified Inbound Intent Dispatch (Pro_v1.07.10)
+# 2026-04-05 - Unified Inbound Intent Dispatch (Pro_v1.07.15)
 
-- Dual-entry baseline protected and enhanced (Pro_v1.07.10).
-- Phase 15.0–15.7 complete: ADR + Telegram real outbound + proxy + GET verification + Meta POST signature + Line POST signature + Zalo signature research + Website POST signature + WhatsApp Cloud API real outbound + Messenger Graph API real outbound + Line Messaging API real outbound.
+- Dual-entry baseline protected and enhanced (Pro_v1.07.15).
+- Phase 15.0–15.8 complete: ADR + Telegram real outbound + proxy + GET verification + Meta POST signature + Line POST signature + Zalo signature research + Website POST signature + WhatsApp Cloud API real outbound + Messenger Graph API real outbound + Line Messaging API real outbound + Zalo Open API real outbound.
+- Phase 16.2 (observability enhanced): HTTP access logging with `X-Request-Id` + optional JSON log line + webhook `phases_ms` timings (prepare vs outbound send) + verification type narrowing.
 - **Intent dispatch fully implemented** (not placeholder):
   - 4 intent types: `faq_candidate`, `lead_candidate`, `chitchat_fallback`, `unknown`
   - 4 dispatch stages: `prioritize_faq`, `prioritize_lead`, `run_both`, `pass_through`
@@ -18,5 +19,5 @@
 - Evidence: leadCaptureResult, faqResult, intentPreparation, dispatchResult in debug_metadata.
 - Infrastructure: JSONL rotation with cleanup (max 5 files, 50MB total), failure-safe persistence.
 - Webhook security: GET verification (all 7 channels) + POST signature (WhatsApp/Messenger/Line/Website when secret configured) + Zalo IP whitelisting (per official docs).
-- Real transports: Telegram (Bot API) + WhatsApp Cloud (Graph API) + Messenger Graph (Graph API) + Line (push API) when configured.
-- **Pause Status**: **Active** — Phase 15.7 complete (已交付); next: **Phase 15.8+**.
+- Real transports: Telegram (Bot API) + WhatsApp Cloud (Graph API) + Messenger Graph (Graph API) + Line (push API) + Zalo (Open API) when configured.
+- **Pause Status**: **Active** — Phase 16.2 observability enhanced complete (已交付); next: **Phase 16+** (token refresh ADR or extend observability).

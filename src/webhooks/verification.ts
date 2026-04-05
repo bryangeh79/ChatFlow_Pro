@@ -141,41 +141,44 @@ export async function runMinimalInboundVerification() {
   });
 
   return {
-    telegram: telegramResult.ok
-      ? {
-          ok: true,
-          inbound_result: telegramResult.message,
-          channel: telegramResult.message?.channel ?? null,
-          session_id: telegramResult.session?.session_id ?? null,
-          response_channel: telegramResult.response?.channel ?? null,
-          outbound_payload: telegramResult.outboundPayload ?? null,
-          outbound_channel: telegramResult.outboundPayload?.kind ?? null,
-          send_result: telegramResult.sendResult ?? null,
-          send_result_channel: telegramResult.sendResult?.result.channel ?? null,
-          transport_step: telegramResult.sendResult?.result.debug_steps ?? null,
-          transport_result: telegramResult.transport_step,
-          provider_message_id: telegramResult.sendResult?.result.provider_message_id ?? null,
-          trigger: telegramResult.trigger,
-        }
-      : { ok: false, error: telegramResult.error },
-    telegram_help: telegramHelpResult.ok
-      ? {
-          ok: true,
-          trigger: telegramHelpResult.trigger,
-          response_text: telegramHelpResult.response?.reply_text ?? null,
-          outbound_text: telegramHelpResult.outboundPayload?.text ?? null,
-        }
-      : { ok: false, error: telegramHelpResult.error },
-    website: websiteResult.ok
-      ? {
-          ok: true,
-          channel: websiteResult.message?.channel ?? null,
-          session_id: websiteResult.session?.session_id ?? null,
-          response_channel: websiteResult.response?.channel ?? null,
-          outbound_channel: websiteResult.outboundPayload?.kind ?? null,
-          send_result_channel: websiteResult.sendResult?.result.channel ?? null,
-        }
-      : { ok: false, error: websiteResult.error },
+    telegram:
+      telegramResult.ok && 'message' in telegramResult
+        ? {
+            ok: true,
+            inbound_result: telegramResult.message,
+            channel: telegramResult.message?.channel ?? null,
+            session_id: telegramResult.session?.session_id ?? null,
+            response_channel: telegramResult.response?.channel ?? null,
+            outbound_payload: telegramResult.outboundPayload ?? null,
+            outbound_channel: telegramResult.outboundPayload?.kind ?? null,
+            send_result: telegramResult.sendResult ?? null,
+            send_result_channel: telegramResult.sendResult?.result.channel ?? null,
+            transport_step: telegramResult.sendResult?.result.debug_steps ?? null,
+            transport_result: telegramResult.transport_step,
+            provider_message_id: telegramResult.sendResult?.result.provider_message_id ?? null,
+            trigger: telegramResult.trigger,
+          }
+        : { ok: false, error: 'error' in telegramResult ? telegramResult.error : undefined },
+    telegram_help:
+      telegramHelpResult.ok && 'message' in telegramHelpResult
+        ? {
+            ok: true,
+            trigger: telegramHelpResult.trigger,
+            response_text: telegramHelpResult.response?.reply_text ?? null,
+            outbound_text: telegramHelpResult.outboundPayload?.text ?? null,
+          }
+        : { ok: false, error: 'error' in telegramHelpResult ? telegramHelpResult.error : undefined },
+    website:
+      websiteResult.ok && 'message' in websiteResult
+        ? {
+            ok: true,
+            channel: websiteResult.message?.channel ?? null,
+            session_id: websiteResult.session?.session_id ?? null,
+            response_channel: websiteResult.response?.channel ?? null,
+            outbound_channel: websiteResult.outboundPayload?.kind ?? null,
+            send_result_channel: websiteResult.sendResult?.result.channel ?? null,
+          }
+        : { ok: false, error: 'error' in websiteResult ? websiteResult.error : undefined },
     whatsapp:
       whatsappResult.ok && 'message' in whatsappResult && whatsappResult.message
         ? {

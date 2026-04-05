@@ -5,9 +5,12 @@ import { createOrUpdateSessionContext, commitSessionContext } from '../channels/
 import { runUnifiedInboundPipeline } from '../channels/unified-inbound-pipeline';
 import { createMinimalTraceContext } from '../channels/errors/observability';
 import { createSafeFallbackResponse } from '../channels/errors';
+import type { WebhookHandlerOptions } from './telegram';
+import { webhookObservabilityPhases } from './webhook-timing';
 
-export async function handleWebsiteWebhook(rawRequestBody: unknown) {
+export async function handleWebsiteWebhook(rawRequestBody: unknown, opts?: WebhookHandlerOptions) {
   try {
+    const wall0 = Date.now();
     const message = parseWebsiteInbound(rawRequestBody);
     const session = createOrUpdateSessionContext(message);
     const result = runUnifiedInboundPipeline(message, session);
@@ -18,6 +21,7 @@ export async function handleWebsiteWebhook(rawRequestBody: unknown) {
     const trace = createMinimalTraceContext({
       channel: 'website',
       session_id: result.session.session_id,
+      httpRequestId: opts?.httpRequestId,
     });
 
     const outboundPayload = mapWebsiteOutboundPayload({
@@ -30,6 +34,8 @@ export async function handleWebsiteWebhook(rawRequestBody: unknown) {
     });
 
     const sender = createChannelSender('website');
+    const prepare_ms = Date.now() - wall0;
+    const tSend = Date.now();
     const sendResult = await sender.send({
       channel: 'website',
       session_id: result.session.session_id,
@@ -43,6 +49,7 @@ export async function handleWebsiteWebhook(rawRequestBody: unknown) {
         message_trace_id: trace.message_trace_id,
       },
     });
+    const outbound_send_ms = Date.now() - tSend;
 
     return {
       ok: true,
@@ -51,6 +58,7 @@ export async function handleWebsiteWebhook(rawRequestBody: unknown) {
       response: result.response,
       outboundPayload,
       sendResult: { result: sendResult.result },
+      ...webhookObservabilityPhases(prepare_ms, outbound_send_ms),
     };
   } catch (error) {
     const fallback = createSafeFallbackResponse(String(error));

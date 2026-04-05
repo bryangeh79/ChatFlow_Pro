@@ -5,6 +5,8 @@ import { createOrUpdateSessionContext, commitSessionContext } from '../channels/
 import { runUnifiedInboundPipeline } from '../channels/unified-inbound-pipeline';
 import { createMinimalTraceContext } from '../channels/errors/observability';
 import { createSafeFallbackResponse } from '../channels/errors';
+import type { WebhookHandlerOptions } from './telegram';
+import { webhookObservabilityPhases } from './webhook-timing';
 
 /**
  * 解析 Line Webhook 载荷
@@ -53,14 +55,16 @@ function parseLineInbound(rawRequestBody: unknown): ReturnType<typeof normalizeL
   return null;
 }
 
-export async function handleLineWebhook(rawRequestBody: unknown) {
+export async function handleLineWebhook(rawRequestBody: unknown, opts?: WebhookHandlerOptions) {
   try {
+    const wall0 = Date.now();
     const message = parseLineInbound(rawRequestBody);
     if (message === null) {
       return {
         ok: true,
         skipped: true,
         reason: 'no_processable_message',
+        ...webhookObservabilityPhases(Date.now() - wall0),
       };
     }
 
@@ -71,6 +75,7 @@ export async function handleLineWebhook(rawRequestBody: unknown) {
     const trace = createMinimalTraceContext({
       channel: 'line',
       session_id: result.session.session_id,
+      httpRequestId: opts?.httpRequestId,
     });
 
     const outboundPayload = mapLineOutboundPayload({
@@ -83,6 +88,8 @@ export async function handleLineWebhook(rawRequestBody: unknown) {
     });
 
     const sender = createChannelSender('line');
+    const prepare_ms = Date.now() - wall0;
+    const tSend = Date.now();
     const sendResult = await sender.send({
       channel: 'line',
       session_id: result.session.session_id,
@@ -96,6 +103,7 @@ export async function handleLineWebhook(rawRequestBody: unknown) {
         message_trace_id: trace.message_trace_id,
       },
     });
+    const outbound_send_ms = Date.now() - tSend;
 
     return {
       ok: true,
@@ -104,6 +112,7 @@ export async function handleLineWebhook(rawRequestBody: unknown) {
       response: result.response,
       outboundPayload,
       sendResult: { result: sendResult.result },
+      ...webhookObservabilityPhases(prepare_ms, outbound_send_ms),
     };
   } catch (error) {
     const fallback = createSafeFallbackResponse(String(error));

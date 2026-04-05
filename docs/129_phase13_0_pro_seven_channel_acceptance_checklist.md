@@ -446,6 +446,25 @@ For each processed message, verify these fields in response:
 ✅ **Type system complete** for all 7 channels  
 ✅ **Build passes** (`npm run build`) with no type errors  
 
+## Real Outbound Transport Matrix (Updated: Pro_v1.07.11)
+
+| Channel | Real Transport Status | Environment Variables | Conditions | Notes |
+|---------|----------------------|----------------------|------------|-------|
+| **Telegram** | ✅ Real | `TELEGRAM_BOT_TOKEN`<br>`TELEGRAM_SANDBOX` (optional)<br>`TELEGRAM_PROXY_*` (optional) | Token valid + not sandbox | Bot API with optional HTTP proxy |
+| **WhatsApp** | ✅ Real | `WHATSAPP_ACCESS_TOKEN`<br>`WHATSAPP_PHONE_NUMBER_ID`<br>`WHATSAPP_SANDBOX` (optional) | Token + phone number ID valid + not sandbox | Graph API (Facebook) |
+| **Messenger** | ✅ Real | `MESSENGER_PAGE_ACCESS_TOKEN`<br>`MESSENGER_PAGE_ID`<br>`MESSENGER_SANDBOX` (optional) | Token + page ID valid + not sandbox | Graph API (Facebook) |
+| **Line** | ✅ Real | `LINE_CHANNEL_ACCESS_TOKEN`<br>`LINE_SANDBOX` (optional)<br>`LINE_MESSAGING_DISABLED` (optional) | Token valid + not sandbox/disabled | Push API (`/v2/bot/message/push`) |
+| **Zalo** | ✅ Real | `ZALO_ACCESS_TOKEN`<br>`ZALO_OA_ID`<br>`ZALO_SANDBOX` (optional)<br>`ZALO_MESSAGING_DISABLED` (optional) | Token + OA ID valid + not sandbox/disabled | Open API (`/v2.0/oa/message`) |
+| **Website** | ❌ Synthetic | – | Always synthetic | No real transport needed (direct response) |
+| **All Channels** | Webhook Security | See Phase 15.4a–15.4d | When secret configured | GET verification + POST signature validation |
+
+**Implementation Notes**:
+- All real transports: 10s timeout + single retry on 5xx/429/network errors
+- Token redaction: No tokens in logs (split/join replacement)
+- Session mapping: `{channel}:{recipient}:{session}` → extract recipient
+- Fallback: Missing/invalid config → synthetic sender (no error to user)
+- Webhook response: Always HTTP 200 OK even when real API fails
+
 ## Next Steps After Acceptance
 1. **Pro channel suite accepted** as baseline
 2. **Choose Phase 13 direction**:

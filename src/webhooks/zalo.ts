@@ -5,6 +5,8 @@ import { createOrUpdateSessionContext, commitSessionContext } from '../channels/
 import { runUnifiedInboundPipeline } from '../channels/unified-inbound-pipeline';
 import { createMinimalTraceContext } from '../channels/errors/observability';
 import { createSafeFallbackResponse } from '../channels/errors';
+import type { WebhookHandlerOptions } from './telegram';
+import { webhookObservabilityPhases } from './webhook-timing';
 
 /**
  * 解析 Zalo Webhook 载荷
@@ -63,14 +65,16 @@ function parseZaloInbound(rawRequestBody: unknown): ReturnType<typeof normalizeZ
   return null;
 }
 
-export async function handleZaloWebhook(rawRequestBody: unknown) {
+export async function handleZaloWebhook(rawRequestBody: unknown, opts?: WebhookHandlerOptions) {
   try {
+    const wall0 = Date.now();
     const message = parseZaloInbound(rawRequestBody);
     if (message === null) {
       return {
         ok: true,
         skipped: true,
         reason: 'no_processable_message',
+        ...webhookObservabilityPhases(Date.now() - wall0),
       };
     }
 
@@ -81,6 +85,7 @@ export async function handleZaloWebhook(rawRequestBody: unknown) {
     const trace = createMinimalTraceContext({
       channel: 'zalo',
       session_id: result.session.session_id,
+      httpRequestId: opts?.httpRequestId,
     });
 
     const outboundPayload = mapZaloOutboundPayload({
@@ -93,6 +98,8 @@ export async function handleZaloWebhook(rawRequestBody: unknown) {
     });
 
     const sender = createChannelSender('zalo');
+    const prepare_ms = Date.now() - wall0;
+    const tSend = Date.now();
     const sendResult = await sender.send({
       channel: 'zalo',
       session_id: result.session.session_id,
@@ -106,6 +113,7 @@ export async function handleZaloWebhook(rawRequestBody: unknown) {
         message_trace_id: trace.message_trace_id,
       },
     });
+    const outbound_send_ms = Date.now() - tSend;
 
     return {
       ok: true,
@@ -114,6 +122,7 @@ export async function handleZaloWebhook(rawRequestBody: unknown) {
       response: result.response,
       outboundPayload,
       sendResult: { result: sendResult.result },
+      ...webhookObservabilityPhases(prepare_ms, outbound_send_ms),
     };
   } catch (error) {
     const fallback = createSafeFallbackResponse(String(error));
