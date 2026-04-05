@@ -2,7 +2,7 @@
 
 - Project Name: ChatFlow Pro
 - Current Phase: **Phase 17.1** (in-process Zalo OA token refresh on 401 — optional, behind `CHATFLOW_INPROCESS_TOKEN_REFRESH`; Meta in-process refresh still future)
-- Current Version: **Pro_v1.07.19** (package.json: 1.7.19)
+- Current Version: **Pro_v1.07.20** (package.json: 1.7.20)
 - Execution Root: C:\AI_WORKSPACE\Chatflow\ChatFlow_Pro
 - Current Project State: 
   - ✅ **Seven-route webhook baseline**: Website, Telegram, WhatsApp, Messenger, Line, Zalo (`POST /webhooks/*` + **`GET /webhooks/*`** verification per docs/141)

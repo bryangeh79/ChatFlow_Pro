@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readGitMetadataFromFs } from './agent-git-fs.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -52,16 +53,23 @@ if (!gitVersion && process.platform === 'win32') {
   gitVersion = run(git, ['--version']);
 }
 if (!gitVersion) {
+  const fsMeta = readGitMetadataFromFs(root);
   console.error(`
-[agent-env-check] Git is not on PATH.
+[agent-env-check] Git is not on PATH — full delivery (commit/push) unavailable in this shell.
 
-Windows (Git for Windows):
-  1. Install from https://git-scm.com/download/win
-  2. Ensure "Git from the command line and also from 3rd-party software" (or add Git\\cmd to PATH)
-  3. Restart the terminal / agent host, then: git --version
+If you only need HEAD for reports (e.g. Docker / read-only agent with mounted .git):
+  npm run report:agent-git
 
-See docs/155_phase17_lobster_and_git_environment.md
+Windows host fix (Git for Windows):
+  1. https://git-scm.com/download/win
+  2. Put Git\\\\cmd on PATH; restart OpenClaw / agent host
+  See docs/155_phase17_lobster_and_git_environment.md
 `);
+  if (fsMeta) {
+    console.error(
+      `[agent-env-check] hint: filesystem sees HEAD ${fsMeta.sha} (branch ${fsMeta.branch ?? 'n/a'}) — use report:agent-git for logs.\n`,
+    );
+  }
   fail('git missing');
 }
 ok(gitVersion);

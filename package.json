@@ -1,6 +1,6 @@
 {
   "name": "chatflow-pro",
-  "version": "1.7.19",
+  "version": "1.7.20",
   "private": true,
   "type": "commonjs",
   "scripts": {
@@ -8,7 +8,8 @@
     "build": "tsc -p tsconfig.json",
     "smoke:webhooks": "node scripts/smoke-webhooks.mjs",
     "dev:website-outbound-echo": "node scripts/website-outbound-echo.mjs",
-    "check:agent-env": "node scripts/agent-env-check.mjs"
+    "check:agent-env": "node scripts/agent-env-check.mjs",
+    "report:agent-git": "node scripts/agent-git-metadata.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",

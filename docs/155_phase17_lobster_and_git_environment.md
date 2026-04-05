@@ -17,6 +17,21 @@ npm run check:agent-env
 
 Agents should run this **once per session** before any task that includes “commit / push / CI”.
 
+## Docker / container / no `git` binary
+
+Many agent hosts use a **minimal image** (no `git`, read-only FS). Then:
+
+| Need | What to do |
+|------|------------|
+| **Report HEAD SHA / branch** in notes | Run **`npm run report:agent-git`** — reads `.git/HEAD` and `refs` (or `packed-refs`) **without** the git CLI. Requires a **normal clone** (`.git` present and readable). |
+| **commit / push** | Not possible inside that container unless you add **`git` to the image**, bind-mount the host `git` binary, or run git on the **Windows host / Cursor** and let the container only produce patches. |
+
+**Long-term options**
+
+1. **Base image** that includes `git` (e.g. `apk add git` on Alpine, or use `node` image + `apt-get install git`).  
+2. **Two-stage workflow**: lobster in container → `build` + `smoke` + `report:agent-git`; **Cursor / Bryan** on host → `git commit` + `git push`.  
+3. **Mount repo from host** where git already works; run the agent process **on the host** if you need full `check:agent-env` green.
+
 ## Windows: install Git and PATH
 
 1. Install **Git for Windows**: https://git-scm.com/download/win  
@@ -33,7 +48,7 @@ Agents should run this **once per session** before any task that includes “com
 
 - **Working directory**: must be the **repository root** (folder that contains `package.json` and `.git`).  
 - **Shell**: PowerShell or cmd is fine if `git` resolves on PATH.  
-- If the agent runs in a **minimal container** or **sandbox without git**, install `git` in the image or mount the host `git` — otherwise commit/push steps will always fail; use `check:agent-env` to fail fast.
+- If the agent runs in a **minimal container** without `git`, use **`npm run report:agent-git`** for SHA reporting and offload **commit/push** to a host with git (see table above).
 
 ## After check passes
 
@@ -50,10 +65,11 @@ git commit -m "feat: …"
 git push origin main
 ```
 
-Report **actual** `git rev-parse HEAD` in `memory/YYYY-MM-DD.md`, not a placeholder.
+Report **actual** HEAD in `memory/YYYY-MM-DD.md`: either `git rev-parse HEAD` or the line printed by **`npm run report:agent-git`** — not a placeholder.
 
 ## References
 
-- `scripts/agent-env-check.mjs` — implementation  
+- `scripts/agent-env-check.mjs` — strict check (git on PATH)  
+- `scripts/agent-git-metadata.mjs` / `scripts/agent-git-fs.mjs` — SHA without git CLI  
 - `AGENTS.md` — workspace note for AI agents  
 - `docs/152_phase16_ops_token_rotation_runbook.md` — ops runbook (separate from agent PATH)
