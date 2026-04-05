@@ -19,6 +19,27 @@ Quick **build + HEAD** (no git binary needed for the second part): `npm run veri
 
 Agents should run this **once per session** before any task that includes “commit / push / CI”.
 
+## Typical OpenClaw profile (read-only `/workspace`, Telegram, etc.)
+
+Some deployments match this pattern (exact versions and HEAD change over time — **do not** treat pasted SHAs as eternal):
+
+| Item | Usual reality |
+|------|----------------|
+| **Workspace** | `/workspace` in Docker; **read-only** FS except allowed mounts |
+| **`.git`** | Often **present** (normal clone) but **`git` binary absent** |
+| **HEAD / branch** | Use **`npm run report:agent-git`** — never invent a SHA |
+| **Project version** | Read **`package.json`** `version` and **`memory/01_project_status.md`** `Pro_v…` after host sync |
+| **Docker** | **No** Docker-in-Docker; **`docker compose`** only on **host** |
+| **Remote smoke** | **`SMOKE_BASE_URL`** must point at a reachable HTTP API (public staging **or** host-reachable `http://127.0.0.1:3030` if smoke runs on same machine as the server) |
+
+**Formal split of duties (与 `docs/158`、`docs/159` 一致)**
+
+1. **Git** (commit / push / pull): **Cursor 或宿主**；容器内用 `report:agent-git` 汇报 SHA。  
+2. **Docker staging**: **宿主**执行 `docker compose up`（见 **`docs/158`**）。  
+3. **CI**: **宿主 push `main`** 后由 GitHub Actions 跑（见 **`.github/workflows/ci.yml`**）。
+
+**Still allowed in-container:** `npm run build`, `npm run smoke:webhooks` (with env), `npm run verify:local`, file edits under workspace policy, local `node` on port 3030+ when the image permits.
+
 ## Docker / container / no `git` binary
 
 Many agent hosts use a **minimal image** (no `git`, read-only FS). Then:
