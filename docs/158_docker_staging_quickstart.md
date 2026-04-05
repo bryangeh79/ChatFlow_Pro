@@ -89,6 +89,7 @@ Use this when **one** bot on **one** VPS is “good enough to operate” — no 
 5. **Secrets & backup**: **Never** commit `.env`. On the server, restrict permissions (e.g. `chmod 600 .env`). Keep an **offline** copy of `.env` (password manager / encrypted backup — not chat logs). If a token leaks, rotate at the platform and update `.env`, then **`docker compose up -d --force-recreate`**.
 6. **Upgrade path** (code): from the client deploy dir (e.g. `/opt/chatflow/clients/client-01`): `git pull` → `docker compose up -d --build`. If behaviour is wrong, capture **`x-request-id`** from the failing request before rollback (`git checkout <sha>` + rebuild).
 7. **Optional confidence** (from laptop, non-blocking): `SMOKE_BASE_URL=https://<subdomain> npm run smoke:webhooks` with **`SMOKE_SKIP_*`** for channels you have not wired yet — still records Phase 0 style pass/skip ( **`docs/157`** ).
+8. **Optional lead notify**: Set **`CHATFLOW_LEAD_NOTIFY_URL`** (and optionally **`CHATFLOW_LEAD_NOTIFY_SECRET`**) in `.env` so the first successful write to **`data/local-captured-leads.jsonl`** also triggers an async **POST** (Zapier / internal CRM). **`npm run check:staging-env`** lists SET/MISSING for these keys.
 
 ## CI note
 

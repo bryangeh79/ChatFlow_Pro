@@ -114,6 +114,14 @@ function sectionPhase0() {
   return { ok: true, lines };
 }
 
+function sectionOptionalLeadNotify() {
+  const lines = [];
+  lines.push('[Optional — lead capture notify] first JSONL persist → POST (see .env.example CHATFLOW_LEAD_NOTIFY_*)');
+  lines.push(`  CHATFLOW_LEAD_NOTIFY_URL                ${isNonEmpty('CHATFLOW_LEAD_NOTIFY_URL') ? 'SET' : 'MISSING'}`);
+  lines.push(`  CHATFLOW_LEAD_NOTIFY_SECRET             ${isNonEmpty('CHATFLOW_LEAD_NOTIFY_SECRET') ? 'SET' : 'MISSING'}`);
+  return { ok: true, lines };
+}
+
 function sectionPhaseB() {
   const lines = [];
   const rows = [
@@ -252,6 +260,8 @@ function main() {
         ...sectionPhaseCWhatsApp().lines,
         '',
         ...sectionPhaseCMessenger().lines,
+        '',
+        ...sectionOptionalLeadNotify().lines,
       ].join('\n'),
     );
     return;
@@ -280,6 +290,8 @@ function main() {
     ok: mc.ok && cwa.ok && cms.ok,
     lines: [...mc.lines, '', ...cwa.lines, '', ...cms.lines],
   };
+  const leadN = sectionOptionalLeadNotify();
+
   sections.all = {
     ok: true,
     lines: [
@@ -292,6 +304,8 @@ function main() {
       ...cwa.lines,
       '',
       ...cms.lines,
+      '',
+      ...leadN.lines,
     ],
   };
 
@@ -326,6 +340,10 @@ function main() {
         ok: cms.ok,
         MESSENGER_PAGE_ACCESS_TOKEN: isNonEmpty('MESSENGER_PAGE_ACCESS_TOKEN'),
         MESSENGER_PAGE_ID: isNonEmpty('MESSENGER_PAGE_ID'),
+      },
+      optional_lead_notify: {
+        CHATFLOW_LEAD_NOTIFY_URL: isNonEmpty('CHATFLOW_LEAD_NOTIFY_URL'),
+        CHATFLOW_LEAD_NOTIFY_SECRET: isNonEmpty('CHATFLOW_LEAD_NOTIFY_SECRET'),
       },
       combined: {
         'c-wa': sections['c-wa'].ok,

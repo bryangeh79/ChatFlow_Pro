@@ -158,4 +158,5 @@
 - **Pro_v1.07.36** (package.json 1.7.36): **`.env.example`** 默认打开 **`CHATFLOW_HTTP_ACCESS_LOG=true`**（文档说明本地可关）
 - **Pro_v1.07.37** (package.json 1.7.37): **`docs/157`** Phase 0 — **自托管 HTTPS staging**（VPS/Caddy）与笔记本远程 **`smoke:webhooks`** 路径写入 playbook
 - **Pro_v1.07.38** (package.json 1.7.38): **`docs/158`** — **单通道 Telegram 可交付收口**清单（健康检查、观测性、密钥与升级路径）
-- Next Unique Priority Action: 按 **`docs/158`** *Single-channel (Telegram) deliverable closeout* 逐项收口；可选笔记本 **`SMOKE_BASE_URL=https://…` `npm run smoke:webhooks`**（**`SMOKE_SKIP_*`**）；再按需 **157** Phase A → B/C 或 **memory/31–37**。门禁 **T0+T1**；**`docs/155`** *T1 equivalence* 适用于无 Docker 的代理环境。
+- **Pro_v1.07.39** (package.json 1.7.39): **`CHATFLOW_LEAD_NOTIFY_URL`** — lead 首次持久化时异步 POST；**`check:staging-env`** 可选节
+- Next Unique Priority Action: **`docs/158`** 收口 + 按需 **lead notify**；下一产品块 **handoff**（**memory/32**）或第二通道；门禁 **T0+T1**；**`docs/155`** *T1 equivalence* 适用于无 Docker 的代理环境。

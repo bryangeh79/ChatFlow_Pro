@@ -2,23 +2,14 @@ import type { UnifiedSessionContext } from '../../../shared/types/unified-sessio
 import type { UnifiedInboundMessage } from '../../../shared/types/unified-inbound-message';
 import * as fs from 'fs';
 import * as path from 'path';
+import { scheduleLeadCaptureNotify } from './notify-outbound';
+import type { CapturedLeadRecord } from './captured-lead-record';
+
+export type { CapturedLeadRecord } from './captured-lead-record';
 
 // 备份清理配置
 const MAX_BACKUP_COUNT = 5; // 最多保留 5 个备份文件
 const MAX_BACKUP_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB 总大小限制
-
-export interface CapturedLeadRecord {
-  session_id: string;
-  channel: 'website' | 'telegram' | 'whatsapp' | 'messenger' | 'line' | 'zalo';
-  collected_fields: {
-    name?: string;
-    phone?: string;
-    email?: string;
-  };
-  completed_at: string;
-  message_id?: string;
-  captured_at: string;
-}
 
 // 配置常量
 const JSONL_MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -190,7 +181,9 @@ export function appendCapturedLeadRecord(
     
     // 追加写入文件
     fs.appendFileSync(filePath, line, { encoding: 'utf8' });
-    
+
+    scheduleLeadCaptureNotify(record);
+
     // 可选：记录成功（仅开发调试）
     if (process.env.NODE_ENV === 'development') {
       console.debug(`[LeadCapture] Record appended: ${session.session_id}`);
