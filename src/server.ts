@@ -12,6 +12,7 @@ import {
 } from './config/webhook-verify';
 import { loadMetaWebhookConfig, verifyMetaSignature, warnIfNoAppSecret } from './config/meta-webhook';
 import { getLineChannelSecret, verifyLineSignature, warnIfNoLineChannelSecret } from './config/line-webhook';
+import { getWebsiteSigningSecret, verifyWebsiteSignature, warnIfNoWebsiteSigningSecret } from './config/website-webhook';
 import { handleTelegramWebhook } from './webhooks/telegram';
 import { handleWebsiteWebhook } from './webhooks/website';
 import { handleWhatsAppWebhook } from './webhooks/whatsapp';
@@ -44,6 +45,14 @@ warnIfNoLineChannelSecret(!!lineChannelSecret);
 if (lineChannelSecret) {
   // eslint-disable-next-line no-console
   console.log('[LineWebhook] Line signature verification enabled');
+}
+
+// Load Website signing secret
+const websiteSigningSecret = getWebsiteSigningSecret();
+warnIfNoWebsiteSigningSecret(!!websiteSigningSecret);
+if (websiteSigningSecret) {
+  // eslint-disable-next-line no-console
+  console.log('[WebsiteWebhook] Website signature verification enabled');
 }
 
 async function readRequestBody(req: http.IncomingMessage): Promise<{ raw: Buffer; parsed: unknown }> {
@@ -150,8 +159,20 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
   }
 
   if (req.method === 'POST' && url.pathname === '/webhooks/website') {
-    const { parsed: body } = await readRequestBody(req);
-    const result = await handleWebsiteWebhook(body);
+    const { raw, parsed } = await readRequestBody(req);
+    
+    // Verify website signature if signing secret is configured
+    const signatureHeader = req.headers['x-webhook-signature'] as string | undefined;
+    const isValid = verifyWebsiteSignature(raw, signatureHeader, websiteSigningSecret);
+    
+    if (!isValid) {
+      // 403 Forbidden for invalid signature
+      res.writeHead(403, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'signature_invalid' }));
+      return;
+    }
+    
+    const result = await handleWebsiteWebhook(parsed);
     res.writeHead(result.ok ? 200 : 400, { 'content-type': 'application/json' });
     res.end(JSON.stringify(result, null, 2));
     return;

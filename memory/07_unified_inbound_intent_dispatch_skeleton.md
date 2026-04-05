@@ -1,7 +1,7 @@
-# 2026-04-05 - Unified Inbound Intent Dispatch (Pro_v1.07.6)
+# 2026-04-05 - Unified Inbound Intent Dispatch (Pro_v1.07.10)
 
-- Dual-entry baseline protected and enhanced (Pro_v1.07.6).
-- Phase 15.0–15.4c complete: ADR + Telegram real outbound + proxy + GET verification + Meta POST signature + Line POST signature + Zalo signature research.
+- Dual-entry baseline protected and enhanced (Pro_v1.07.10).
+- Phase 15.0–15.7 complete: ADR + Telegram real outbound + proxy + GET verification + Meta POST signature + Line POST signature + Zalo signature research + Website POST signature + WhatsApp Cloud API real outbound + Messenger Graph API real outbound + Line Messaging API real outbound.
 - **Intent dispatch fully implemented** (not placeholder):
   - 4 intent types: `faq_candidate`, `lead_candidate`, `chitchat_fallback`, `unknown`
   - 4 dispatch stages: `prioritize_faq`, `prioritize_lead`, `run_both`, `pass_through`
@@ -17,5 +17,6 @@
 - Outbound: prompts merged into reply_text, four-language i18n support.
 - Evidence: leadCaptureResult, faqResult, intentPreparation, dispatchResult in debug_metadata.
 - Infrastructure: JSONL rotation with cleanup (max 5 files, 50MB total), failure-safe persistence.
-- Webhook security: GET verification (all 7 channels) + POST signature (WhatsApp/Messenger/Line when secret configured) + Zalo IP whitelisting (per official docs).
-- **Pause Status**: **Active** — Phase 15.4c complete (已交付); next: **Phase 15.4d+**.
+- Webhook security: GET verification (all 7 channels) + POST signature (WhatsApp/Messenger/Line/Website when secret configured) + Zalo IP whitelisting (per official docs).
+- Real transports: Telegram (Bot API) + WhatsApp Cloud (Graph API) + Messenger Graph (Graph API) + Line (push API) when configured.
+- **Pause Status**: **Active** — Phase 15.7 complete (已交付); next: **Phase 15.8+**.

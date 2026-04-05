@@ -1,8 +1,8 @@
 # Project Status
 
 - Project Name: ChatFlow Pro
-- Current Phase: **Phase 15.4c** (Zalo POST signature research)
-- Current Version: **Pro_v1.07.6** (package.json: 1.7.6)
+- Current Phase: **Phase 15.7** (Line real outbound implementation)
+- Current Version: **Pro_v1.07.10** (package.json: 1.7.10)
 - Execution Root: C:\AI_WORKSPACE\Chatflow\ChatFlow_Pro
 - Current Project State: 
   - ✅ **Seven-route webhook baseline**: Website, Telegram, WhatsApp, Messenger, Line, Zalo (`POST /webhooks/*` + **`GET /webhooks/*`** verification per docs/141)
@@ -20,8 +20,12 @@
   - ✅ **Meta POST signature**: WhatsApp + Messenger validate `X-Hub-Signature-256` when app secret configured (`docs/142`, `meta-webhook.ts`) — **安全修订：配置 secret 时强制签名头**
   - ✅ **Line POST signature**: Line validates `X-Line-Signature` when channel secret configured (`docs/143`, `line-webhook.ts`)
   - ✅ **Zalo POST signature research**: Documented findings — no official signature mechanism (`docs/144`)
-- Current Completion Point: **Pro_v1.07.6 + Phase 15.4c** — Zalo signature research complete, decision documented
+  - ✅ **Website POST signature**: Website validates `X-Webhook-Signature` when signing secret configured (`docs/145`, `website-webhook.ts`)
+  - ✅ **WhatsApp Cloud API real outbound**: When `WHATSAPP_ACCESS_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` valid and not sandbox, outbound uses Graph API (`docs/146`, `src/channels/outbound-sender/index.ts`)
+  - ✅ **Messenger Graph API real outbound**: When `MESSENGER_PAGE_ACCESS_TOKEN` + `MESSENGER_PAGE_ID` valid and not sandbox, outbound uses Graph API (`docs/147`, `src/channels/outbound-sender/index.ts`)
+  - ✅ **Line Messaging API real outbound**: When `LINE_CHANNEL_ACCESS_TOKEN` valid and not sandbox, outbound uses push API (`docs/148`, `src/channels/outbound-sender/index.ts`)
+- Current Completion Point: **Pro_v1.07.10 + Phase 15.7** — Line Messaging API real transport complete, fourth real channel delivered
 - Pro Target Channels (product scope, Bryan-locked): **Telegram**, **WhatsApp**, **Facebook Messenger**, **Line**, **Zalo**; architecture must keep an **extension slot** for additional messaging platforms later. **Website live chat** remains part of Pro (already implemented alongside messaging channels).
-- Current Channel Boundary (runtime today): **All seven channels live** — unified pipeline; **Telegram** real outbound when token + not sandbox (**optional proxy**); **WhatsApp/Messenger/Line** POST signature validation when secret configured; **Zalo** relies on IP whitelisting (per official docs); **Website** synthetic.
-- **Pause Status**: **Active** — Phase 15.4c complete
-- Next Unique Priority Action: **Phase 15.4d+** — Website POST signature (需先写设计) or second real channel
+- Current Channel Boundary (runtime today): **All seven channels live** — unified pipeline; **Telegram** real outbound when token + not sandbox (**optional proxy**); **WhatsApp** real outbound when token + phone number ID + not sandbox; **Messenger** real outbound when token + page ID + not sandbox; **Line** real outbound when token + not sandbox; **WhatsApp/Messenger/Line/Website** POST signature validation when secret configured; **Zalo** relies on IP whitelisting (per official docs).
+- **Pause Status**: **Active** — Phase 15.7 complete
+- Next Unique Priority Action: **Phase 15.8+** — Zalo real transport 或其他优先级任务

@@ -132,6 +132,10 @@
 - **Phase 15.4a**: Meta POST signature — WhatsApp + Messenger validate `X‑Hub‑Signature‑256` when app secret configured; `docs/142`, `meta‑webhook.ts`; **Pro_v1.07.4** (`package.json` 1.7.4) — **已交付**（含安全修订）
 - **Phase 15.4b**: Line POST signature — Line validates `X‑Line‑Signature` when channel secret configured; `docs/143`, `line‑webhook.ts`; **Pro_v1.07.5** (`package.json` 1.7.5) — **已交付**
 - **Phase 15.4c**: Zalo POST signature research — Documented findings: no official signature mechanism; relies on IP whitelisting; `docs/144`; **Pro_v1.07.6** (`package.json` 1.7.6) — **已交付**
+- **Phase 15.4d**: Website POST signature — Website validates `X‑Webhook‑Signature` when signing secret configured; `docs/145`, `website‑webhook.ts`; **Pro_v1.07.7** (`package.json` 1.7.7) — **已交付**
+- **Phase 15.5**: WhatsApp Cloud API real outbound — WhatsApp uses Graph API when token + phone number ID + not sandbox; `docs/146`, `whatsapp‑cloud.ts`, `real‑send.ts`; **Pro_v1.07.8** (`package.json` 1.7.8) — **已交付**
+- **Phase 15.6**: Messenger Graph API real outbound — Messenger uses Graph API when token + page ID + not sandbox; `docs/147`, `messenger‑graph.ts`, `real‑send.ts`; **Pro_v1.07.9** (`package.json` 1.7.9) — **已交付**
+- **Phase 15.7**: Line Messaging API real outbound — Line uses push API when token + not sandbox; `docs/148`, `line‑messaging.ts`, `real‑send.ts`; **Pro_v1.07.10** (`package.json` 1.7.10) — **已交付**
 
 ## What Is Now in Place
 - Product scope and exclusions
@@ -164,4 +168,5 @@
 - **Unified pipeline**: lead+FAQ+intent dispatch with proper prioritization
 - **Seven-channel suite**: All 7 channels (Website, Telegram, WhatsApp, Messenger, Line, Zalo) unified
 - **Real transport**: ADR (138) + Telegram real sender (15.1) — **已交付** + proxy support (15.2) — **已交付**; other channels synthetic
-- **Webhook security**: GET verification (15.3) — **已交付** + Meta POST signature (15.4a) — **已交付** (WhatsApp/Messenger) + Line POST signature (15.4b) — **已交付** + Zalo signature research (15.4c) — **已交付**
+- **Webhook security**: GET verification (15.3) — **已交付** + Meta POST signature (15.4a) — **已交付** (WhatsApp/Messenger) + Line POST signature (15.4b) — **已交付** + Zalo signature research (15.4c) — **已交付** + Website POST signature (15.4d) — **已交付**
+- **Real transports**: Telegram (15.1) — **已交付** + WhatsApp Cloud (15.5) — **已交付** + Messenger Graph (15.6) — **已交付** + Line Messaging (15.7) — **已交付**

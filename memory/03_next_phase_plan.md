@@ -1,7 +1,7 @@
 # Next Phase Plan
 
-- Current Phase: **Phase 15.4c** - Zalo POST signature research
-- Previous: Phase 15.4b — Line POST signature verification
+- Current Phase: **Phase 15.7** - Line real outbound implementation
+- Previous: Phase 15.6 — Messenger Graph API real outbound implementation
 - Completed in Phase 15.0:
   - ✅ Created real transport architecture design document: docs/138_phase15_0_real_transport_design.md
   - ✅ Selected Telegram as first real transport (simple API, low barrier)
@@ -55,6 +55,38 @@
   - ✅ **无代码变更**: 保持现有 `POST /webhooks/zalo` 行为
   - ✅ Build passes: `npm run build`
   - ✅ Version: package.json **1.7.6** (Pro_v1.07.6) tags Phase 15.4c delivery
+- Completed in Phase 15.4d:
+  - ✅ **设计文档**: `docs/145_phase15_4d_website_post_signature_design.md` — 定义 `X‑Webhook‑Signature` (sha256=<hex>) 格式
+  - ✅ **代码实现**: `src/config/website‑webhook.ts` — `getWebsiteSigningSecret()`, `verifyWebsiteSignature()` (复用 Meta 逻辑)
+  - ✅ **服务器集成**: `src/server.ts` — Website POST 验签，无效签名 → 403
+  - ✅ **环境配置**: `.env.example` 添加 `WEBSITE_WEBHOOK_SIGNING_SECRET`
+  - ✅ **向后兼容**: 未配置 secret → 保持现有行为
+  - ✅ Build passes: `npm run build`
+  - ✅ Version: package.json **1.7.7** (Pro_v1.07.7) tags Phase 15.4d delivery
+- Completed in Phase 15.5 (implementation):
+  - ✅ **配置模块**: `src/config/whatsapp‑cloud.ts` — `isWhatsAppSandboxOrDisabled`, `loadWhatsAppCloudConfigForRealSend`, `redactWhatsAppTokenInMessage`
+  - ✅ **发送模块**: `src/channels/adapters/whatsapp/real‑send.ts` — `parseWhatsAppRecipientFromSessionId`, `sendWhatsAppTextMessage` (undici、10s、5xx/429/网络重试 1 次)
+  - ✅ **集成**: `src/channels/outbound‑sender/index.ts` — WhatsApp 分支与 Telegram 对称 (real/synthetic、`should_send`、fallback/failure)
+  - ✅ **环境配置**: `.env.example` WhatsApp Cloud 变量已添加 (Phase 15.5 ADR)
+  - ✅ **构建**: `npm run build` 成功
+  - ✅ **版本**: package.json **1.7.8** (Pro_v1.07.8) tags Phase 15.5 delivery
+- Completed in Phase 15.6 (implementation):
+  - ✅ **配置模块**: `src/config/messenger‑graph.ts` — `isMessengerSandboxOrDisabled`, `loadMessengerGraphConfigForRealSend`, `redactMessengerTokenInMessage`
+  - ✅ **发送模块**: `src/channels/adapters/messenger/real‑send.ts` — `parseMessengerRecipientFromSessionId`, `sendMessengerTextMessage` (undici、10s、5xx/429/网络重试 1 次)
+  - ✅ **集成**: `src/channels/outbound‑sender/index.ts` — Messenger 分支与 WhatsApp/Telegram 对称 (real/synthetic、`should_send`、fallback/failure)
+  - ✅ **环境配置**: `.env.example` Messenger Graph 变量已添加 (Phase 15.6 ADR)
+  - ✅ **构建**: `npm run build` 成功
+  - ✅ **版本**: package.json **1.7.9** (Pro_v1.07.9) tags Phase 15.6 delivery
+  - ✅ **ADR 更新**: `docs/147` 添加 `messaging_type: "RESPONSE"` 字段 (Messenger API 文档要求)
+
+- Completed in Phase 15.7 (implementation):
+  - ✅ **配置模块**: `src/config/line‑messaging.ts` — `isLineSandboxOrDisabled`, `loadLineMessagingConfigForRealSend`, `redactLineTokenInMessage`
+  - ✅ **发送模块**: `src/channels/adapters/line/real‑send.ts` — `parseLineRecipientFromSessionId`, `sendLineTextMessage` (undici、10s、5xx/429/网络重试 1 次、push API 而非 reply API)
+  - ✅ **集成**: `src/channels/outbound‑sender/index.ts` — Line 分支与 WhatsApp/Messenger/Telegram 对称 (real/synthetic、`should_send`、fallback/failure)
+  - ✅ **环境配置**: `.env.example` Line Messaging 变量已添加 (Phase 15.7 ADR)
+  - ✅ **构建**: `npm run build` 成功
+  - ✅ **版本**: package.json **1.7.10** (Pro_v1.07.10) tags Phase 15.7 delivery
+  - ✅ **ADR 更新**: `docs/148` 修正为 push API 端点与请求体
 
 - Technical Debt Progress:
   - ✅ **Real transport design**: Architecture decision record created
@@ -68,16 +100,16 @@
   - ✅ **JSONL backup cleanup**: Max 5 files, 50MB total size limit
   - 🔄 **Real transports beyond Telegram**: WhatsApp / others still synthetic
 
-- Known Limitations (Pro_v1.07.6 + Phase 15.4c):
+- Known Limitations (Pro_v1.07.9 + Phase 15.6):
   - Session store: in-memory only, single-process, **with 24h TTL expiration**
   - JSONL persistence: **backup accumulation controlled** (max 5 files, 50MB total)
   - Field extraction: regex-based, **with minimal format validation**
   - FAQ content: **multilingual with language-priority matching** (4 languages, 5 topics)
   - Intent dispatch: **implemented with partial session boundary fix**
-  - Real transports: **Telegram real send** when token set and not sandbox; optional **HTTP(S) proxy** via 138 envs; other channels synthetic
-  - **POST signature validation**: **WhatsApp + Messenger + Line** done; **Zalo** 无官方机制（待官方支持）；**Website** 待 Phase 15.4d 设计实现
+  - Real transports: **Telegram real send** when token set and not sandbox (optional proxy); **WhatsApp Cloud real send** when token + phone number ID + not sandbox; **Messenger Graph real send** when token + page ID + not sandbox; **Line/Zalo** still synthetic
+  - **POST signature validation**: **全部完成** — WhatsApp/Messenger/Line/Website 已实现；Zalo 无官方机制（待官方支持）
 
-- **Pause Status**: **Active** — Phase 15.4c Zalo signature research complete (已交付)
+- **Pause Status**: **Active** — Phase 15.7 Line implementation complete (已交付)
 - **Commander preference**: 完成约定 phase 交付后，**自动继续推进**下一立项阶段，无需指挥官每轮提醒「继续」；遇阻塞或范围不明时再停问。
 - **Implementation split**: **实现一律龙虾**；**Cursor 默认只出指令与验收**；仅**极小改动**可由 Cursor 直接改。详见 `memory/05_handoff_for_new_chat.md`。
-- Next Unique Priority Action: **Phase 15.4d+** — **Website POST signature**（需先写半页设计文档）或 **第二真实频道**（择一立项）；ADR/契约先行。
+- Next Unique Priority Action: **Phase 15.8+** — Zalo real transport 或其他优先级任务

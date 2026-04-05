@@ -5,10 +5,10 @@
 - Do not expand into menu / command / state systems just because the webhook baselines are now alive.
 - Do not let channel-specific changes pollute shared core behavior without a hard reason.
 - Continue protecting the **seven-route baseline**: All 7 channels must remain independently verifiable and non-breaking.
-- The current version is **Pro_v1.07.6** (package.json 1.7.6; Phase 15.4c delivery tag).
+- The current version is **Pro_v1.07.10** (package.json 1.7.10; Phase 15.7 delivery tag).
 - The biggest recurring error to avoid is confusing stable minimal entrypoints with full platform completion.
 - Regression risk remains live whenever shared contracts or routing paths are touched.
-- **Pause Status**: Not paused — Phase 15.4c shipped (已交付); next backlog is Phase 15.4d+ (Website POST signature / second real channel).
+- **Pause Status**: Not paused — Phase 15.7 shipped (已交付); next backlog is Phase 15.8+ (Zalo real transport or other priority).
 
 ## New Risks from Phase 11.40 Lead Capture Implementation
 - **Field extraction accuracy**: Simple regex-based extraction may have false positives/negatives

@@ -1,9 +1,9 @@
 # Handoff for New Chat
 
 - This is an existing project handoff, not a fresh project restart.
-- **Current Phase: Phase 15.4c** (Zalo POST signature research)
-- Current Version: **Pro_v1.07.6** (package.json: 1.7.6)
-- **Pause Status: Active — Phase 15.4c complete (已交付); next is Phase 15.4d+** (Website POST signature / second real channel)
+- **Current Phase: Phase 15.6** (Messenger real outbound implementation)
+- Current Version: **Pro_v1.07.9** (package.json: 1.7.9)
+- **Pause Status: Active — Phase 15.6 complete (已交付); next is Phase 15.7+** (Line/Zalo real transport or other priority)
 
 ## Completed Summary
 - Phase 1 blueprint work is complete.
@@ -109,24 +109,62 @@
   - **研究结论**: Zalo 无标准 POST body 签名头，主要依赖 IP 白名单 + OAuth 2.0
   - **决策**: 不实现伪签名（避免虚假安全预期），待官方机制再立项
   - **无代码变更**: 保持现有 `POST /webhooks/zalo` 行为
+- **Phase 15.4d: Website POST signature (Pro_v1.07.7)**:
+  - docs/145_phase15_4d_website_post_signature_design.md
+  - Header: `X‑Webhook‑Signature` (sha256=<hex> 格式，与 Meta 对齐)
+  - `src/config/website‑webhook.ts` — 复用 Meta 验证逻辑
+  - Env: `WEBSITE_WEBHOOK_SIGNING_SECRET` (可选)
+  - 未配置 secret → 保持现有行为；已配置 → 缺头/坏格式/错签 → 403
+- **Phase 15.5: WhatsApp Cloud API real outbound implementation**:
+  - docs/146_phase15_5_whatsapp_cloud_real_outbound_adr.md — 架构设计文档
+  - `src/config/whatsapp‑cloud.ts` — `isWhatsAppSandboxOrDisabled`, `loadWhatsAppCloudConfigForRealSend`, `redactWhatsAppTokenInMessage`
+  - `src/channels/adapters/whatsapp/real‑send.ts` — `parseWhatsAppRecipientFromSessionId`, `sendWhatsAppTextMessage` (undici、10s、5xx/429/网络重试 1 次)
+  - `src/channels/outbound‑sender/index.ts` — WhatsApp 分支与 Telegram 对称 (real/synthetic、`should_send`、fallback/failure)
+  - **环境变量**: `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_API_VERSION`, `WHATSAPP_SANDBOX`
+  - **API 端点**: `POST https://graph.facebook.com/v{version}/{phone-number-id}/messages`
+  - **Session 映射**: `whatsapp:{user_id}:{session_id}` → `{user_id}` 作为 recipient
+  - **超时重试**: 10 秒超时 + 单次重试 (5xx/429)
+  - **安全**: token 不入日志，与 Telegram 对称实现
+  - **状态**: 代码已交付，第二真实频道完成
+- **Phase 15.6: Messenger real outbound implementation**:
+  - docs/147_phase15_6_messenger_real_outbound_adr.md — 架构设计文档 (已更新 `messaging_type` 字段)
+  - `src/config/messenger‑graph.ts` — `isMessengerSandboxOrDisabled`, `loadMessengerGraphConfigForRealSend`, `redactMessengerTokenInMessage`
+  - `src/channels/adapters/messenger/real‑send.ts` — `parseMessengerRecipientFromSessionId`, `sendMessengerTextMessage` (undici、10s、5xx/429/网络重试 1 次)
+  - `src/channels/outbound‑sender/index.ts` — Messenger 分支与 WhatsApp/Telegram 对称 (real/synthetic、`should_send`、fallback/failure)
+  - **环境变量**: `MESSENGER_PAGE_ACCESS_TOKEN`, `MESSENGER_PAGE_ID`, `MESSENGER_API_VERSION`, `MESSENGER_SANDBOX`
+  - **API 端点**: `POST https://graph.facebook.com/v{version}/{page-id}/messages`
+  - **Session 映射**: `messenger:{psid}:{session}` → `{psid}` 作为 recipient
+  - **超时重试**: 10 秒超时 + 单次重试 (5xx/429/网络)
+  - **命名冲突**: 与 WhatsApp 无冲突 (不同 env 命名)
+  - **状态**: 代码已交付，第三真实频道完成
 
-## Unfinished Summary (Pro_v1.07.6 + post–15.4c limitations)
+- **Phase 15.7: Line real outbound implementation**:
+  - docs/148_phase15_7_line_real_outbound_adr.md — 架构设计文档 (已更新 push API)
+  - `src/config/line‑messaging.ts` — `isLineSandboxOrDisabled`, `loadLineMessagingConfigForRealSend`, `redactLineTokenInMessage`
+  - `src/channels/adapters/line/real‑send.ts` — `parseLineRecipientFromSessionId`, `sendLineTextMessage` (undici、10s、5xx/429/网络重试 1 次、push API)
+  - `src/channels/outbound‑sender/index.ts` — Line 分支与 WhatsApp/Messenger/Telegram 对称 (real/synthetic、`should_send`、fallback/failure)
+  - **决策**: 使用 push API (`/v2/bot/message/push`) 而非 reply API (reply token 过期问题)
+  - **Session 映射**: `line:{userId}:{session}` → `{userId}` 作为 recipient
+  - **环境变量**: `LINE_CHANNEL_ACCESS_TOKEN`, `LINE_SANDBOX`, `LINE_MESSAGING_DISABLED`
+  - **状态**: 代码已交付，第四真实频道完成
+
+## Unfinished Summary (Pro_v1.07.9 + post–15.6 limitations)
 - Session store: in-memory only, single-process, **with 24h TTL expiration**
 - JSONL persistence: **backup accumulation controlled** (max 5 files, 50MB total)
 - Field extraction: regex-based, **with minimal format validation**
 - FAQ content: **multilingual with language-priority matching** (4 languages, 5 topics, 20 entries)
 - Intent dispatch: **implemented with partial session boundary fix**
-- Real transports: **Telegram real** when configured (**optional 138 proxy wired**); **WhatsApp / Messenger / Line / Zalo / Website** still synthetic
-- Webhook POST signature: **WhatsApp + Messenger + Line** done; **Zalo** 无官方机制（待官方支持）；**Website** 待 Phase 15.4d 设计实现
+- Real transports: **Telegram real** when configured (**optional 138 proxy wired**); **WhatsApp Cloud real** when configured (token + phone number ID + not sandbox); **Messenger Graph real** when configured (token + page ID + not sandbox); **Line real** when configured (token + not sandbox); **Zalo** still synthetic
+- **POST 签名债务收口**: WhatsApp/Messenger/Line/Website 已实现；Zalo 无官方机制（待官方支持）
 
 ## Next Unique Priority Action
-**Phase 15.4d+** — Website POST signature (需先写半页设计文档) or second real channel
+**Phase 15.8+** — Zalo real transport 或其他优先级任务
 
 ## New Chat Rule
 - Read the memory files first, then continue from the current state without reopening product definition or architecture.
 - New chats must read docs `81_phase9_5_telegram_minimal_interaction_result.md`, `82_phase9_6_telegram_minimal_observability_enhancement_closure.md`, `83_phase10_8_host_and_minimal_evidence_closure.md`, and `84_phase11_8_dual_webhook_minimal_regression_closure.md` before changing anything.
 - New chats must first restate the current boundary: **All seven channels live** (Website, Telegram, WhatsApp, Messenger, Line, Zalo) with unified pipeline, acceptance checklist ready at docs/129.
-- **Current pause status**: Not paused — Phase 15.4c shipped (已交付); pick next item from Phase 15.4d+.
+- **Current pause status**: Not paused — Phase 15.6 shipped (已交付); pick next item from Phase 15.7+.
 - **Commander preference**: After a phase is delivered, **continue** to the next planned phase without waiting for a separate「继续」unless blocked or scope is unclear.
 - **Implementation split (commander-locked)**:
   - **龙虾 (local agent)**: Default owner of **all implementation** — code changes, builds, fixes, and **Memory 指令 2** physical write-back to `./memory/`.
