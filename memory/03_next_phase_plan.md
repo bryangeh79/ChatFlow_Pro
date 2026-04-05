@@ -136,4 +136,5 @@
 - **Website real outbound**: `docs/153_phase17_0_website_outbound_push.md` — ADR + implementation (`website-outbound.ts`, `real-send.ts`, integration)
 - **Version**: **Pro_v1.07.16** (package.json 1.7.16) — seventh channel real transport capability complete
 - **Pro_v1.07.17** (package.json 1.7.17): Website `real-send` — **429 / 5xx** 与网络/超时一致为「最多 2 次请求」；`User-Agent` 与 `docs/153` 示例端口与 package 对齐
-- Next Unique Priority Action: **docs/152** 运维 **token 轮换 runbook** 已落盘（ADR 151 选项 A）；下一可选：在 **staging 按 152 做一次轮换演练** 并记结果；**Phase 17** in-process 刷新仍后置
+- **Pro_v1.07.18** (package.json 1.7.18) — **Phase 17.1**: Zalo OA **401 → OAuth refresh**（`CHATFLOW_INPROCESS_TOKEN_REFRESH` 开关 + `ZALO_REFRESH_TOKEN` / `ZALO_APP_ID` / `ZALO_APP_SECRET`）；内存缓存 access/refresh；`docs/154`；**Meta 进程内刷新未做**（仍选项 A + 152）
+- Next Unique Priority Action: **staging** 或临时环境验证 **docs/154** Zalo 契约；**Phase 17.2** Meta；**docs/152** 轮换演练

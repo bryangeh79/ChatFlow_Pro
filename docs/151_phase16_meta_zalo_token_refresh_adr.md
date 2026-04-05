@@ -2,7 +2,7 @@
 
 ## Status
 
-**Decision / documentation only.** This deliverable does **not** change runtime code, env loading, or outbound behavior.
+**Decision / documentation.** The original Phase 16.x deliverable was design-only. **Update:** **Zalo** option **C** is partially implemented as **Phase 17.1** — see **`docs/154_phase17_inprocess_token_refresh.md`**. **Meta** channels remain **option A** (platform rotation) until a later slice.
 
 ## Problem
 

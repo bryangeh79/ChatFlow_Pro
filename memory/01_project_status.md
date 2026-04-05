@@ -1,8 +1,8 @@
 # Project Status
 
 - Project Name: ChatFlow Pro
-- Current Phase: **Phase 16.2** (HTTP access observability — webhook phases_ms + verification type narrowing)
-- Current Version: **Pro_v1.07.17** (package.json: 1.7.17)
+- Current Phase: **Phase 17.1** (in-process Zalo OA token refresh on 401 — optional, behind `CHATFLOW_INPROCESS_TOKEN_REFRESH`; Meta in-process refresh still future)
+- Current Version: **Pro_v1.07.18** (package.json: 1.7.18)
 - Execution Root: C:\AI_WORKSPACE\Chatflow\ChatFlow_Pro
 - Current Project State: 
   - ✅ **Seven-route webhook baseline**: Website, Telegram, WhatsApp, Messenger, Line, Zalo (`POST /webhooks/*` + **`GET /webhooks/*`** verification per docs/141)
@@ -26,8 +26,8 @@
   - ✅ **Line Messaging API real outbound**: When `LINE_CHANNEL_ACCESS_TOKEN` valid and not sandbox, outbound uses push API (`docs/148`, `src/channels/outbound-sender/index.ts`) — **15.7.1 稳定性修订：恢复 LINE_MESSAGING_DISABLED 检查，session 解析返回 null 而非 'unknown'，每轮独立超时，redact 用 split/join**
   - ✅ **Zalo Open API real outbound**: When `ZALO_ACCESS_TOKEN` + `ZALO_OA_ID` valid and not sandbox, outbound uses Open API (`docs/149`, `src/channels/outbound-sender/index.ts`)
   - ✅ **HTTP observability (Phase 16)**: All responses include `X-Request-Id`; optional one-line JSON access log when `CHATFLOW_HTTP_ACCESS_LOG` set (`docs/150`, `src/observability/http-access.ts`, `server.ts`); **HTTP `request_id` = `debug_metadata.request_id`** on all seven `POST /webhooks/*` paths via `createMinimalTraceContext({ httpRequestId })`; access log may include **`phases_ms`** (`prepare_ms`, optional `outbound_send_ms`) from webhook handlers
-- Current Completion Point: **Pro_v1.07.17 + Phase 16.x** — same as 1.7.16 plus **Website outbound retry** aligned with `docs/153` (single retry on HTTP **429** / **5xx**, plus existing network/timeout retry); `docs/153` example curl uses default port **3030**
+- Current Completion Point: **Pro_v1.07.18 + Phase 17.1** — **Zalo** optional in-process refresh on **401** (`docs/154`); Website outbound + CI + Phase 16 observability as prior releases
 - Pro Target Channels (product scope, Bryan-locked): **Telegram**, **WhatsApp**, **Facebook Messenger**, **Line**, **Zalo**; architecture must keep an **extension slot** for additional messaging platforms later. **Website live chat** remains part of Pro (already implemented alongside messaging channels).
 - Current Channel Boundary (runtime today): **All seven channels live** — unified pipeline; **Telegram** real outbound when token + not sandbox (**optional proxy**); **WhatsApp** real outbound when token + phone number ID + not sandbox; **Messenger** real outbound when token + page ID + not sandbox; **Line** real outbound when token + not sandbox; **Zalo** real outbound when token + OA ID + not sandbox; **Website** real outbound when `WEBSITE_OUTBOUND_URL` configured + not sandbox/disabled; **WhatsApp/Messenger/Line/Website** POST signature validation when secret configured; **Zalo** inbound relies on IP whitelisting (per official docs).
 - **Pause Status**: **Active** — Phase 16.2 observability enhanced with webhook phase timings delivered
-- Next Unique Priority Action: **Token refresh ADR** (Graph/Zalo) or extend Phase 16 (pipeline `request_id`, sampling) per plan in `memory/03_next_phase_plan.md`
+- Next Unique Priority Action: **Phase 17.2** Meta Graph in-process refresh (spec + staging) or **staging** smoke / **docs/152** rotation drill; verify Zalo OAuth contract against live Zalo docs before prod reliance on 17.1

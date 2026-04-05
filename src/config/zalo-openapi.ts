@@ -1,3 +1,5 @@
+import { getZaloAccessTokenResolved } from '../tokens/zalo-token-cache';
+
 export interface ZaloOpenApiConfig {
   accessToken: string;
   oaId: string;
@@ -27,10 +29,10 @@ export function loadZaloOpenApiConfigForRealSend(): ZaloOpenApiConfig | null {
     return null;
   }
   
-  const accessToken = process.env.ZALO_ACCESS_TOKEN;
+  const accessToken = getZaloAccessTokenResolved();
   const oaId = process.env.ZALO_OA_ID;
-  
-  if (!accessToken || typeof accessToken !== 'string' || accessToken.trim() === '') {
+
+  if (!accessToken || accessToken === '') {
     return null;
   }
   
@@ -41,7 +43,7 @@ export function loadZaloOpenApiConfigForRealSend(): ZaloOpenApiConfig | null {
   const apiBaseUrl = process.env.ZALO_API_BASE_URL || 'https://openapi.zalo.me';
   
   return {
-    accessToken: accessToken.trim(),
+    accessToken,
     oaId: oaId.trim(),
     apiBaseUrl: apiBaseUrl.trim(),
   };

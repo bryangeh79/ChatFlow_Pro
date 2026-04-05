@@ -1,6 +1,8 @@
 import { fetch } from 'undici';
 import type { ZaloOpenApiConfig } from '../../../config/zalo-openapi';
 import { redactZaloTokenInMessage } from '../../../config/zalo-openapi';
+import { getZaloAccessTokenResolved } from '../../../tokens/zalo-token-cache';
+import { refreshZaloOaAccessTokenSingleFlight } from '../../../tokens/zalo-refresh';
 
 const ZALO_TEXT_MAX_LENGTH = 5000; // Zalo text message limit (assume similar to Line)
 
@@ -89,76 +91,95 @@ export async function sendZaloTextMessage(
     // 5. Send with timeout and retry (each attempt gets its own timeout)
     let attempt = 0;
     const maxAttempts = 2;
-    
+    let authRefreshAttempted = false;
+
+    const accessHeader = () => getZaloAccessTokenResolved() ?? config.accessToken;
+    const redact = (msg: string) => redactZaloTokenInMessage(msg, accessHeader());
+
     while (attempt < maxAttempts) {
       attempt++;
       debugSteps.push(`sendZaloTextMessage: attempt ${attempt}/${maxAttempts}`);
-      
+
       // Each attempt gets its own AbortController and timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds
-      
+
       try {
         const response = await fetch(url, {
           method: 'POST',
           headers: {
-            'access_token': config.accessToken, // Zalo uses access_token header, not Authorization: Bearer
+            access_token: accessHeader(),
             'Content-Type': 'application/json',
           },
           body,
           signal: controller.signal,
         });
-        
+
         clearTimeout(timeoutId);
-        
+
         if (response.ok) {
           const responseData = await response.json() as any;
           debugSteps.push(`sendZaloTextMessage: success (${response.status})`);
-          
+
           // Zalo API may or may not return message ID
           // Use a stable placeholder similar to Line
           const messageId = responseData.data?.message_id || `zalo_push_${Date.now()}`;
-          
+
           return {
             transport: 'zalo_real',
             messageId,
             debug_steps: debugSteps,
           };
         }
-        
+
         // Handle errors
         const status = response.status;
         const responseText = await response.text().catch(() => '');
-        
+
         debugSteps.push(`sendZaloTextMessage: HTTP ${status} - ${responseText.substring(0, 200)}`);
-        
-        // Determine if retryable
+
+        if (status === 401 && !authRefreshAttempted) {
+          authRefreshAttempted = true;
+          const refreshed = await refreshZaloOaAccessTokenSingleFlight();
+          if (refreshed) {
+            debugSteps.push('zalo_real_token_refresh_retry');
+            attempt--;
+            continue;
+          }
+        }
+
+        // Determine if retryable (transport)
         const isRetryable = status >= 500 || status === 429;
-        
+
         if (!isRetryable || attempt >= maxAttempts) {
           // Final failure
-          const safeDesc = redactZaloTokenInMessage(`Zalo API error: ${status} ${responseText.substring(0, 100)}`, config.accessToken);
+          const safeDesc = redact(`Zalo API error: ${status} ${responseText.substring(0, 100)}`);
           console.error('[Zalo] sendMessage failed:', { status, description: safeDesc });
           debugSteps.push('zalo_real_failed');
-          
+
           return {
             transport: 'zalo_real',
-            error: status === 401 ? 'invalid_token' : 
-                   status === 429 ? 'rate_limited' : 
-                   status >= 500 ? 'zalo_server_error' : 'zalo_api_error',
+            error:
+              status === 401
+                ? 'invalid_token'
+                : status === 429
+                  ? 'rate_limited'
+                  : status >= 500
+                    ? 'zalo_server_error'
+                    : 'zalo_api_error',
             debug_steps: debugSteps,
           };
         }
-        
+
         // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         
       } catch (error: any) {
         clearTimeout(timeoutId);
         
         const errorName = error.name || 'unknown';
         const errorMessage = error.message || 'unknown';
-        const safeMessage = redactZaloTokenInMessage(errorMessage, config.accessToken);
+        const safeMessage = redactZaloTokenInMessage(errorMessage, accessHeader());
         
         debugSteps.push(`sendZaloTextMessage: ${errorName} - ${safeMessage}`);
         
@@ -195,7 +216,7 @@ export async function sendZaloTextMessage(
     
   } catch (error: any) {
     const errorMessage = error.message || 'unknown';
-    const safeMessage = redactZaloTokenInMessage(errorMessage, config.accessToken);
+    const safeMessage = redactZaloTokenInMessage(errorMessage, getZaloAccessTokenResolved() ?? config.accessToken);
     
     console.error('[Zalo] sendMessage unexpected error:', safeMessage);
     debugSteps.push(`sendZaloTextMessage: unexpected error - ${safeMessage}`);
