@@ -29,7 +29,7 @@ Many agent hosts use a **minimal image** (no `git`, read-only FS). Then:
 **Long-term options**
 
 1. **Base image** that includes `git` (e.g. `apk add git` on Alpine, or use `node` image + `apt-get install git`).  
-2. **Two-stage workflow**: lobster in container → `build` + `smoke` + `report:agent-git`; **Cursor / Bryan** on host → `git commit` + `git push`.  
+2. **Two-stage workflow** (**recommended** when lobster has no git): lobster in container → `build` + `smoke` + `report:agent-git` + 列出变更文件/摘要；**Cursor（或指挥官本机）**在仓库根执行 `git status` → `git add` → `git commit` → `git push`。龙虾汇报里写「**Git 由 Cursor/宿主代跑**」并附上 `report:agent-git` 的 HEAD 行即可。  
 3. **Mount repo from host** where git already works; run the agent process **on the host** if you need full `check:agent-env` green.
 
 ## Windows: install Git and PATH

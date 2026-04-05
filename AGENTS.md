@@ -5,8 +5,8 @@ This folder is home. Treat it that way.
 ## ChatFlow Pro — local agents (龙虾 / OpenClaw)
 
 - **Git on PATH** is required for **commit/push**. From repo root: `npm run check:agent-env` (see **`docs/155`**).  
-- In **Docker / no-git** shells: `npm run report:agent-git` reads **HEAD from `.git`** for accurate SHA in notes; commit/push stays on the host / Cursor.  
-- Do not fake git output — use one of the two commands above.
+- In **Docker / no-git** shells: `npm run report:agent-git` reads **HEAD from `.git`** for accurate SHA in notes; **commit/push may be done by Cursor or the human on the host** after reviewing the diff (龙虾不冒充已 push).  
+- Do not fake git output — use one of the two commands above for SHA.
 
 ## First Run
 
