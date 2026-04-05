@@ -137,4 +137,5 @@
 - **Version**: **Pro_v1.07.16** (package.json 1.7.16) — seventh channel real transport capability complete
 - **Pro_v1.07.17** (package.json 1.7.17): Website `real-send` — **429 / 5xx** 与网络/超时一致为「最多 2 次请求」；`User-Agent` 与 `docs/153` 示例端口与 package 对齐
 - **Pro_v1.07.18** (package.json 1.7.18) — **Phase 17.1**: Zalo OA **401 → OAuth refresh**（`CHATFLOW_INPROCESS_TOKEN_REFRESH` 开关 + `ZALO_REFRESH_TOKEN` / `ZALO_APP_ID` / `ZALO_APP_SECRET`）；内存缓存 access/refresh；`docs/154`；**Meta 进程内刷新未做**（仍选项 A + 152）
+- **Pro_v1.07.19** (package.json 1.7.19): **`npm run check:agent-env`** + **`docs/155`** — 龙虾/本地代理 **Git + PATH** 自检与运维说明；`AGENTS.md` 指向 155
 - Next Unique Priority Action: **staging** 或临时环境验证 **docs/154** Zalo 契约；**Phase 17.2** Meta；**docs/152** 轮换演练

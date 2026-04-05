@@ -2,6 +2,11 @@
 
 This folder is home. Treat it that way.
 
+## ChatFlow Pro — local agents (龙虾 / OpenClaw)
+
+- **Git on PATH** is required for tasks that commit or push. From repo root run: `npm run check:agent-env` (see **`docs/155_phase17_lobster_and_git_environment.md`**).  
+- Delivery notes must include real **`git rev-parse HEAD`**, not simulated git.
+
 ## First Run
 
 If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out who you are, then delete it. You won't need it again.

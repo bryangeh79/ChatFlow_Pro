@@ -1,13 +1,14 @@
 {
   "name": "chatflow-pro",
-  "version": "1.7.18",
+  "version": "1.7.19",
   "private": true,
   "type": "commonjs",
   "scripts": {
     "start": "node dist/src/index.js",
     "build": "tsc -p tsconfig.json",
     "smoke:webhooks": "node scripts/smoke-webhooks.mjs",
-    "dev:website-outbound-echo": "node scripts/website-outbound-echo.mjs"
+    "dev:website-outbound-echo": "node scripts/website-outbound-echo.mjs",
+    "check:agent-env": "node scripts/agent-env-check.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",
