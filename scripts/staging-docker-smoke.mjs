@@ -8,10 +8,23 @@
  *   SMOKE_BASE_URL — if unset, derived as http://127.0.0.1:<STAGING_HOST_PORT>
  *   STAGING_WAIT_MS — max wait for /health (default 120000)
  *   STAGING_COMPOSE_DOWN=0 — skip `docker compose down` (leave stack running)
+ *   STAGING_USE_LOCAL_ENV=1 — use `docker-compose.local-credentials.yml` (loads `.env` in container).
+ *     If SMOKE_SKIP_CHANNELS is unset, defaults to whatsapp,messenger,line (POST signature).
  */
 
 import { execSync } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
+
+const useLocalEnv = ['1', 'true', 'yes'].includes(
+  (process.env.STAGING_USE_LOCAL_ENV || '').trim().toLowerCase(),
+);
+if (useLocalEnv && process.env.SMOKE_SKIP_CHANNELS === undefined) {
+  process.env.SMOKE_SKIP_CHANNELS = 'whatsapp,messenger,line';
+}
+
+const composeCmdBase = useLocalEnv
+  ? 'docker compose -f docker-compose.yml -f docker-compose.local-credentials.yml'
+  : 'docker compose';
 
 const hostPort = process.env.STAGING_HOST_PORT || '3030';
 // Local compose always maps to 127.0.0.1:<hostPort>. If the shell has a stale SMOKE_BASE_URL (e.g. :3030),
@@ -53,10 +66,12 @@ async function waitHealth() {
 }
 
 async function main() {
-  console.log(`staging-docker-smoke: STAGING_HOST_PORT=${hostPort} SMOKE_BASE_URL=${base}`);
+  console.log(
+    `staging-docker-smoke: STAGING_HOST_PORT=${hostPort} SMOKE_BASE_URL=${base}${useLocalEnv ? ' STAGING_USE_LOCAL_ENV=1' : ''}${process.env.SMOKE_SKIP_CHANNELS ? ` SMOKE_SKIP_CHANNELS=${process.env.SMOKE_SKIP_CHANNELS}` : ''}`,
+  );
   let upOk = false;
   try {
-    sh('docker compose up -d --build', composeEnv);
+    sh(`${composeCmdBase} up -d --build`, composeEnv);
     upOk = true;
     await waitHealth();
     sh('npm run smoke:webhooks');
@@ -64,7 +79,7 @@ async function main() {
   } finally {
     if (upOk && !skipDown) {
       try {
-        sh('docker compose down', composeEnv);
+        sh(`${composeCmdBase} down`, composeEnv);
       } catch {
         console.error('staging-docker-smoke: docker compose down failed (containers may still be running)');
       }
