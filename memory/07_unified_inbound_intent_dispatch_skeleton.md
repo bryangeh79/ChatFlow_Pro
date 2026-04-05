@@ -1,6 +1,6 @@
-# 2026-04-05 - Unified Inbound Intent Dispatch (sync **Pro_v1.07.37**)
+# 2026-04-05 - Unified Inbound Intent Dispatch (sync **Pro_v1.07.38**)
 
-- Dual-entry baseline protected and enhanced; version **Pro_v1.07.37** (package.json **1.7.37**).
+- Dual-entry baseline protected and enhanced; version **Pro_v1.07.38** (package.json **1.7.38**).
 - Phase 15.0–15.8 complete: ADR + Telegram real outbound + proxy + GET verification + Meta POST signature + Line POST signature + Zalo signature research + Website POST signature + WhatsApp Cloud API real outbound + Messenger Graph API real outbound + Line Messaging API real outbound + Zalo Open API real outbound.
 - Phase 16.2 (observability enhanced): HTTP access logging with `X-Request-Id` + optional JSON log line + webhook `phases_ms` timings (prepare vs outbound send) + verification type narrowing.
 - **Intent dispatch fully implemented** (not placeholder):

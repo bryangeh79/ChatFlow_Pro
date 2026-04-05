@@ -76,6 +76,20 @@ For another machine on the LAN, use the host’s IP, e.g. `http://192.168.1.10:3
 
 **Deferred without blocking the repo:** Zalo OA creation (platform permission), Phase **B** until OA exists, Phase **C** until you schedule a Meta test window.
 
+## Single-channel (Telegram) deliverable closeout
+
+Use this when **one** bot on **one** VPS is “good enough to operate” — no need to validate every channel first. Full playbook overlap: **`docs/157`** Phase 0 (remote smoke + skips), **`docs/160`** §4.
+
+### Before you call it done
+
+1. **HTTPS terminates in front of the app** (e.g. Caddy → `127.0.0.1:<host_port>`). **Port 80** must reach Caddy for **ACME HTTP-01** on first issue and renewals (unless you use DNS-01). After changes: `sudo caddy validate --config /etc/caddy/Caddyfile` then `sudo systemctl reload caddy` (or your equivalent).
+2. **Health**: `curl -fsS https://<your-subdomain>/health` → JSON **`{"ok":true}`** (see `src/server.ts` **`GET /health`**).
+3. **Telegram end-to-end**: User message → bot reply; **`getWebhookInfo`** URL matches **`https://<subdomain>/webhooks/telegram`** (no double `bot` path); **`TELEGRAM_BOT_TOKEN`** in `.env` is the **same** bot as the webhook.
+4. **Observability**: Set **`CHATFLOW_HTTP_ACCESS_LOG=true`** in `.env` (see **`.env.example`**). Every response includes **`x-request-id`**; correlate support tickets to **one line** in Docker logs (`docker compose logs -f`) using that id and/or `request_id` inside webhook JSON **`debug_metadata`** when present.
+5. **Secrets & backup**: **Never** commit `.env`. On the server, restrict permissions (e.g. `chmod 600 .env`). Keep an **offline** copy of `.env` (password manager / encrypted backup — not chat logs). If a token leaks, rotate at the platform and update `.env`, then **`docker compose up -d --force-recreate`**.
+6. **Upgrade path** (code): from the client deploy dir (e.g. `/opt/chatflow/clients/client-01`): `git pull` → `docker compose up -d --build`. If behaviour is wrong, capture **`x-request-id`** from the failing request before rollback (`git checkout <sha>` + rebuild).
+7. **Optional confidence** (from laptop, non-blocking): `SMOKE_BASE_URL=https://<subdomain> npm run smoke:webhooks` with **`SMOKE_SKIP_*`** for channels you have not wired yet — still records Phase 0 style pass/skip ( **`docs/157`** ).
+
 ## CI note
 
 GitHub Actions runs **`build`** then **`docker-smoke`** (`npm run staging:docker-smoke`), which includes **`smoke:webhooks`** and **`verify:lead-capture-states`** on the built image. Workflows use **`actions/checkout@v5`** and **`actions/setup-node@v5`**.

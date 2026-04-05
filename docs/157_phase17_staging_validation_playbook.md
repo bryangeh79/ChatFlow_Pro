@@ -64,8 +64,8 @@ Single place to **validate** Phase **17.1** (Zalo in-process refresh) and **17.2
 
 ## References
 
+- `docs/158_docker_staging_quickstart.md` — local Docker → `SMOKE_BASE_URL`; **single-channel (Telegram) deliverable closeout** checklist.  
 - `docs/160_phase17_minimal_test_matrix_beginner.md` — minimal test matrix, step-by-step for beginners, PDF export options.  
-- `docs/158_docker_staging_quickstart.md` — local Docker → `SMOKE_BASE_URL`.  
 - `docs/152_phase16_ops_token_rotation_runbook.md` — platform rotation (option A).  
 - `docs/154_phase17_inprocess_token_refresh.md` — Zalo 17.1.  
 - `docs/156_phase17_2_meta_inprocess_token_refresh_spec.md` — Meta 17.2.  
