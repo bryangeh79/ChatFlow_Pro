@@ -1,0 +1,134 @@
+# Handoff for New Chat
+
+- This is an existing project handoff, not a fresh project restart.
+- **Current Phase: Phase 15.4c** (Zalo POST signature research)
+- Current Version: **Pro_v1.07.6** (package.json: 1.7.6)
+- **Pause Status: Active — Phase 15.4c complete (已交付); next is Phase 15.4d+** (Website POST signature / second real channel)
+
+## Completed Summary
+- Phase 1 blueprint work is complete.
+- Phase 2 architecture and project skeleton work is complete.
+- Phase 3 minimal runtime and FAQ / KB MVP work is complete.
+- Phase 4 minimal collaboration and human handoff work is complete.
+- Phase 5 backend/admin management layer work is complete.
+- Phase 6 structural multi-channel closure is complete.
+- Phase 6.1 unified inbound baseline is complete.
+- Phase 6.2 six-channel aligned mock closure is complete.
+- Phase 6.3 unified outbound baseline is complete.
+- Phase 6.3 send result, fallback, and observability scaffolding is complete.
+- Phase 6 final consistency review has been recorded.
+- Phase 7 has started and the first real Website minimal closed loop is established.
+- Website is now acceptance-ready, reproducible, and a stable sample template.
+- Four-language structure is locked: zh, en, vi, and ms-MY.
+- The runtime now has a reply resolution path plus collaboration handoff support, and the backend has a minimal management/view layer.
+- Thin adapter skeletons now exist for Website, Telegram, WhatsApp, Facebook Messenger, Line, and Zalo.
+- Website has moved from mock/template to the first real Phase 7 milestone.
+- Telegram remains the second-channel candidate for later planning, not real development.
+- Phase 7.1 / 7.2 / 7.3 documentation has been completed and the Telegram readiness gate has been formally locked.
+- Phase 7.4–7.12 documentation completed the protection, blocker, minimal-change, isolation, regression priority, change gate, document map, and final hold-position chain.
+- The Website stable sample is the protected reference point for future channel work.
+- The current conclusion is to hold Telegram and not start real development.
+- Phase 10.4 added the minimal runtime entry.
+- Phase 10.5 closed the minimal compilation loop.
+- Phase 10.6 made the minimal host runnable.
+- Phase 10.7 restored minimal evidence validation.
+- Phase 10.8 recorded host recovery plus minimal evidence closure.
+- Phase 10.9 restored a minimal real HTTP server with `/verification`.
+- Phase 11.0 aligned the minimal real Telegram webhook route.
+- Phase 11.1 confirmed live Telegram webhook verification.
+- Phase 11.2 aligned the minimal real Website webhook route.
+- Phase 11.8 confirmed dual-entry minimal real webhook regression for Telegram and Website.
+- **Phase 11.40–11.48: Pro_v1.06 Milestone - Lead capture + FAQ chain complete**:
+  - Lead detection with name/phone/email extraction
+  - Cross-turn merging with in-memory session store (1000 cap)
+  - File-based persistence with JSONL rotation (5MB/10k lines)
+  - Four-language i18n prompts (zh/en/vi/ms-MY) + empty-reply fallback
+  - FAQ matching restored with gate fix + interaction with lead flows
+  - Unified pipeline with proper prioritization (FAQ > captured > partial)
+- **Phase 12.1–12.3: Pro Channel Suite Complete**:
+  - Messenger webhook (flat + Graph API formats)
+  - Line webhook (flat + Line webhook formats)
+  - Zalo webhook (flat + Zalo OA webhook formats)
+  - Type system expanded for all 7 channels
+  - Seven-route verification baseline established
+- **Phase 13.0: Acceptance Checklist**:
+  - Comprehensive test documentation: docs/129_phase13_0_pro_seven_channel_acceptance_checklist.md
+  - Curl commands for all 7 channels (Website, Telegram, WhatsApp, Messenger, Line, Zalo)
+  - Both flat test format and platform webhook formats
+  - Expected responses and pipeline evidence fields
+  - Current limitations documented (synthetic sender, no production credentials)
+- **Phase 13.1: Version bump to Pro_v1.07**:
+  - Updated package.json to 1.7.0
+  - Milestone documentation created
+- **Phase 13.2–13.6: Technical debt reduction**:
+  - JSONL backup cleanup (max 5 files, 50MB total)
+  - Session TTL expiration (24 hours) with lazy cleanup
+  - Lead field minimal validation (email/phone format checks)
+  - FAQ multilingual seed expansion (20 entries, 5 topics, 4 languages)
+  - FAQ language priority matching (three-tier: user language > English > cross-language)
+- **Phase 14.0–14.2: Intent dispatch system**:
+  - 4 intent types: `faq_candidate`, `lead_candidate`, `chitchat_fallback`, `unknown`
+  - 4 dispatch stages: `prioritize_faq`, `prioritize_lead`, `run_both`, `pass_through`
+  - Confidence scoring (0.0-1.0) with signal tracking
+  - Regression matrix documentation (20+ test cases)
+  - Partial session boundary fix (allows FAQ when no new lead signals)
+- **Phase 15.0: Real transport design (ADR)**:
+  - Architecture decision record: docs/138_phase15_0_real_transport_design.md
+  - Selected Telegram as first real transport
+  - Environment configuration design (BOT_TOKEN, optional PROXY)
+  - Transport interface boundary (outbound/sender only)
+  - Failure strategy (retry once, degraded logging, still 200 OK)
+  - Security requirements (no token logging, env vars only)
+- **Phase 15.1: Telegram real sender (Pro_v1.07.1)**:
+  - Implementation note: docs/139_phase15_1_telegram_real_transport_implementation.md
+  - Code: `src/config/telegram.ts`, `src/channels/adapters/telegram/real-send.ts`, `src/channels/outbound-sender/index.ts` (Telegram branch)
+  - Real send when `TELEGRAM_BOT_TOKEN` valid and `TELEGRAM_SANDBOX` not forcing synthetic; other channels unchanged (synthetic)
+  - `.env.example` documents env vars
+- **Phase 15.2: Telegram proxy (Pro_v1.07.2)**:
+  - docs/140_phase15_2_telegram_proxy_implementation.md
+  - `TELEGRAM_PROXY_URL` (+ optional USERNAME/PASSWORD) → undici `ProxyAgent` on Bot API `fetch`
+  - Runtime dependency: `undici`
+- **Phase 15.3: Webhook GET verification (Pro_v1.07.3)**:
+  - docs/141_phase15_3_webhook_get_verification.md
+  - Meta‑style hub challenge on WA/Messenger/Website (+ optional Line/Zalo)
+  - Telegram GET informational (no URL challenge)
+  - All seven `/webhooks/*` GET routes
+- **Phase 15.4a: Meta POST signature (Pro_v1.07.4)**:
+  - docs/142_phase15_4a_meta_post_signature_verification.md
+  - WhatsApp + Messenger validate `X‑Hub‑Signature‑256` when app secret configured
+  - `src/config/meta‑webhook.ts` — constant‑time HMAC‑SHA256 verification
+  - No secret → backward compatibility (existing dev setups unchanged)
+  - **安全修订**：配置 secret 时强制要求有效签名头（缺失/空/格式错误 → 403）
+- **Phase 15.4b: Line POST signature (Pro_v1.07.5)**:
+  - docs/143_phase15_4b_line_post_signature_verification.md
+  - Line validates `X‑Line‑Signature` when channel secret configured
+  - `src/config/line‑webhook.ts` — constant‑time HMAC‑SHA256 (base64) verification
+  - No secret → backward compatibility (existing dev setups unchanged)
+- **Phase 15.4c: Zalo POST signature research (Pro_v1.07.6)**:
+  - docs/144_phase15_4c_zalo_post_signature_research.md
+  - **研究结论**: Zalo 无标准 POST body 签名头，主要依赖 IP 白名单 + OAuth 2.0
+  - **决策**: 不实现伪签名（避免虚假安全预期），待官方机制再立项
+  - **无代码变更**: 保持现有 `POST /webhooks/zalo` 行为
+
+## Unfinished Summary (Pro_v1.07.6 + post–15.4c limitations)
+- Session store: in-memory only, single-process, **with 24h TTL expiration**
+- JSONL persistence: **backup accumulation controlled** (max 5 files, 50MB total)
+- Field extraction: regex-based, **with minimal format validation**
+- FAQ content: **multilingual with language-priority matching** (4 languages, 5 topics, 20 entries)
+- Intent dispatch: **implemented with partial session boundary fix**
+- Real transports: **Telegram real** when configured (**optional 138 proxy wired**); **WhatsApp / Messenger / Line / Zalo / Website** still synthetic
+- Webhook POST signature: **WhatsApp + Messenger + Line** done; **Zalo** 无官方机制（待官方支持）；**Website** 待 Phase 15.4d 设计实现
+
+## Next Unique Priority Action
+**Phase 15.4d+** — Website POST signature (需先写半页设计文档) or second real channel
+
+## New Chat Rule
+- Read the memory files first, then continue from the current state without reopening product definition or architecture.
+- New chats must read docs `81_phase9_5_telegram_minimal_interaction_result.md`, `82_phase9_6_telegram_minimal_observability_enhancement_closure.md`, `83_phase10_8_host_and_minimal_evidence_closure.md`, and `84_phase11_8_dual_webhook_minimal_regression_closure.md` before changing anything.
+- New chats must first restate the current boundary: **All seven channels live** (Website, Telegram, WhatsApp, Messenger, Line, Zalo) with unified pipeline, acceptance checklist ready at docs/129.
+- **Current pause status**: Not paused — Phase 15.4c shipped (已交付); pick next item from Phase 15.4d+.
+- **Commander preference**: After a phase is delivered, **continue** to the next planned phase without waiting for a separate「继续」unless blocked or scope is unclear.
+- **Implementation split (commander-locked)**:
+  - **龙虾 (local agent)**: Default owner of **all implementation** — code changes, builds, fixes, and **Memory 指令 2** physical write-back to `./memory/`.
+  - **Cursor**: Default role is **instructions + acceptance criteria** only (what to build, how to verify, paste-ready blocks for 龙虾). **No full-phase implementation in Cursor** unless commander explicitly overrides.
+  - **Exception**: Cursor may apply **trivially small edits** directly (e.g. one-line typo, single env comment) when the Cursor agent judges risk negligible; anything non-trivial → 龙虾.

@@ -1,0 +1,83 @@
+# Next Phase Plan
+
+- Current Phase: **Phase 15.4c** - Zalo POST signature research
+- Previous: Phase 15.4b — Line POST signature verification
+- Completed in Phase 15.0:
+  - ✅ Created real transport architecture design document: docs/138_phase15_0_real_transport_design.md
+  - ✅ Selected Telegram as first real transport (simple API, low barrier)
+  - ✅ Defined environment configuration (BOT_TOKEN, optional PROXY)
+  - ✅ Designed transport interface boundary (outbound/sender only, no message model changes)
+  - ✅ Specified failure strategy (retry once, degraded logging, still 200 OK)
+  - ✅ Outlined security requirements (no token logging, env vars only)
+- Completed in Phase 15.1:
+  - ✅ `src/config/telegram.ts` — sandbox, token validation, `loadTelegramConfigForRealSend`, redaction
+  - ✅ `src/channels/adapters/telegram/real-send.ts` — Bot API `sendMessage`, timeout + one retry
+  - ✅ `src/channels/outbound-sender/index.ts` — Telegram branch, `should_send`, fallback/failure mapping
+  - ✅ docs/139_phase15_1_telegram_real_transport_implementation.md
+  - ✅ `.env.example` Telegram variables
+  - ✅ Build passes: `npm run build`
+  - ✅ Version: package.json **1.7.1** (Pro_v1.07.1) tags Phase 15.1 delivery
+- Completed in Phase 15.2:
+  - ✅ `TELEGRAM_PROXY_URL` / `TELEGRAM_PROXY_USERNAME` / `TELEGRAM_PROXY_PASSWORD` → `proxyConnectUri` in `telegram.ts`
+  - ✅ `real-send.ts`: undici `fetch` + `ProxyAgent`, `telegram_real_proxy` in debug_steps, `close()` in finally
+  - ✅ Runtime dependency `undici@^6`
+  - ✅ docs/140_phase15_2_telegram_proxy_implementation.md, `.env.example` proxy block
+  - ✅ Version: package.json **1.7.2** (Pro_v1.07.2) tags Phase 15.2 delivery
+- Completed in Phase 15.3:
+  - ✅ `src/config/webhook-verify.ts` — Meta-style `hub.mode` / `hub.verify_token` / `hub.challenge`, per-channel + `META_WEBHOOK_VERIFY_TOKEN` fallback
+  - ✅ `src/server.ts` — `GET /webhooks/*` for all seven channels (Telegram = informational JSON; others Meta-style or idle ping)
+  - ✅ docs/141_phase15_3_webhook_get_verification.md, `.env.example` verify block
+  - ✅ Version: package.json **1.7.3** (Pro_v1.07.3) tags Phase 15.3 delivery
+- Completed in Phase 15.4a:
+  - ✅ `src/config/meta‑webhook.ts` — `loadMetaWebhookConfig()`, `verifyMetaSignature()`, constant‑time HMAC‑SHA256
+  - ✅ `src/server.ts` — `readRequestBody()` returns raw Buffer + parsed; WhatsApp/Messenger POST validate `X‑Hub‑Signature‑256`
+  - ✅ Invalid signature → HTTP 403 with `{ ok:false, error:'signature_invalid' }`
+  - ✅ No secret configured → backward compatibility (no verification)
+  - ✅ **安全修订**：配置 secret 时强制要求有效签名头（缺失/空/格式错误 → 403）
+  - ✅ docs/142_phase15_4a_meta_post_signature_verification.md updated with security tightening
+  - ✅ `.env.example` updated with Meta secret variables
+  - ✅ Build passes: `npm run build`
+  - ✅ Version: package.json **1.7.4** (Pro_v1.07.4) tags Phase 15.4a delivery
+- Completed in Phase 15.4b:
+  - ✅ `src/config/line‑webhook.ts` — `getLineChannelSecret()`, `verifyLineSignature()`, constant‑time HMAC‑SHA256 (base64)
+  - ✅ `src/server.ts` — Line POST validates `X‑Line‑Signature` header
+  - ✅ Invalid signature → HTTP 403 with `{ ok:false, error:'signature_invalid' }`
+  - ✅ No channel secret configured → backward compatibility (no verification)
+  - ✅ docs/143_phase15_4b_line_post_signature_verification.md
+  - ✅ `.env.example` updated with Line channel secret variable
+  - ✅ Build passes: `npm run build`
+  - ✅ Version: package.json **1.7.5** (Pro_v1.07.5) tags Phase 15.4b delivery
+- Completed in Phase 15.4c:
+  - ✅ **Zalo 官方文档研究**: 确认 Zalo Open API / OA Webhook 安全机制
+  - ✅ **研究结论**: Zalo 无标准 POST body 签名头，主要依赖 IP 白名单 + OAuth 2.0
+  - ✅ **决策**: 不实现伪签名（避免虚假安全预期），待官方机制再立项
+  - ✅ docs/144_phase15_4c_zalo_post_signature_research.md — 完整记录研究依据与决策
+  - ✅ **无代码变更**: 保持现有 `POST /webhooks/zalo` 行为
+  - ✅ Build passes: `npm run build`
+  - ✅ Version: package.json **1.7.6** (Pro_v1.07.6) tags Phase 15.4c delivery
+
+- Technical Debt Progress:
+  - ✅ **Real transport design**: Architecture decision record created
+  - ✅ **Intent dispatch boundary fix**: Partial session FAQ access improved
+  - ✅ **Intent dispatch documentation**: Comprehensive regression matrix created
+  - ✅ **Intent dispatch implementation**: Minimal classification and routing implemented
+  - ✅ **FAQ language priority**: Three-tier matching with English fallback
+  - ✅ **FAQ content**: Expanded to 4 languages (20 entries across 5 topics)
+  - ✅ **Field validation**: Minimal email/phone format validation
+  - ✅ **Session TTL**: 24-hour expiration with lazy cleanup
+  - ✅ **JSONL backup cleanup**: Max 5 files, 50MB total size limit
+  - 🔄 **Real transports beyond Telegram**: WhatsApp / others still synthetic
+
+- Known Limitations (Pro_v1.07.6 + Phase 15.4c):
+  - Session store: in-memory only, single-process, **with 24h TTL expiration**
+  - JSONL persistence: **backup accumulation controlled** (max 5 files, 50MB total)
+  - Field extraction: regex-based, **with minimal format validation**
+  - FAQ content: **multilingual with language-priority matching** (4 languages, 5 topics)
+  - Intent dispatch: **implemented with partial session boundary fix**
+  - Real transports: **Telegram real send** when token set and not sandbox; optional **HTTP(S) proxy** via 138 envs; other channels synthetic
+  - **POST signature validation**: **WhatsApp + Messenger + Line** done; **Zalo** 无官方机制（待官方支持）；**Website** 待 Phase 15.4d 设计实现
+
+- **Pause Status**: **Active** — Phase 15.4c Zalo signature research complete (已交付)
+- **Commander preference**: 完成约定 phase 交付后，**自动继续推进**下一立项阶段，无需指挥官每轮提醒「继续」；遇阻塞或范围不明时再停问。
+- **Implementation split**: **实现一律龙虾**；**Cursor 默认只出指令与验收**；仅**极小改动**可由 Cursor 直接改。详见 `memory/05_handoff_for_new_chat.md`。
+- Next Unique Priority Action: **Phase 15.4d+** — **Website POST signature**（需先写半页设计文档）或 **第二真实频道**（择一立项）；ADR/契约先行。

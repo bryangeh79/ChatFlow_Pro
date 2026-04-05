@@ -1,0 +1,7 @@
+{
+  "welcome": "欢迎使用 ChatFlow Pro",
+  "fallback": "我先按默认内容回复你。",
+  "unknown_input": "我没完全看懂你的意思，可以再说一次吗？",
+  "handoff_pending": "已为你转接人工，稍后会有同事接手。",
+  "handoff_requested": "已收到人工接手请求。"
+}

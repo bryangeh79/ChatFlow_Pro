@@ -1,0 +1,7 @@
+{
+  "welcome": "Chào mừng đến với ChatFlow Pro",
+  "fallback": "Tôi sẽ dùng câu trả lời mặc định trước.",
+  "unknown_input": "Tôi chưa hiểu rõ ý bạn. Bạn có thể nói lại không?",
+  "handoff_pending": "Bạn đã được chuyển sang người thật. Nhân viên sẽ tiếp nhận sớm.",
+  "handoff_requested": "Đã nhận yêu cầu chuyển sang người thật."
+}

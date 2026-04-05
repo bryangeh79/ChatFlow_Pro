@@ -1,0 +1,90 @@
+import { normalizeTelegramInbound, type TelegramRawInboundEvent } from '../channels/adapters/telegram';
+import { mapTelegramOutboundPayload } from '../channels/adapters/telegram/outbound';
+import { createChannelSender } from '../channels/outbound-sender';
+import { createOrUpdateSessionContext, commitSessionContext } from '../channels/session-context';
+import { runUnifiedInboundPipeline } from '../channels/unified-inbound-pipeline';
+import { createMinimalTraceContext } from '../channels/errors/observability';
+import { createSafeFallbackResponse } from '../channels/errors';
+
+function isTelegramStartOrHelp(text: string | null | undefined): boolean {
+  const normalized = String(text ?? '').trim().toLowerCase();
+  return normalized === '/start' || normalized === 'start' || normalized === '/help' || normalized === 'help';
+}
+
+function createTelegramHelpText(): string {
+  return 'Telegram is connected. Send a message, or use /start or /help to see this guide.';
+}
+
+export async function handleTelegramWebhook(rawRequestBody: unknown) {
+  try {
+    if (!rawRequestBody || typeof rawRequestBody !== 'object') {
+      throw new Error('normalize_error: invalid telegram payload');
+    }
+
+    const telegramEvent = rawRequestBody as TelegramRawInboundEvent;
+    const message = normalizeTelegramInbound(telegramEvent);
+    const session = createOrUpdateSessionContext(message);
+
+    const isHelpTrigger = isTelegramStartOrHelp(message.text);
+    const inboundMessage = isHelpTrigger
+      ? {
+          ...message,
+          text: createTelegramHelpText(),
+          message_type: 'event' as const,
+          handoff_flag: false,
+        }
+      : message;
+
+    const result = runUnifiedInboundPipeline(inboundMessage, session);
+    
+    // 提交 session 到进程内存储（使跨请求 lead 合并生效）
+    commitSessionContext(result.session);
+    
+    const trace = createMinimalTraceContext({
+      channel: 'telegram',
+      session_id: result.session.session_id,
+    });
+
+    const outboundPayload = mapTelegramOutboundPayload({
+      ...result.response,
+      debug_metadata: {
+        trace_id: trace.trace_id,
+        request_id: trace.request_id,
+        message_trace_id: trace.message_trace_id,
+      },
+    });
+
+    const sender = createChannelSender('telegram');
+    const sendResult = await sender.send({
+      channel: 'telegram',
+      session_id: result.session.session_id,
+      kind: result.response.kind,
+      reply_text: result.response.reply_text,
+      attachments: [],
+      should_send: true,
+      debug_metadata: {
+        trace_id: trace.trace_id,
+        request_id: trace.request_id,
+        message_trace_id: trace.message_trace_id,
+      },
+    });
+
+    return {
+      ok: true,
+      message: inboundMessage,
+      session: result.session,
+      response: result.response,
+      outboundPayload,
+      sendResult: { result: sendResult.result },
+      trace,
+      transport_step: 'mapped-transported',
+      trigger: isHelpTrigger ? 'help-start' : 'normal',
+    };
+  } catch (error) {
+    const fallback = createSafeFallbackResponse(String(error));
+    return {
+      ok: false,
+      error: fallback,
+    };
+  }
+}

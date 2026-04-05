@@ -1,0 +1,7 @@
+{
+  "welcome": "Welcome to ChatFlow Pro",
+  "fallback": "I will use the default reply for now.",
+  "unknown_input": "I didn't fully understand that. Could you say it again?",
+  "handoff_pending": "You have been routed to a human. A staff member will take over shortly.",
+  "handoff_requested": "Human handoff request received."
+}
