@@ -25,10 +25,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 function loadDotEnvOptional() {
   const envPath = path.join(__dirname, '..', '.env');
   if (!fs.existsSync(envPath)) return;
-  const text = fs.readFileSync(envPath, 'utf8');
+  let text = fs.readFileSync(envPath, 'utf8');
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
   for (const line of text.split(/\r?\n/)) {
-    const t = line.trim();
+    let t = line.trim();
     if (!t || t.startsWith('#')) continue;
+    if (/^export\s+/i.test(t)) t = t.replace(/^export\s+/i, '').trim();
     const eq = t.indexOf('=');
     if (eq < 1) continue;
     const key = t.slice(0, eq).trim();
@@ -39,6 +41,9 @@ function loadDotEnvOptional() {
       (val.startsWith("'") && val.endsWith("'"))
     ) {
       val = val.slice(1, -1);
+    } else {
+      const ci = val.indexOf(' #');
+      if (ci >= 0) val = val.slice(0, ci).trim();
     }
     if (process.env[key] === undefined) process.env[key] = val;
   }
