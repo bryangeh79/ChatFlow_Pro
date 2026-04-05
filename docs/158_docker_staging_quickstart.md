@@ -70,7 +70,7 @@ For another machine on the LAN, use the host’s IP, e.g. `http://192.168.1.10:3
 |------|------|------------------|----------------|
 | **T0 — always** | Every push / before PR | CI **`npm run build`** (and repo **`npm run verify:local`** if you use git locally) | Build green |
 | **T1 — default local** | After Docker or infra change | **`npm run staging:docker-smoke`** (compose **without** `.env`) | **`[smoke] all passed`** on **seven** webhook routes |
-| **T2 — secrets in container** | After editing `.env` for Meta/Line POST verify | **`npm run docker:up:local-env`** (or dual `-f` compose) + smoke with skips | **`SMOKE_SKIP_CHANNELS=whatsapp,messenger,line`** (add `website` if Website signing is on) → **all passed** on non-skipped routes; **403** on skipped routes without skip is **expected** |
+| **T2 — secrets in container** | After editing `.env` for Meta/Line POST verify | **`npm run staging:docker-smoke:t2`** (one-shot: dual compose + default skips) **or** `npm run docker:up:local-env` + manual smoke | Default skip **`whatsapp,messenger,line`**; add **`website`** in env if Website signing is on (`SMOKE_SKIP_CHANNELS=whatsapp,messenger,line,website`) → **all passed** on non-skipped routes |
 | **T3 — real traffic** | Before production cutover | Public **HTTPS** URL + platform webhooks + one **manual** test message per channel you ship | Human confirms reply / logs + **`X-Request-Id`** |
 | **T4 — optional drills** | When you enable in-process refresh | **`docs/157`** Phase **A → B/C** | Checklist only |
 
