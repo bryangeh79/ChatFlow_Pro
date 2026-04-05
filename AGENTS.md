@@ -7,7 +7,8 @@ This folder is home. Treat it that way.
 - **Git on PATH** is required for **commit/push**. From repo root: `npm run check:agent-env` (see **`docs/155`**).  
 - In **Docker / no-git** shells: `npm run report:agent-git` reads **HEAD from `.git`** for accurate SHA in notes; **commit/push may be done by Cursor or the human on the host** after reviewing the diff (龙虾不冒充已 push).  
 - Do not fake git output — use one of the two commands above for SHA.  
-- **Read-only `/workspace` OpenClaw image** (no `git`, no DinD): canonical duties table → **`docs/155`** section *Typical OpenClaw profile*; optional git/Docker-in-image → **`docs/159`**.
+- **Read-only `/workspace` OpenClaw image** (no `git`, no DinD): canonical duties table → **`docs/155`** section *Typical OpenClaw profile*; optional git/Docker-in-image → **`docs/159`**.  
+- Staging Phase B/C env self-check (no secret echo): **`npm run check:staging-env`** — **`docs/160`** §4.
 
 ## First Run
 
