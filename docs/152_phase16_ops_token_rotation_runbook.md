@@ -90,5 +90,6 @@ Point `SMOKE_BASE_URL` at **staging** after deploying new secrets to validate th
 
 - `docs/151_phase16_meta_zalo_token_refresh_adr.md` — strategy (A / B / C).  
 - `docs/157_phase17_staging_validation_playbook.md` — order staging drills for **152** + Phase **17.1 / 17.2** in-process refresh.  
+- `docs/158_docker_staging_quickstart.md` — local **SMOKE_BASE_URL** via Docker.  
 - `docs/150_phase16_http_access_observability.md` — `CHATFLOW_HTTP_ACCESS_LOG`, `X-Request-Id`, `phases_ms`.  
 - `docs/129_phase13_0_pro_seven_channel_acceptance_checklist.md` — example curl bodies per channel.

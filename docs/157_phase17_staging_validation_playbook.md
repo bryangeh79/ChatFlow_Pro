@@ -14,10 +14,11 @@ Single place to **validate** Phase **17.1** (Zalo in-process refresh) and **17.2
 ## Phase 0 — Baseline (in-process refresh **off**)
 
 1. Ensure **`CHATFLOW_INPROCESS_TOKEN_REFRESH`** is **unset** or **not** `1` / `true`.  
-2. From your laptop (or CI):  
+2. **No cloud URL yet?** Run ChatFlow in Docker locally and use `http://127.0.0.1:3030` — see **`docs/158_docker_staging_quickstart.md`**.  
+3. From your laptop (or CI):  
    `SMOKE_BASE_URL=https://your-staging.example npm run smoke:webhooks`  
    Use `SMOKE_SKIP_*` per `docs/152` if POST signatures are enforced.  
-3. Record: pass/fail per channel, one sample **`X-Request-Id`**.
+4. Record: pass/fail per channel, one sample **`X-Request-Id`**.
 
 ## Phase A — Option A rotation drill (`docs/152`)
 
@@ -58,6 +59,7 @@ Single place to **validate** Phase **17.1** (Zalo in-process refresh) and **17.2
 
 ## References
 
+- `docs/158_docker_staging_quickstart.md` — local Docker → `SMOKE_BASE_URL`.  
 - `docs/152_phase16_ops_token_rotation_runbook.md` — platform rotation (option A).  
 - `docs/154_phase17_inprocess_token_refresh.md` — Zalo 17.1.  
 - `docs/156_phase17_2_meta_inprocess_token_refresh_spec.md` — Meta 17.2.  

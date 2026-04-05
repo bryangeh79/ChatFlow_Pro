@@ -1,0 +1,15 @@
+# Local / LAN staging: get SMOKE_BASE_URL without a cloud PaaS.
+#   docker compose up --build
+#   SMOKE_BASE_URL=http://127.0.0.1:3030 npm run smoke:webhooks
+#
+# Optional secrets: create a local .env (never commit) and uncomment env_file below.
+
+services:
+  chatflow-pro:
+    build: .
+    ports:
+      - "3030:3030"
+    environment:
+      PORT: "3030"
+    # env_file:
+    #   - .env

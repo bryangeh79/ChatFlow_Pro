@@ -2,7 +2,7 @@
 
 - Project Name: ChatFlow Pro
 - Current Phase: **Phase 17.2** (Meta WA + Messenger **fb_exchange_token** on 401 / Graph **190**) — MVP 已落地；**staging 验证**仍必须
-- Current Version: **Pro_v1.07.23** (package.json: 1.7.23)
+- Current Version: **Pro_v1.07.24** (package.json: 1.7.24)
 - Execution Root: C:\AI_WORKSPACE\Chatflow\ChatFlow_Pro
 - Current Project State: 
   - ✅ **Seven-route webhook baseline**: Website, Telegram, WhatsApp, Messenger, Line, Zalo (`POST /webhooks/*` + **`GET /webhooks/*`** verification per docs/141)
@@ -26,8 +26,8 @@
   - ✅ **Line Messaging API real outbound**: When `LINE_CHANNEL_ACCESS_TOKEN` valid and not sandbox, outbound uses push API (`docs/148`, `src/channels/outbound-sender/index.ts`) — **15.7.1 稳定性修订：恢复 LINE_MESSAGING_DISABLED 检查，session 解析返回 null 而非 'unknown'，每轮独立超时，redact 用 split/join**
   - ✅ **Zalo Open API real outbound**: When `ZALO_ACCESS_TOKEN` + `ZALO_OA_ID` valid and not sandbox, outbound uses Open API (`docs/149`, `src/channels/outbound-sender/index.ts`)
   - ✅ **HTTP observability (Phase 16)**: All responses include `X-Request-Id`; optional one-line JSON access log when `CHATFLOW_HTTP_ACCESS_LOG` set (`docs/150`, `src/observability/http-access.ts`, `server.ts`); **HTTP `request_id` = `debug_metadata.request_id`** on all seven `POST /webhooks/*` paths via `createMinimalTraceContext({ httpRequestId })`; access log may include **`phases_ms`** (`prepare_ms`, optional `outbound_send_ms`) from webhook handlers
-- Current Completion Point: **Pro_v1.07.23** — **`docs/157`** staging 验证 playbook（衔接 **152** + **17.1/17.2**）；17.2/17.1 代码见前版说明
+- Current Completion Point: **Pro_v1.07.24** — **Dockerfile** + **docker-compose** + **`docs/158`** 本地可跑即得 `SMOKE_BASE_URL`；CI 增加 `report:agent-git`；**157** 已链到 158
 - Pro Target Channels (product scope, Bryan-locked): **Telegram**, **WhatsApp**, **Facebook Messenger**, **Line**, **Zalo**; architecture must keep an **extension slot** for additional messaging platforms later. **Website live chat** remains part of Pro (already implemented alongside messaging channels).
 - Current Channel Boundary (runtime today): **All seven channels live** — unified pipeline; **Telegram** real outbound when token + not sandbox (**optional proxy**); **WhatsApp** real outbound when token + phone number ID + not sandbox; **Messenger** real outbound when token + page ID + not sandbox; **Line** real outbound when token + not sandbox; **Zalo** real outbound when token + OA ID + not sandbox; **Website** real outbound when `WEBSITE_OUTBOUND_URL` configured + not sandbox/disabled; **WhatsApp/Messenger/Line/Website** POST signature validation when secret configured; **Zalo** inbound relies on IP whitelisting (per official docs).
 - **Pause Status**: **Active** — Phase 16.2 observability enhanced with webhook phase timings delivered
-- Next Unique Priority Action: 按 **`docs/157`** 在 **staging** 执行 Phase 0→A→B/C 并勾选证据清单；完成后可冻结 Phase 17 或立项 Line 自动刷新等
+- Next Unique Priority Action: **`docker compose up`**（见 **158**）→ `SMOKE_BASE_URL=http://127.0.0.1:3030 npm run smoke:webhooks` 解除「无 URL」阻塞；再按 **157** 推进 A/B/C；或部署到云得公网 staging
