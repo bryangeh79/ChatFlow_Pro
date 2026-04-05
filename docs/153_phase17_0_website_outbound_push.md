@@ -93,6 +93,17 @@ const signature = 'sha256=' + crypto
 4. **Environment** (`.env.example`):
    - Add Website outbound block with variable descriptions
 
+## Local E2E (built-in echo)
+
+Repo ships `scripts/website-outbound-echo.mjs` — minimal receiver on **127.0.0.1** (default port **3847**, override with `WEBSITE_OUTBOUND_ECHO_PORT`).
+
+1. Terminal A: `npm run dev:website-outbound-echo`  
+2. Terminal B (same machine): set `WEBSITE_OUTBOUND_URL=http://127.0.0.1:3847` and optional `WEBSITE_OUTBOUND_SIGNING_SECRET` / `WEBSITE_OUTBOUND_ECHO_SECRET` (same value) to verify `X-Webhook-Signature`.  
+3. Terminal C: `npm run build && npm run start` (ChatFlow Pro, default **3030**).  
+4. Terminal D: `curl` or `npm run smoke:webhooks` — expect echo terminal to log JSON body and `X-Request-Id`.
+
+Optional: set `WEBSITE_OUTBOUND_ECHO_SECRET` when starting the echo server to enable constant-time signature check (must match `WEBSITE_OUTBOUND_SIGNING_SECRET` on ChatFlow).
+
 ## Acceptance test (optional)
 
 Customer callback endpoint simulation:
