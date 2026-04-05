@@ -65,8 +65,10 @@
 | **两条 Meta 线一起看** | `npm run check:staging-env -- --phase=c` |
 | **缺一项就让命令失败（给脚本用）** | 在对应命令后加 **`--strict`**，例如：`npm run check:staging-env -- --phase=b --strict` |
 | **机器可读 JSON** | `npm run check:staging-env -- --json` |
+| **排查「明明填了却 MISSING」** | `npm run check:staging-env:debug` 或 `npm run check:staging-env -- --debug-parse`（只打印**行号、变量名、值长度**，不打印密钥；并列出仍带 `#` 的 `META_`/`WHATSAPP_` 等行） |
 
-实现文件：`scripts/check-staging-env.mjs`。
+实现文件：`scripts/check-staging-env.mjs`。  
+**Windows**：若你在「系统环境变量」里给 `META_APP_ID` 等设过**空字符串**，旧逻辑不会用 `.env` 覆盖；当前脚本会在键**未设置或为空**时用 `.env` 里的值填满。
 
 ### 4.2 交给 Cursor 的一句话（复制即可）
 

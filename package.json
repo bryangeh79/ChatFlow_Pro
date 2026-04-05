@@ -10,6 +10,7 @@
     "dev:website-outbound-echo": "node scripts/website-outbound-echo.mjs",
     "check:agent-env": "node scripts/agent-env-check.mjs",
     "check:staging-env": "node scripts/check-staging-env.mjs",
+    "check:staging-env:debug": "node scripts/check-staging-env.mjs --debug-parse",
     "report:agent-git": "node scripts/agent-git-metadata.mjs",
     "verify:local": "npm run build && npm run report:agent-git",
     "staging:docker-smoke": "node scripts/staging-docker-smoke.mjs",

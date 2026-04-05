@@ -3,8 +3,8 @@
  * Lists staging-related env vars as SET / MISSING / ANY_OK without printing values.
  * Aligns with docs/157, docs/160, docs/154, docs/156.
  *
- * If project root `.env` exists, KEY=VALUE lines are loaded into `process.env` only for
- * keys not already set in the shell (same idea as many app starters; no dependency).
+ * If project root `.env` exists, KEY=VALUE lines are merged into `process.env` when the
+ * key is missing **or set to an empty string** (Windows User env vars are often empty).
  *
  * Usage:
  *   node scripts/check-staging-env.mjs
@@ -13,6 +13,7 @@
  *   node scripts/check-staging-env.mjs --phase=c-wa --strict
  *   node scripts/check-staging-env.mjs --phase=c-messenger --strict
  *   node scripts/check-staging-env.mjs --json
+ *   node scripts/check-staging-env.mjs --debug-parse   # keys + line numbers + value lengths only
  */
 
 import fs from 'node:fs';
@@ -21,15 +22,36 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-/** Load `.env` from repo root without overriding existing `process.env`. */
-function loadDotEnvOptional() {
-  const envPath = path.join(__dirname, '..', '.env');
-  if (!fs.existsSync(envPath)) return;
-  let text = fs.readFileSync(envPath, 'utf8');
-  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
-  for (const line of text.split(/\r?\n/)) {
-    let t = line.trim();
-    if (!t || t.startsWith('#')) continue;
+function envSlotEmpty(key) {
+  const v = process.env[key];
+  return v === undefined || (typeof v === 'string' && v.trim() === '');
+}
+
+/**
+ * Parse `.env` text: active assignments + commented KEY= lines (for --debug-parse).
+ * @returns {{ active: { lineNo: number, key: string, val: string }[], commentedKeys: { lineNo: number, key: string }[], hadBom: boolean }}
+ */
+function parseDotEnvText(text) {
+  let t0 = text;
+  const hadBom = t0.charCodeAt(0) === 0xfeff;
+  if (hadBom) t0 = t0.slice(1);
+  const active = [];
+  const commentedKeys = [];
+  const lines = t0.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const lineNo = i + 1;
+    let t = lines[i].trim();
+    if (!t) continue;
+    if (t.startsWith('#')) {
+      let rest = t.slice(1).trim();
+      if (/^export\s+/i.test(rest)) rest = rest.replace(/^export\s+/i, '').trim();
+      const eq = rest.indexOf('=');
+      if (eq >= 1) {
+        const key = rest.slice(0, eq).trim();
+        if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) commentedKeys.push({ lineNo, key });
+      }
+      continue;
+    }
     if (/^export\s+/i.test(t)) t = t.replace(/^export\s+/i, '').trim();
     const eq = t.indexOf('=');
     if (eq < 1) continue;
@@ -45,7 +67,20 @@ function loadDotEnvOptional() {
       const ci = val.indexOf(' #');
       if (ci >= 0) val = val.slice(0, ci).trim();
     }
-    if (process.env[key] === undefined) process.env[key] = val;
+    active.push({ lineNo, key, val });
+  }
+  return { active, commentedKeys, hadBom };
+}
+
+/** Load `.env` from repo root. Fills `process.env` when key is missing **or empty** (Windows often has empty User env vars). */
+function loadDotEnvOptional() {
+  const envPath = path.join(__dirname, '..', '.env');
+  if (!fs.existsSync(envPath)) return;
+  const text = fs.readFileSync(envPath, 'utf8');
+  const { active } = parseDotEnvText(text);
+  for (const { key, val } of active) {
+    if (val.trim() === '') continue;
+    if (envSlotEmpty(key)) process.env[key] = val;
   }
 }
 
@@ -153,21 +188,76 @@ function parseArgs() {
   let phase = 'all';
   let strict = false;
   let json = false;
+  let debugParse = false;
   for (const a of argv) {
     if (a === '--strict') strict = true;
     else if (a === '--json') json = true;
+    else if (a === '--debug-parse') debugParse = true;
     else if (a.startsWith('--phase=')) phase = a.slice('--phase='.length);
     else if (a === '--help' || a === '-h') {
-      console.log(`Usage: node scripts/check-staging-env.mjs [--phase=all|0|b|c-wa|c-messenger|c] [--strict] [--json]`);
+      console.log(
+        `Usage: node scripts/check-staging-env.mjs [--phase=all|0|b|c-wa|c-messenger|c] [--strict] [--json] [--debug-parse]`,
+      );
       process.exit(0);
     }
   }
-  return { phase, strict, json };
+  return { phase, strict, json, debugParse };
+}
+
+function runDebugParse() {
+  const envPath = path.join(__dirname, '..', '.env');
+  console.log('check-staging-env --debug-parse: no secret values printed — line numbers + key names + value lengths only.\n');
+  if (!fs.existsSync(envPath)) {
+    console.log('No file:', envPath);
+    return;
+  }
+  const text = fs.readFileSync(envPath, 'utf8');
+  const { active, commentedKeys, hadBom } = parseDotEnvText(text);
+  console.log('Path:', envPath);
+  if (hadBom) console.log('Note: UTF-8 BOM was stripped when parsing.\n');
+  console.log('Active assignments (not starting with #):');
+  if (active.length === 0) console.log('  (none)');
+  else {
+    for (const { lineNo, key, val } of active) {
+      console.log(`  line ${lineNo}  ${key}  value_len=${val.length}`);
+    }
+  }
+  const interest = /^(META_|WHATSAPP_|MESSENGER_|ZALO_|TELEGRAM_|LINE_|CHATFLOW_)/;
+  const commentedHit = commentedKeys.filter((c) => interest.test(c.key));
+  console.log('\nCommented lines that look like KEY=... (still disabled — remove leading # to enable):');
+  if (commentedHit.length === 0) console.log('  (none matching META_/WHATSAPP_/…)');
+  else {
+    for (const { lineNo, key } of commentedHit) {
+      console.log(`  line ${lineNo}  ${key}`);
+    }
+  }
+  console.log('');
 }
 
 function main() {
+  const { phase, strict, json, debugParse } = parseArgs();
+  if (debugParse) {
+    runDebugParse();
+    loadDotEnvOptional();
+    console.log('After merge into process.env (empty shell slots filled from .env):');
+    printHeader();
+    console.log(
+      [
+        ...sectionPhase0().lines,
+        '',
+        ...sectionPhaseB().lines,
+        '',
+        ...sectionMetaCommon().lines,
+        '',
+        ...sectionPhaseCWhatsApp().lines,
+        '',
+        ...sectionPhaseCMessenger().lines,
+      ].join('\n'),
+    );
+    return;
+  }
+
   loadDotEnvOptional();
-  const { phase, strict, json } = parseArgs();
 
   const p0 = sectionPhase0();
   const pb = sectionPhaseB();
