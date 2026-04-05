@@ -2,7 +2,7 @@
 #   docker compose up --build
 #   SMOKE_BASE_URL=http://127.0.0.1:3030 npm run smoke:webhooks
 #
-# Optional secrets: create a local .env (never commit) and uncomment env_file below.
+# Optional secrets: `docker-compose.local-credentials.yml` or uncomment env_file below (never commit .env).
 
 services:
   chatflow-pro:

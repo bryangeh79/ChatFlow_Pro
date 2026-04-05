@@ -14,7 +14,8 @@
     "report:agent-git": "node scripts/agent-git-metadata.mjs",
     "verify:local": "npm run build && npm run report:agent-git",
     "staging:docker-smoke": "node scripts/staging-docker-smoke.mjs",
-    "docs:pdf:160": "node scripts/build-doc160-pdf.mjs"
+    "docs:pdf:160": "node scripts/build-doc160-pdf.mjs",
+    "docker:up:local-env": "docker compose -f docker-compose.yml -f docker-compose.local-credentials.yml up --build"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",

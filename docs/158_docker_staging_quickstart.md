@@ -51,8 +51,16 @@ For another machine on the LAN, use the host’s IP, e.g. `http://192.168.1.10:3
 ## Env / webhooks
 
 - By default the image runs **without** your `.env` (intentionally: no secrets baked in).  
-- For real outbound or signature checks, use **`env_file: .env`** in `docker-compose.yml` (local only; **never commit** `.env`).  
-- Then continue **Phase 0 → A → B/C** in **`docs/157`**.
+- For **real outbound** (Telegram / Line / WhatsApp / Messenger) or stricter POST signature behaviour inside Docker, merge the optional overlay (**never** commit `.env`):  
+
+  ```bash
+  docker compose -f docker-compose.yml -f docker-compose.local-credentials.yml up --build
+  ```
+
+  Shorthand from repo root: **`npm run docker:up:local-env`**.  
+  Then smoke from the host, e.g. `SMOKE_BASE_URL=http://127.0.0.1:3030 npm run smoke:webhooks` (or your `STAGING_HOST_PORT`).  
+- Alternatively, uncomment **`env_file: .env`** in `docker-compose.yml` locally (do not commit that change if it points at real secrets).  
+- Continue **Phase 0 → A → B/C** in **`docs/157`** when validating token refresh.
 
 ## CI note
 
