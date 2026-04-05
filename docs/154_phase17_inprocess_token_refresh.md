@@ -36,9 +36,9 @@ Implements **slice 17.1 — Zalo OA only** (option **C** from `docs/151`). **Met
 
 ## Meta (WhatsApp / Messenger) — future (17.2+)
 
-- Detect Graph **OAuth / expired token** signals (HTTP + `error` body).
-- Possible use of app secret + short-lived token exchange per **current** Meta docs.
-- Same single-flight and “one retry after refresh” pattern as Zalo.
+- See **`docs/156_phase17_2_meta_inprocess_token_refresh_spec.md`** (planning).  
+- Detect Graph **OAuth / expired token** signals (HTTP + `error` body); implement only after **staging** error capture.  
+- Same single-flight and “one retry after refresh” pattern as Zalo where applicable.
 
 ## Security
 

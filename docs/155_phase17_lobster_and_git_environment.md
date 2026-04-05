@@ -12,6 +12,8 @@ From the repo root (`C:\AI_WORKSPACE\Chatflow\ChatFlow_Pro` or your clone):
 npm run check:agent-env
 ```
 
+Quick **build + HEAD** (no git binary needed for the second part): `npm run verify:local`
+
 - Prints `node`, `npm`, `git --version`, `git rev-parse HEAD`, current branch.  
 - **Exit code 1** if `git` is missing or cwd is not a git work tree.
 
