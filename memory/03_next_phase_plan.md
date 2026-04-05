@@ -1,7 +1,8 @@
 # Next Phase Plan
 
-- Current Phase: **Phase 16.2** — HTTP access observability enhanced (`X-Request-Id`, optional `CHATFLOW_HTTP_ACCESS_LOG`, webhook `phases_ms`, verification type narrowing)
-- Previous: Phase 16 — HTTP access observability first slice
+- Current Phase: **Phase 17.2** — Meta WA + Messenger **`fb_exchange_token`** on 401 / Graph **190** (MVP landed); authoritative status → **`memory/01_project_status.md`**
+- Previous major milestone in this log: **Phase 16.2** — HTTP access observability enhanced (`X-Request-Id`, optional `CHATFLOW_HTTP_ACCESS_LOG`, webhook `phases_ms`, verification type narrowing)
+- Before that: Phase 16 — HTTP access observability first slice
 - Completed in Phase 15.0:
   - ✅ Created real transport architecture design document: docs/138_phase15_0_real_transport_design.md
   - ✅ Selected Telegram as first real transport (simple API, low barrier)
@@ -150,4 +151,9 @@
 - **Pro_v1.07.29** (package.json 1.7.29): **`check:agent-env`** 失败提示增补 **`report:github-ci`**；**158** CI note、**160** §4.5、**`memory/01`** 版本与完成点对齐
 - **Pro_v1.07.30** (package.json 1.7.30): **`verify:lead-capture-states`** 扩展 **Telegram** 与 Website 相同 **none/partial/captured**（**`SMOKE_SKIP_TELEGRAM_LEAD`** / **`SMOKE_SKIP_CHANNELS` 含 telegram** 时跳过 TG）；**158** / **`memory/01`** 更新
 - **Pro_v1.07.31** (package.json 1.7.31): **`.gitignore`** 修正（**`!.env.example`**，避免模板被 `.env.*` 误忽略）；**跟踪 `.env.example`**；**`docs/155`** *Environment & secrets* + **`AGENTS.md`** 红线；忽略 **`*.pem` / `*.p12`**
+- **Pro_v1.07.32** (package.json 1.7.32): **`verify:lead-capture-states`** 扩展 **WhatsApp** 扁平体 **none → partial → captured**（**`SMOKE_SKIP_WHATSAPP_LEAD`** / **`SMOKE_SKIP_CHANNELS` 含 whatsapp** 时跳过）；**`docs/158`** / **`memory/01`** 更新
+- **Pro_v1.07.33** (package.json 1.7.33): **`verify:lead-capture-states`** 扩展 **Messenger、Line、Zalo** 三态 + 403 提示与 **`SMOKE_SKIP_MESSENGER_LEAD` / `SMOKE_SKIP_LINE_LEAD` / `SMOKE_SKIP_ZALO_LEAD`**；**`docs/158`** / **`docs/155`** / **`memory/01`** / **`memory/36`** 更新
+- **Pro_v1.07.34** (package.json 1.7.34): **`verifyLeadTriplet`** 抽取（脚本去重）；**`docs/160`** §**4.6** lead-verify 跳过表；**`.github/workflows/ci.yml`** docker-smoke 步骤文案；**`AGENTS.md`** T1 等价
+- **Pro_v1.07.35** (package.json 1.7.35): **`coerceTelegramWebhookBody`** — 官方 **`Update.message`** / **`edited_message`** / **`channel_post`** 与扁平测试体统一入口；**`memory/01`**
+- **Pro_v1.07.36** (package.json 1.7.36): **`.env.example`** 默认打开 **`CHATFLOW_HTTP_ACCESS_LOG=true`**（文档说明本地可关）
 - Next Unique Priority Action: **龙虾** 在具备 **HTTPS staging** 时跑 **`docs/157` Phase 0**；否则继续产品 backlog（**`memory/31`–`37`**）。默认门禁仍为 **T0+T1**（现 T1 含 **lead-verify**）。**容器无 Docker** 时 T1 **不等价失败**：见 **`docs/155`** *T1 equivalence*（CI **`docker-smoke`** + `build` + 可达实例上的 **`smoke:webhooks`** + **`verify:lead-capture-states`**）。

@@ -43,7 +43,7 @@ Some deployments match this pattern (exact versions and HEAD change over time �
 
 If **`staging:docker-smoke` cannot run** (no `docker` in the container), treat **T1** as satisfied when **all** of the following hold:
 
-1. **GitHub Actions** workflow **CI** on **`main`** is green, including the **`docker-smoke`** job (runs full compose lifecycle + `smoke:webhooks` + `verify:lead-capture-states` on Ubuntu).  
+1. **GitHub Actions** workflow **CI** on **`main`** is green, including the **`docker-smoke`** job (runs full compose lifecycle + `smoke:webhooks` + `verify:lead-capture-states` — **seven** channels **none/partial/captured** unless env skips — on Ubuntu).  
 2. In the agent shell: **`npm run build`** succeeds.  
 3. With a **running** ChatFlow process on the same reachable host (e.g. `npm run start` on `127.0.0.1:3030`):  
    - `SMOKE_BASE_URL=http://127.0.0.1:3030 npm run smoke:webhooks`  

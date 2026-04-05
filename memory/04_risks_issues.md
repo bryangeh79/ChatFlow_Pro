@@ -5,10 +5,10 @@
 - Do not expand into menu / command / state systems just because the webhook baselines are now alive.
 - Do not let channel-specific changes pollute shared core behavior without a hard reason.
 - Continue protecting the **seven-route baseline**: All 7 channels must remain independently verifiable and non-breaking.
-- The current version is **Pro_v1.07.15** (package.json 1.7.15; Phase 16.2 observability enhanced with webhook phase timings delivery).
+- The current version is **Pro_v1.07.34** (package.json **1.7.34**; Phase **17.2** + **17.1** + Docker / **docs/155**; lead-verify 表 → **`docs/160`** §4.6). Truth → **`memory/01_project_status.md`**.
 - The biggest recurring error to avoid is confusing stable minimal entrypoints with full platform completion.
 - Regression risk remains live whenever shared contracts or routing paths are touched.
-- **Pause Status**: Not paused — Phase 16.2 observability enhanced with webhook phase timings shipped (已交付); next backlog is Phase 16+ (token refresh ADR or extend observability).
+- **Pause Status**: **Not blocked** — default gate **T0 build + T1 `docker-smoke`** (incl. `smoke:webhooks` + `verify:lead-capture-states`); read-only agent env → **docs/155** *T1 equivalence* + **`npm run report:github-ci`**. No public staging URL does **not** block dev; **docs/157** Phase 0 waits on **HTTPS** staging.
 
 ## New Risks from Phase 11.40 Lead Capture Implementation
 - **Field extraction accuracy**: Simple regex-based extraction may have false positives/negatives

@@ -296,9 +296,10 @@ export function startServer() {
     void handler(req, res);
   });
 
-  server.listen(port, () => {
+  const host = process.env.CHATFLOW_HTTP_HOST ?? '0.0.0.0';
+  server.listen(port, host, () => {
     // eslint-disable-next-line no-console
-    console.log(`server listening on ${port}`);
+    console.log(`server listening on ${host}:${port}`);
   });
 
   return server;

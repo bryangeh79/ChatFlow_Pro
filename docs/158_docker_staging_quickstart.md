@@ -41,7 +41,7 @@ From the repo root, with Docker running:
 npm run staging:docker-smoke
 ```
 
-This runs `docker compose up -d --build`, waits for **`GET /health`**, runs **`npm run smoke:webhooks`**, then **`npm run verify:lead-capture-states`** (Website **and** Telegram **none → partial → captured** on the unified pipeline; Website skippable via **`SMOKE_SKIP_WEBSITE`**), then **`docker compose down`**.  
+This runs `docker compose up -d --build`, waits for **`GET /health`**, runs **`npm run smoke:webhooks`**, then **`npm run verify:lead-capture-states`** (**all seven** channels — each **none → partial → captured** on the unified pipeline; skip flags mirror smoke: **`SMOKE_SKIP_WEBSITE`**, **`SMOKE_SKIP_TELEGRAM_LEAD`**, **`SMOKE_SKIP_WHATSAPP_LEAD`**, **`SMOKE_SKIP_MESSENGER_LEAD`**, **`SMOKE_SKIP_LINE_LEAD`**, **`SMOKE_SKIP_ZALO_LEAD`**, or comma **`SMOKE_SKIP_CHANNELS`** when POST signature blocks unsigned smoke), then **`docker compose down`**.  
 Base URL defaults to **`http://127.0.0.1:<STAGING_HOST_PORT>`** (`STAGING_HOST_PORT` defaults to **3030**). If port **3030 is busy**, use e.g. **`STAGING_HOST_PORT=3031 npm run staging:docker-smoke`**.  
 When **`STAGING_HOST_PORT` is set**, the script **overrides** `SMOKE_BASE_URL` to `http://127.0.0.1:<that port>` so a shell-wide `SMOKE_BASE_URL` pointing at **3030** cannot send smoke to the wrong process.  
 To keep containers up after smoke (debug): `STAGING_COMPOSE_DOWN=0 npm run staging:docker-smoke` (Unix) or set `STAGING_COMPOSE_DOWN=0` in the environment on Windows.
@@ -69,7 +69,7 @@ For another machine on the LAN, use the host’s IP, e.g. `http://192.168.1.10:3
 | Tier | When | Command / action | Pass criterion |
 |------|------|------------------|----------------|
 | **T0 — always** | Every push / before PR | CI **`npm run build`** (and repo **`npm run verify:local`** if you use git locally) | Build green |
-| **T1 — default local** | After Docker or infra change | **`npm run staging:docker-smoke`** (compose **without** `.env`) | **`[smoke] all passed`** on **seven** webhook routes **and** **`[lead-verify] all passed`** (Website + Telegram lead states) |
+| **T1 — default local** | After Docker or infra change | **`npm run staging:docker-smoke`** (compose **without** `.env`) | **`[smoke] all passed`** on **seven** webhook routes **and** **`[lead-verify] all passed`** (seven-channel lead triplets unless skipped) |
 | **T2 — secrets in container** | After editing `.env` for Meta/Line POST verify | **`npm run staging:docker-smoke:t2`** (one-shot: dual compose + default skips) **or** `npm run docker:up:local-env` + manual smoke | Default skip **`whatsapp,messenger,line`**; add **`website`** in env if Website signing is on (`SMOKE_SKIP_CHANNELS=whatsapp,messenger,line,website`) → **all passed** on non-skipped routes |
 | **T3 — real traffic** | Before production cutover | Public **HTTPS** URL + platform webhooks + one **manual** test message per channel you ship | Human confirms reply / logs + **`X-Request-Id`** |
 | **T4 — optional drills** | When you enable in-process refresh | **`docs/157`** Phase **A → B/C** | Checklist only |

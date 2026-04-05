@@ -1,4 +1,8 @@
-import { normalizeTelegramInbound, type TelegramRawInboundEvent } from '../channels/adapters/telegram';
+import {
+  coerceTelegramWebhookBody,
+  normalizeTelegramInbound,
+  type TelegramRawInboundEvent,
+} from '../channels/adapters/telegram';
 import { mapTelegramOutboundPayload } from '../channels/adapters/telegram/outbound';
 import { createChannelSender } from '../channels/outbound-sender';
 import { createOrUpdateSessionContext, commitSessionContext } from '../channels/session-context';
@@ -21,11 +25,7 @@ export type WebhookHandlerOptions = { httpRequestId?: string };
 export async function handleTelegramWebhook(rawRequestBody: unknown, opts?: WebhookHandlerOptions) {
   try {
     const wall0 = Date.now();
-    if (!rawRequestBody || typeof rawRequestBody !== 'object') {
-      throw new Error('normalize_error: invalid telegram payload');
-    }
-
-    const telegramEvent = rawRequestBody as TelegramRawInboundEvent;
+    const telegramEvent: TelegramRawInboundEvent = coerceTelegramWebhookBody(rawRequestBody);
     const message = normalizeTelegramInbound(telegramEvent);
     const session = createOrUpdateSessionContext(message);
 

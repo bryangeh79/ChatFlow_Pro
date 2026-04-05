@@ -1,8 +1,8 @@
-# 2026-04-05 - Seven-Channel Unified Inbound Contract Baseline (Pro_v1.07.15)
+# 2026-04-05 - Seven-Channel Unified Inbound Contract Baseline (sync **Pro_v1.07.34**)
 
 - Phase 15.0–15.8 complete: ADR + Telegram real outbound + proxy + GET verification + Meta POST signature + Line POST signature + Zalo signature research + Website POST signature + WhatsApp Cloud API real outbound + Messenger Graph API real outbound + Line Messaging API real outbound + Zalo Open API real outbound.
 - Phase 16.2 (observability enhanced): HTTP access logging with `X-Request-Id` + optional JSON log line + webhook `phases_ms` timings (prepare vs outbound send) + verification type narrowing.
-- Version: **Pro_v1.07.15** (package.json 1.7.15).
+- Phase **17.1 / 17.2**: in-process Zalo refresh + Meta **`fb_exchange_token`** MVP (see **docs/154** / **docs/156**); Version: **Pro_v1.07.34** (package.json **1.7.34**).
 - **Seven-channel minimal real webhook baseline preserved**: Website, Telegram, WhatsApp, Messenger, Line, Zalo.
 - Unified inbound contract now includes complete lead capture + FAQ + intent dispatch integration.
 - Shared boundary areas: adapter normalization, session context, unified inbound pipeline (lead+FAQ+intent), outbound mapping, sender, trace context.
@@ -14,4 +14,4 @@
 - Webhook security: GET verification (all 7 channels) + POST signature (WhatsApp/Messenger/Line/Website when secret configured) + Zalo IP whitelisting (per official docs).
 - Real transports: Telegram (Bot API) + WhatsApp Cloud (Graph API) + Messenger Graph (Graph API) + Line (push API) + Zalo (Open API) when configured.
 - 禁触区依然: menu/command/state systems, handoff integration, channel-specific logic, low-yield webhook tweaks.
-- **Pause Status**: **Active** — Phase 16.2 observability enhanced complete (已交付); next: **Phase 16+** (token refresh ADR or extend observability).
+- **Pause Status**: **Not blocked** — align **`memory/01`**; next product/staging steps → **`memory/03`** tail (*HTTPS* → **docs/157** Phase 0, else **memory/31–37**).

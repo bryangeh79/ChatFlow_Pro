@@ -101,6 +101,23 @@
 
 实现：`scripts/report-github-ci.mjs`；与 **`docs/155`** 一致。
 
+### 4.6 Lead 三态回归（`verify:lead-capture-states`）
+
+CI 的 **`docker-smoke`** 与一键 **`npm run staging:docker-smoke`** 在 **`smoke:webhooks`** 之后会跑 **`npm run verify:lead-capture-states`**：对 **七通道** 各走一遍 **none → partial → captured**（与 **memory/36** 一致）。服务已启动时也可单独跑：`SMOKE_BASE_URL=http://127.0.0.1:3030 npm run verify:lead-capture-states`。
+
+若某路 **POST 验签** 打开、未签名的脚本请求拿到 **403**，可跳过该通道（与 **`docs/158`** T2 的 **`SMOKE_SKIP_CHANNELS`** 对齐）：
+
+| 通道 | 专用跳过 env（任选其一逻辑） | 或 `SMOKE_SKIP_CHANNELS` 列表项 |
+|------|------------------------------|--------------------------------|
+| Website | `SMOKE_SKIP_WEBSITE=1` | `website` |
+| Telegram | `SMOKE_SKIP_TELEGRAM_LEAD=1` | `telegram` |
+| WhatsApp | `SMOKE_SKIP_WHATSAPP_LEAD=1` | `whatsapp` |
+| Messenger | `SMOKE_SKIP_MESSENGER_LEAD=1` | `messenger` |
+| Line | `SMOKE_SKIP_LINE_LEAD=1` | `line` |
+| Zalo | `SMOKE_SKIP_ZALO_LEAD=1` | `zalo` |
+
+实现：`scripts/verify-lead-capture-states.mjs`（共享断言在 **`verifyLeadTriplet`**）。
+
 ---
 
 ## 5. Phase 0 — 基线（换票功能先关掉）

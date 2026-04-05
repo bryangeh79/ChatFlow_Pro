@@ -43,5 +43,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Docker smoke (T1 — no .env, seven webhooks)
+      - name: Docker smoke (T1 — compose + seven webhooks + lead-capture triplets)
         run: npm run staging:docker-smoke
