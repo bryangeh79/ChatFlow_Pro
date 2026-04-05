@@ -46,7 +46,7 @@ WEBSITE_OUTBOUND_SANDBOX=0
 
 **Headers:**
 - `Content-Type: application/json`
-- `User-Agent: ChatFlow-Pro/1.7.22`
+- `User-Agent: ChatFlow-Pro/1.7.23`
 - `X-Request-Id: <same as debug_metadata.request_id>`
 - `X-Webhook-Signature: sha256=<hex>` (when `WEBSITE_OUTBOUND_SIGNING_SECRET` configured)
 

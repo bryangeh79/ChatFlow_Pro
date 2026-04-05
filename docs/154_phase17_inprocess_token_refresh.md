@@ -46,6 +46,7 @@ Implements **slice 17.1 — Zalo OA only** (option **C** from `docs/151`). **Met
 
 ## References
 
-- `docs/151_phase16_meta_zalo_token_refresh_adr.md` — options A / B / C.
-- `docs/152_phase16_ops_token_rotation_runbook.md` — operational rotation.
+- `docs/151_phase16_meta_zalo_token_refresh_adr.md` — options A / B / C.  
+- `docs/152_phase16_ops_token_rotation_runbook.md` — operational rotation.  
+- `docs/157_phase17_staging_validation_playbook.md` — staging order for 152 + 17.1 / 17.2.  
 - `src/tokens/zalo-refresh.ts`, `src/tokens/zalo-token-cache.ts`, `src/channels/adapters/zalo/real-send.ts`.

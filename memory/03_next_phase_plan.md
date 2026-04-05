@@ -141,4 +141,5 @@
 - **Pro_v1.07.20** (package.json 1.7.20): **`npm run report:agent-git`**（无 git 二进制时读 `.git` 报 SHA）+ `agent-git-fs.mjs`；`check:agent-env` 失败时提示该命令；**docs/155** 增补容器分工表
 - **Pro_v1.07.21** (package.json 1.7.21): **`npm run verify:local`**（`build` + `report:agent-git`）；**docs/156** — Phase **17.2** Meta 进程内刷新**规格**（实现待 staging）
 - **Pro_v1.07.22** (package.json 1.7.22): **Phase 17.2 实现** — `fb_exchange_token`、**401 / error 190**、`META_APP_ID` + secret、`meta-token-cache`；**docs/156** 更新为已落地 MVP
+- **Pro_v1.07.23** (package.json 1.7.23): **`docs/157`** — Phase 17 **staging 验证 + 与 152 编排** playbook；**docs/152** References 增补 157
 - Next Unique Priority Action: **staging** 或临时环境验证 **docs/154** Zalo 契约；**Phase 17.2** Meta；**docs/152** 轮换演练

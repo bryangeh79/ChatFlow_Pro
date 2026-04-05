@@ -59,6 +59,7 @@ Meta’s token model depends on **how** the Page / System User token was created
 ## References
 
 - `docs/151_phase16_meta_zalo_token_refresh_adr.md` — options A/B/C.  
+- `docs/157_phase17_staging_validation_playbook.md` — staging drill order.  
 - `docs/154_phase17_inprocess_token_refresh.md` — Zalo 17.1 implementation pattern.  
 - `docs/146`, `docs/147` — outbound ADRs.  
 - `src/channels/adapters/whatsapp/real-send.ts`, `src/channels/adapters/messenger/real-send.ts`.

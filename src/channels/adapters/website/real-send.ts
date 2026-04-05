@@ -40,7 +40,7 @@ export async function sendWebsiteTextMessage(
     // Prepare headers
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'User-Agent': 'ChatFlow-Pro/1.7.22',
+      'User-Agent': 'ChatFlow-Pro/1.7.23',
       'X-Request-Id': requestId,
     };
 
