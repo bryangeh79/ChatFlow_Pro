@@ -54,6 +54,13 @@ If **`staging:docker-smoke` cannot run** (no `docker` in the container), treat *
 
 **Still allowed in-container:** `npm run build`, `npm run smoke:webhooks` (with env), `npm run verify:lead-capture-states` (with env, server reachable), `npm run verify:local`, file edits under workspace policy, local `node` on port 3030+ when the image permits.
 
+### Latest CI run without `git` (workspace may lag)
+
+Even when **local HEAD is behind `origin/main`**, you can still print the latest **CI** run (workflow file **`ci.yml`**) — **no git**, only HTTPS:
+
+- **`npm run report:github-ci`** — reads the GitHub REST API. Default repo is **`bryangeh79/ChatFlow_Pro`**; override with **`GITHUB_REPOSITORY=owner/name`**. For **private** repos, set **`GITHUB_TOKEN`** (needs permission to read Actions).  
+- Use this so reports never say “CI skipped because workspace stale”; compare **`head_sha`** from the script to **`npm run report:agent-git`** to see drift.
+
 ## Docker / container / no `git` binary
 
 Many agent hosts use a **minimal image** (no `git`, read-only FS). Then:

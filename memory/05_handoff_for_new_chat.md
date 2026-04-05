@@ -186,6 +186,7 @@
 
 - **本轮 Cursor 已合入**: **`npm run verify:lead-capture-states`** + 已挂进 **`npm run staging:docker-smoke`**（CI **`docker-smoke`** job 自动跑）；**`package.json` → 1.7.27**。  
 - **容器内无 `docker`**: **不要**把 **`npm run staging:docker-smoke` 失败标为阻塞**。按 **`docs/155`** *T1 equivalence*：**CI `docker-smoke` 绿** + **`npm run build`** + 本机服务已起时 **`smoke:webhooks`** + **`verify:lead-capture-states`**（同一 `SMOKE_BASE_URL`）。汇报里写「T1 由 CI + 本机 smoke/verify 覆盖」。**完整 compose 一键**由 **Cursor/宿主**代跑 `staging:docker-smoke`（已有机器验证记录可引用）。  
+- **无 `git` 或 workspace 滞后**: 必须跑 **`npm run report:github-ci`** 输出最新 **`ci.yml`** run（`conclusion` / `head_sha` / `html_url`），**禁止**以「workspace 未更新」为由跳过 CI 结论；私库带 **`GITHUB_TOKEN`**。  
 - **龙虾接手后必做**: `npm run build`；**有 Docker 的 shell** 才跑 **`staging:docker-smoke`** / **`staging:docker-smoke:t2`**；**禁止**在日志/聊天粘贴密钥。  
 - **有公网 staging URL 时**: `SMOKE_BASE_URL=https://… npm run smoke:webhooks`，并按 **`docs/152`** 处理签名校验；把每通道 pass/fail + 一条 **`X-Request-Id`** 写进当日 `memory/YYYY-MM-DD.md`（脱敏）。  
 - **指挥官发「转换新聊天室指令 2」时**: 全量回写 **`./memory/`** 七文件（协议见用户技能 *memory-physical-sync*）。

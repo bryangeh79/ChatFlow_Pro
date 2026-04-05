@@ -11,31 +11,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22.x'
-        cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22.x'
+          cache: 'npm'
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-    - name: Build
-      run: npm run build
+      - name: Build
+        run: npm run build
 
-    - name: Git metadata (sanity)
-      run: npm run report:agent-git
+      - name: Git metadata (sanity)
+        run: npm run report:agent-git
 
   docker-smoke:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '22.x'
           cache: 'npm'
