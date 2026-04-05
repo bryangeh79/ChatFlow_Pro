@@ -156,4 +156,5 @@
 - **Pro_v1.07.34** (package.json 1.7.34): **`verifyLeadTriplet`** 抽取（脚本去重）；**`docs/160`** §**4.6** lead-verify 跳过表；**`.github/workflows/ci.yml`** docker-smoke 步骤文案；**`AGENTS.md`** T1 等价
 - **Pro_v1.07.35** (package.json 1.7.35): **`coerceTelegramWebhookBody`** — 官方 **`Update.message`** / **`edited_message`** / **`channel_post`** 与扁平测试体统一入口；**`memory/01`**
 - **Pro_v1.07.36** (package.json 1.7.36): **`.env.example`** 默认打开 **`CHATFLOW_HTTP_ACCESS_LOG=true`**（文档说明本地可关）
-- Next Unique Priority Action: **龙虾** 在具备 **HTTPS staging** 时跑 **`docs/157` Phase 0**；否则继续产品 backlog（**`memory/31`–`37`**）。默认门禁仍为 **T0+T1**（现 T1 含 **lead-verify**）。**容器无 Docker** 时 T1 **不等价失败**：见 **`docs/155`** *T1 equivalence*（CI **`docker-smoke`** + `build` + 可达实例上的 **`smoke:webhooks`** + **`verify:lead-capture-states`**）。
+- **Pro_v1.07.37** (package.json 1.7.37): **`docs/157`** Phase 0 — **自托管 HTTPS staging**（VPS/Caddy）与笔记本远程 **`smoke:webhooks`** 路径写入 playbook
+- Next Unique Priority Action: 已有 **自托管 HTTPS 子域** 时，从笔记本对公网 URL 跑 **`docs/157` Phase 0**（**`SMOKE_BASE_URL=https://…` `npm run smoke:webhooks`**，按需 **`verify:lead-capture-states`**）；再按需 **Phase A → B/C**（**`docs/152`** / **`docs/160`**）。无公网 URL 时继续 **memory/31–37** 产品 backlog。门禁仍 **T0+T1**；**`docs/155`** *T1 equivalence* 适用于无 Docker 的代理环境。

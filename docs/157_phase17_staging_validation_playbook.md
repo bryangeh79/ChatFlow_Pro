@@ -16,10 +16,12 @@ Single place to **validate** Phase **17.1** (Zalo in-process refresh) and **17.2
 ## Phase 0 — Baseline (in-process refresh **off**)
 
 1. Ensure **`CHATFLOW_INPROCESS_TOKEN_REFRESH`** is **unset** or **not** `1` / `true`.  
-2. **No cloud URL yet?** Run ChatFlow in Docker locally and use `http://127.0.0.1:3030` — see **`docs/158_docker_staging_quickstart.md`**. Optional one-shot: **`npm run staging:docker-smoke`** (compose up → health wait → smoke → compose down).  
+2. **Base URL options** (pick one):  
+   - **Local Docker**: `http://127.0.0.1:3030` — **`docs/158`**. One-shot: **`npm run staging:docker-smoke`**.  
+   - **Self-hosted HTTPS** (e.g. **Vultr + Docker + Caddy**): deploy with **`127.0.0.1:<port>`** bound to the app, terminate TLS on **80/443**, then use **`https://your-subdomain.example.com`** as **`SMOKE_BASE_URL`** from your laptop. DNS **A/AAAA** → server; first-time cert issuance needs **port 80** reachable for ACME (unless you use DNS-01).  
    - Before Phase B/C, run **`npm run check:staging-env`** (or `--phase=b` / `c-wa` / `c-messenger` / `--strict`) — lists **SET/MISSING** without printing secret values; see **`docs/160`** §4.  
 3. From your laptop (or CI):  
-   `SMOKE_BASE_URL=https://your-staging.example npm run smoke:webhooks`  
+   `SMOKE_BASE_URL=https://your-staging.example.com npm run smoke:webhooks`  
    Use `SMOKE_SKIP_*` per `docs/152` if POST signatures are enforced.  
 4. Record: pass/fail per channel, one sample **`X-Request-Id`**.
 
