@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * One-shot local staging: docker compose up → wait /health → smoke:webhooks → verify:lead-capture-states → compose down.
+ * One-shot local staging: docker compose up → wait /health → smoke:webhooks → verify:lead-capture-states (Website+Telegram) → compose down.
  * Requires Docker Compose v2 + Node on the host (same as docs/158).
  *
  * Env:
