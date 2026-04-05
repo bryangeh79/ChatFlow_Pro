@@ -14,7 +14,7 @@ Single place to **validate** Phase **17.1** (Zalo in-process refresh) and **17.2
 ## Phase 0 — Baseline (in-process refresh **off**)
 
 1. Ensure **`CHATFLOW_INPROCESS_TOKEN_REFRESH`** is **unset** or **not** `1` / `true`.  
-2. **No cloud URL yet?** Run ChatFlow in Docker locally and use `http://127.0.0.1:3030` — see **`docs/158_docker_staging_quickstart.md`**.  
+2. **No cloud URL yet?** Run ChatFlow in Docker locally and use `http://127.0.0.1:3030` — see **`docs/158_docker_staging_quickstart.md`**. Optional one-shot: **`npm run staging:docker-smoke`** (compose up → health wait → smoke → compose down).  
 3. From your laptop (or CI):  
    `SMOKE_BASE_URL=https://your-staging.example npm run smoke:webhooks`  
    Use `SMOKE_SKIP_*` per `docs/152` if POST signatures are enforced.  

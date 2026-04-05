@@ -8,7 +8,8 @@ services:
   chatflow-pro:
     build: .
     ports:
-      - "3030:3030"
+      # Host port when 3030 is taken (e.g. local dev): STAGING_HOST_PORT=3031 docker compose up
+      - "${STAGING_HOST_PORT:-3030}:3030"
     environment:
       PORT: "3030"
     # env_file:

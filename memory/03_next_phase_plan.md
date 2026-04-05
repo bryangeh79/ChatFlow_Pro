@@ -144,4 +144,5 @@
 - **Pro_v1.07.23** (package.json 1.7.23): **`docs/157`** — Phase 17 **staging 验证 + 与 152 编排** playbook；**docs/152** References 增补 157
 - **Pro_v1.07.24** (package.json 1.7.24): **Docker** 交付 — `Dockerfile`、`.dockerignore`、`docker-compose.yml`、**`docs/158`**；**CI** 增加 `npm run report:agent-git`
 - **Pro_v1.07.25** (package.json 1.7.25): **`docs/159`** — 龙虾运行时安装 **git/Docker** 与宿主能力匹配（镜像 / PATH / `docker.sock` 安全说明）；**155** 链到 159；**155** 增补 *Typical OpenClaw profile*（只读容器正式口径）；**AGENTS.md** 指到该节
-- Next Unique Priority Action: **staging** 或临时环境验证 **docs/154** Zalo 契约；**Phase 17.2** Meta；**docs/152** 轮换演练
+- **Pro_v1.07.26** (package.json 1.7.26): **`npm run staging:docker-smoke`** + `scripts/staging-docker-smoke.mjs` — Phase **0** 本地一键：compose up → `/health` → `smoke:webhooks` → compose down；**157/158** 更新
+- Next Unique Priority Action: 宿主执行 **`staging:docker-smoke`** 或云 staging；**157** Phase **A**（152 轮换）→ **B/C**（Zalo/Meta 进程内刷新验证）

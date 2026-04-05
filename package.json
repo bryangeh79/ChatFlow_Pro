@@ -1,6 +1,6 @@
 {
   "name": "chatflow-pro",
-  "version": "1.7.25",
+  "version": "1.7.26",
   "private": true,
   "type": "commonjs",
   "scripts": {
@@ -10,7 +10,8 @@
     "dev:website-outbound-echo": "node scripts/website-outbound-echo.mjs",
     "check:agent-env": "node scripts/agent-env-check.mjs",
     "report:agent-git": "node scripts/agent-git-metadata.mjs",
-    "verify:local": "npm run build && npm run report:agent-git"
+    "verify:local": "npm run build && npm run report:agent-git",
+    "staging:docker-smoke": "node scripts/staging-docker-smoke.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",

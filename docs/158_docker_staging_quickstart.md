@@ -16,7 +16,14 @@ From the repository root:
 docker compose up --build
 ```
 
-Server listens on **http://127.0.0.1:3030** (maps container `PORT=3030`).
+Server listens on **http://127.0.0.1:3030** by default (maps container `PORT=3030`). If **3030 is already in use** (e.g. `npm run start`), set **`STAGING_HOST_PORT`** (e.g. `3031`) for both Compose and smoke:
+
+```bash
+STAGING_HOST_PORT=3031 docker compose up --build
+SMOKE_BASE_URL=http://127.0.0.1:3031 npm run smoke:webhooks
+```
+
+On Windows PowerShell: `$env:STAGING_HOST_PORT=3031` then `docker compose up --build`.
 
 ## Smoke
 
@@ -25,6 +32,19 @@ In another terminal (host has Node + repo):
 ```bash
 SMOKE_BASE_URL=http://127.0.0.1:3030 npm run smoke:webhooks
 ```
+
+### One-shot (compose + smoke + teardown)
+
+From the repo root, with Docker running:
+
+```bash
+npm run staging:docker-smoke
+```
+
+This runs `docker compose up -d --build`, waits for **`GET /health`**, runs **`npm run smoke:webhooks`**, then **`docker compose down`**.  
+Base URL defaults to **`http://127.0.0.1:<STAGING_HOST_PORT>`** (`STAGING_HOST_PORT` defaults to **3030**). If port **3030 is busy**, use e.g. **`STAGING_HOST_PORT=3031 npm run staging:docker-smoke`**.  
+When **`STAGING_HOST_PORT` is set**, the script **overrides** `SMOKE_BASE_URL` to `http://127.0.0.1:<that port>` so a shell-wide `SMOKE_BASE_URL` pointing at **3030** cannot send smoke to the wrong process.  
+To keep containers up after smoke (debug): `STAGING_COMPOSE_DOWN=0 npm run staging:docker-smoke` (Unix) or set `STAGING_COMPOSE_DOWN=0` in the environment on Windows.
 
 For another machine on the LAN, use the host’s IP, e.g. `http://192.168.1.10:3030`, and ensure the firewall allows the port.
 
