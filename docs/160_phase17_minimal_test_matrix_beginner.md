@@ -89,6 +89,18 @@
 
 **解析提示**：`check-staging-env` 会忽略 UTF-8 **BOM**、支持行首 **`export `**、并在未加引号的值里去掉行尾 **` # 注释`**，避免「明明填了却显示 MISSING」。
 
+### 4.5 GitHub 上最新 CI 是否绿（无 git 也可）
+
+若你只在容器里、**没有 `git pull`**，仍想知道 **GitHub `main` 上最近一次 CI** 的结果：
+
+| 目的 | 命令 |
+|------|------|
+| 打印最新 **`ci.yml`** 一次 run 的 `conclusion` / `head_sha` / 链接 | `npm run report:github-ci` |
+| _fork 或其它仓库_ | `GITHUB_REPOSITORY=owner/repo npm run report:github-ci` |
+| **私库** | 设置 **`GITHUB_TOKEN`**（需读 Actions 权限）后再运行 |
+
+实现：`scripts/report-github-ci.mjs`；与 **`docs/155`** 一致。
+
 ---
 
 ## 5. Phase 0 — 基线（换票功能先关掉）

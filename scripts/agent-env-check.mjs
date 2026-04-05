@@ -60,6 +60,9 @@ if (!gitVersion) {
 If you only need HEAD for reports (e.g. Docker / read-only agent with mounted .git):
   npm run report:agent-git
 
+Latest CI run on GitHub (no git; public API — use GITHUB_TOKEN for private repos):
+  npm run report:github-ci
+
 Windows host fix (Git for Windows):
   1. https://git-scm.com/download/win
   2. Put Git\\\\cmd on PATH; restart OpenClaw / agent host

@@ -78,7 +78,9 @@ For another machine on the LAN, use the host’s IP, e.g. `http://192.168.1.10:3
 
 ## CI note
 
-GitHub Actions runs **`build`** then **`docker-smoke`** (`npm run staging:docker-smoke`), which includes **`smoke:webhooks`** and **`verify:lead-capture-states`** on the built image.
+GitHub Actions runs **`build`** then **`docker-smoke`** (`npm run staging:docker-smoke`), which includes **`smoke:webhooks`** and **`verify:lead-capture-states`** on the built image. Workflows use **`actions/checkout@v5`** and **`actions/setup-node@v5`**.
+
+To read the latest **`ci.yml`** run from any shell **without git** (e.g. read-only agent): **`npm run report:github-ci`** — see **`docs/155`** (*Latest CI run without `git`*).
 
 ## References
 
