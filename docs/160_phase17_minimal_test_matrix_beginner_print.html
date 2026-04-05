@@ -266,7 +266,7 @@ blockquote { margin: 0.8rem 0; padding-left: 1rem; border-left: 4px solid #ccc; 
 <li><strong><code>docs/160_phase17_minimal_test_matrix_beginner_print.html</code></strong>（可双击用浏览器打开再打印）  </li>
 <li><strong><code>docs/160_phase17_minimal_test_matrix_beginner.pdf</code></strong></li>
 </ul>
-<p>依赖：<code>npx marked</code>（首次自动下载）；脚本见 <strong><code>scripts/build-doc160-pdf.mjs</code></strong>。</p>
+<p>依赖：<code>npx marked</code>（首次自动下载）；脚本见 <strong><code>scripts/build-doc160-pdf.mjs</code></strong>。<br><strong>说明</strong>：该脚本在 <strong>Windows</strong> 上通过 <strong>Microsoft Edge</strong> 无头生成 PDF。<strong>macOS / Linux</strong> 请用 <strong>方法 A 或 B</strong>：打开仓库里的 <strong><code>docs/160_phase17_minimal_test_matrix_beginner_print.html</code></strong>（与 PDF 一并提交），用浏览器 <strong>打印 → 存储为 PDF</strong>；或自行用 <code>npx marked</code> 从本 <code>.md</code> 生成 HTML 后打印。</p>
 <h3>方法 D — md-to-pdf（可选，可能需下载 Chromium，较慢）</h3>
 <pre><code class="language-bash">npx --yes md-to-pdf docs/160_phase17_minimal_test_matrix_beginner.md
 </code></pre>

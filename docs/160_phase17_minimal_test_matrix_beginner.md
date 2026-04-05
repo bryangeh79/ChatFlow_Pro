@@ -221,7 +221,8 @@ npm run docs:pdf:160
 - **`docs/160_phase17_minimal_test_matrix_beginner_print.html`**（可双击用浏览器打开再打印）  
 - **`docs/160_phase17_minimal_test_matrix_beginner.pdf`**
 
-依赖：`npx marked`（首次自动下载）；脚本见 **`scripts/build-doc160-pdf.mjs`**。
+依赖：`npx marked`（首次自动下载）；脚本见 **`scripts/build-doc160-pdf.mjs`**。  
+**说明**：该脚本在 **Windows** 上通过 **Microsoft Edge** 无头生成 PDF。**macOS / Linux** 请用 **方法 A 或 B**：打开仓库里的 **`docs/160_phase17_minimal_test_matrix_beginner_print.html`**（与 PDF 一并提交），用浏览器 **打印 → 存储为 PDF**；或自行用 `npx marked` 从本 `.md` 生成 HTML 后打印。
 
 ### 方法 D — md-to-pdf（可选，可能需下载 Chromium，较慢）
 
