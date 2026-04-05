@@ -2,7 +2,7 @@
 
 - This is an existing project handoff, not a fresh project restart.
 - **Current Phase: Phase 17.x** — seven-channel real transports + Docker staging ladder + **`docs/157`** validation playbook; HTTP observability through **Phase 16.2** remains in tree.
-- Current Version: **Pro_v1.07.27** (package.json: **1.7.27**)
+- Current Version: **Pro_v1.07.31** (package.json: **1.7.31**) — 以 **`memory/01_project_status.md`** 为准
 - **Pause Status: Not blocked** — CI **`docker-smoke`** (T1) green; local **T2** = **`npm run staging:docker-smoke:t2`**; next confidence layers = **`docs/157`** Phase 0 remote smoke → A → B/C when staging exists.
 
 ## Completed Summary
