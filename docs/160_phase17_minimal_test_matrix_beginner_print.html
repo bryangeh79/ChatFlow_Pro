@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 17 最小必测矩阵（小白版）</title>
+<style>
+body { font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.55; color: #111; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.95rem; }
+th, td { border: 1px solid #bbb; padding: 0.45rem 0.55rem; vertical-align: top; }
+code, pre { font-family: ui-monospace, Consolas, monospace; font-size: 0.88em; }
+h1 { font-size: 1.55rem; }
+h2 { font-size: 1.2rem; margin-top: 1.6rem; }
+blockquote { margin: 0.8rem 0; padding-left: 1rem; border-left: 4px solid #ccc; color: #333; }
+@media print {
+  body { margin: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  tr { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<h1>Phase 17 — 最小必测矩阵（小白逐步版）</h1>
+<blockquote>
+<p>本文件与 <strong><code>docs/157_phase17_staging_validation_playbook.md</code></strong> 对齐，用<strong>更细步骤</strong>说明「最少要测什么、怎么测」。<br><strong>不要</strong>把 App Secret、refresh token、用户密码、完整 access token 发给任何人或贴进聊天软件；只放在<strong>你自己的电脑/服务器</strong>的配置里。</p>
+</blockquote>
+<hr>
+<h2>1. 三个名词（先搞懂再动手）</h2>
+<table>
+<thead>
+<tr>
+<th>名词</th>
+<th>白话</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Staging（预发/测试环境）</strong></td>
+<td>不是客户正式在用的那一套；用来试错。可以是本机 Docker、公司测试服务器、云上一台小机器。</td>
+</tr>
+<tr>
+<td><strong>Phase 0 / A / B / C</strong></td>
+<td><strong><code>docs/157</code></strong> 里的四段验收顺序：先基线（0）→ 可选轮换演练（A）→ Zalo 换票（B）→ Meta 换票（C）。</td>
+</tr>
+<tr>
+<td><strong>Smoke（冒烟测试）</strong></td>
+<td>用脚本快速打一遍接口，确认服务「能响、没挂」。本仓库命令：<code>npm run smoke:webhooks</code>。</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>2. 最小必测矩阵（你是不是每个聊天软件都要测？）</h2>
+<p><strong>结论：不是。</strong><br>「每个都要做一遍」的是 <strong>Phase 0 的 webhook 冒烟</strong>（一条命令可覆盖七路，有验签时再跳过部分）。<br><strong>Phase B / C（进程内换票）</strong> 只需要在 <strong>Zalo</strong> 和 <strong>你实际上线的 Meta 线路（WhatsApp / Messenger）</strong> 上做。</p>
+<table>
+<thead>
+<tr>
+<th>通道</th>
+<th>Phase 0 冒烟</th>
+<th>Phase A 轮换演练</th>
+<th>Phase B/C 换票真实测试</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Website</td>
+<td>建议测</td>
+<td>若生产用则做</td>
+<td><strong>不必</strong>（无换票逻辑）</td>
+</tr>
+<tr>
+<td>Telegram</td>
+<td>建议测</td>
+<td>若生产用则做</td>
+<td><strong>不必</strong></td>
+</tr>
+<tr>
+<td>WhatsApp</td>
+<td>建议测</td>
+<td>若生产用则做</td>
+<td><strong>若开换票开关则必测（C）</strong></td>
+</tr>
+<tr>
+<td>Messenger</td>
+<td>建议测</td>
+<td>若生产用则做</td>
+<td><strong>若开换票且上线 Messenger 则测（C）</strong></td>
+</tr>
+<tr>
+<td>Line</td>
+<td>建议测</td>
+<td>若生产用则做</td>
+<td><strong>不必</strong></td>
+</tr>
+<tr>
+<td>Zalo</td>
+<td>建议测</td>
+<td>若生产用则做</td>
+<td><strong>若开换票开关则必测（B）</strong></td>
+</tr>
+</tbody></table>
+<p><strong>最小组合建议（小白默认）：</strong></p>
+<ol>
+<li><strong>所有人先做</strong> → <strong>Phase 0</strong>（整站冒烟）。  </li>
+<li><strong>准备对生产打开 <code>CHATFLOW_INPROCESS_TOKEN_REFRESH</code> 时</strong> → 加 <strong>Phase B（Zalo）</strong>、<strong>Phase C（你用的 Meta 线）</strong>。  </li>
+<li><strong>Phase A</strong> → 不着急可以后面补；想练运维再加。</li>
+</ol>
+<hr>
+<h2>3. 开始之前：你要准备的东西</h2>
+<ul>
+<li><input disabled="" type="checkbox"> 已安装 <strong>Node.js</strong>（与项目一致，建议 22.x）、<strong>npm</strong>。  </li>
+<li><input disabled="" type="checkbox"> 已克隆本仓库到本机，能进入项目根目录（里面有 <code>package.json</code>）。  </li>
+<li><input disabled="" type="checkbox"> （可选）已安装 <strong>Docker Desktop</strong>，用于本机起服务（见 <strong><code>docs/158</code></strong>）。  </li>
+<li><input disabled="" type="checkbox"> 若要测 <strong>云端 staging</strong>：有一个 <strong>https 开头的公网地址</strong> 指向你的 ChatFlow（或内网穿透），且防火墙放行端口。  </li>
+<li><input disabled="" type="checkbox"> 一个<strong>记事本</strong>只给自己看：记录每次测试日期、结果、<strong>X-Request-Id</strong>（不要抄 token）。</li>
+</ul>
+<hr>
+<h2>4. Phase 0 — 基线（换票功能先关掉）</h2>
+<p><strong>目的</strong>：确认服务正常、七路 webhook 能跑通（或按规则跳过）。</p>
+<h3>4.1 确认环境变量</h3>
+<ol>
+<li>打开你的 staging 配置（<code>.env</code> 或云平台环境变量面板）。  </li>
+<li>确认 <strong><code>CHATFLOW_INPROCESS_TOKEN_REFRESH</code></strong> <strong>没有</strong>设为 <code>1</code>、<code>true</code>、<code>yes</code>（<strong>不设</strong>最省事）。  </li>
+<li>保存后<strong>重启</strong> ChatFlow 进程（改 env 一般要重启才生效）。</li>
+</ol>
+<h3>4.2 起服务（二选一）</h3>
+<p><strong>方式 A — 本机 Docker 一键（有 Docker 时）</strong></p>
+<ol>
+<li>打开终端，进入项目根目录。  </li>
+<li>执行：<br><code>npm run staging:docker-smoke</code>  <ul>
+<li>会：起容器 → 等健康检查 → 跑 smoke → 关掉容器。  </li>
+<li>若 <strong>3030 端口被占用</strong>：先设端口再跑，例如 PowerShell：<br><code>$env:STAGING_HOST_PORT=&#39;3031&#39;; npm run staging:docker-smoke</code></li>
+</ul>
+</li>
+<li>终端里应看到 <strong><code>[smoke] all passed</code></strong>。</li>
+</ol>
+<p><strong>方式 B — 本机直接跑 Node</strong></p>
+<ol>
+<li><code>npm run build</code>  </li>
+<li><code>npm run start</code>（另开终端保持运行）  </li>
+<li>再开终端：<code>npm run smoke:webhooks</code>  <ul>
+<li>默认访问 <code>http://127.0.0.1:3030</code>。</li>
+</ul>
+</li>
+</ol>
+<p><strong>方式 C — 测云端地址</strong></p>
+<ol>
+<li>确认云上服务已部署且能访问。  </li>
+<li>在本机项目根目录执行：<br><code>SMOKE_BASE_URL=https://你的域名 npm run smoke:webhooks</code>  </li>
+<li>若配置了 <strong>POST 验签</strong>，部分通道会失败，需按 <strong><code>docs/152</code></strong> 设置 <strong><code>SMOKE_SKIP_CHANNELS</code></strong>（例如跳过 website）。这是<strong>正常现象</strong>，在记事本写「跳过哪些通道」。</li>
+</ol>
+<h3>4.3 记录结果</h3>
+<ul>
+<li><input disabled="" type="checkbox"> Phase 0：通过 / 部分跳过（写明跳过原因）  </li>
+<li><input disabled="" type="checkbox"> 抄一个响应头里的 <strong><code>X-Request-Id</code></strong> 备查（不含密钥）</li>
+</ul>
+<hr>
+<h2>5. Phase A — 轮换演练（可选，练运维）</h2>
+<p><strong>目的</strong>：学会「在平台改 token → 重启服务 → 业务仍正常」，与 <strong><code>docs/152</code></strong> 一致。</p>
+<ol>
+<li>只选 <strong>一条</strong> 通道（例如 WhatsApp）。  </li>
+<li>登录 <strong>Meta 开发者后台</strong>（或对应平台），在<strong>测试应用</strong>里轮换/更新 token（不要发到聊天）。  </li>
+<li>把<strong>新 token</strong>写进 staging 的 <strong>环境变量</strong>，保存。  </li>
+<li><strong>重启</strong> ChatFlow。  </li>
+<li>再跑一次 <strong>Phase 0</strong> 的 smoke 或手动发一条真实消息，确认仍 <strong>200</strong>、业务正常。  </li>
+<li>另一条通道可以<strong>改天再做</strong>，不必一天全测完。</li>
+</ol>
+<hr>
+<h2>6. Phase B — Zalo 进程内换票（仅当你要在生产开换票时必做）</h2>
+<p><strong>目的</strong>：故意让 <strong>access token 无效</strong>，验证是否会 <strong>refresh</strong> 并重试，且日志/JSON 里有约定证据。</p>
+<h3>6.1 只在 staging 配置</h3>
+<p>在 <strong>staging</strong> 环境变量中设置（<strong>不要</strong>提交到 git）：</p>
+<ul>
+<li><code>CHATFLOW_INPROCESS_TOKEN_REFRESH=1</code>  </li>
+<li><code>ZALO_REFRESH_TOKEN</code>（有效 refresh）  </li>
+<li><code>ZALO_APP_ID</code>、<code>ZALO_APP_SECRET</code>  </li>
+<li>平时就有的：<code>ZALO_ACCESS_TOKEN</code>、<code>ZALO_OA_ID</code> 等（见 <strong><code>docs/154</code></strong>）</li>
+</ul>
+<p>保存并 <strong>重启</strong> 服务。</p>
+<h3>6.2 制造「坏 access token」（推荐小白做法）</h3>
+<ol>
+<li><strong>复制</strong>当前正确的 <code>ZALO_ACCESS_TOKEN</code> 到记事本备份（仅本地）。  </li>
+<li>在 staging 里把 <code>ZALO_ACCESS_TOKEN</code> <strong>临时改成</strong> <code>invalid_for_test</code> 之类明显错误值。  </li>
+<li>保存并 <strong>重启</strong> 服务。</li>
+</ol>
+<h3>6.3 发一条 Zalo webhook</h3>
+<ol>
+<li>打开 <strong><code>docs/129</code></strong>，找到 <strong>Zalo</strong> 的 <strong>POST <code>/webhooks/zalo</code></strong> 示例（curl + JSON）。  </li>
+<li>把 URL 里的主机改成你的 staging 地址（本机则用 <code>http://127.0.0.1:3030</code>）。  </li>
+<li>在终端执行 curl（或 Postman 同等请求）。  </li>
+<li>期望：HTTP <strong>200</strong>（本产品设计为对调用方仍返回 200，具体见 <strong><code>docs/154</code></strong>）；在返回 JSON 的 <strong><code>debug_steps</code></strong> 或服务器日志里查找 <strong><code>zalo_real_token_refresh_retry</code></strong>。</li>
+</ol>
+<h3>6.4 收尾（Rollback）</h3>
+<ol>
+<li>把 <code>ZALO_ACCESS_TOKEN</code> <strong>改回</strong>记事本里的正确值。  </li>
+<li>将 <code>CHATFLOW_INPROCESS_TOKEN_REFRESH</code> <strong>关掉</strong>（删掉或设 0），若暂时不用换票。  </li>
+<li>重启服务，再跑一次 <strong>Phase 0</strong> 确认恢复常态。</li>
+</ol>
+<hr>
+<h2>7. Phase C — Meta（WhatsApp / Messenger）换票（仅当你要在生产开换票时必做）</h2>
+<p><strong>目的</strong>：在 Graph 返回 <strong>401</strong> 或 <strong>400 且 error code 190</strong> 时，验证 <strong><code>fb_exchange_token</code></strong> 路径是否触发。</p>
+<h3>7.1 只在 staging 配置</h3>
+<ul>
+<li><code>CHATFLOW_INPROCESS_TOKEN_REFRESH=1</code>  </li>
+<li><code>META_APP_ID</code>  </li>
+<li><code>META_APP_SECRET</code> 或 <code>WHATSAPP_APP_SECRET</code> 或 <code>MESSENGER_APP_SECRET</code>（其一，与 <strong><code>docs/156</code></strong> 一致）  </li>
+<li>对应通道：<code>WHATSAPP_ACCESS_TOKEN</code> + Phone Number ID，和/或 Messenger 的 page token + page id</li>
+</ul>
+<p>保存并 <strong>重启</strong>。</p>
+<h3>7.2 分两条线（不必同一天全做）</h3>
+<table>
+<thead>
+<tr>
+<th>线</th>
+<th>什么时候必须测</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>WhatsApp Cloud</strong></td>
+<td>生产要用 WhatsApp 真发 → <strong>建议必测</strong></td>
+</tr>
+<tr>
+<td><strong>Messenger</strong></td>
+<td>生产不用 Messenger → <strong>可跳过</strong>；要用 → <strong>再测</strong></td>
+</tr>
+</tbody></table>
+<h3>7.3 制造 Graph 认为 token 无效</h3>
+<p>常用思路（在 <strong>Meta 测试应用</strong>里操作，不要动生产页）：</p>
+<ul>
+<li>在开发者后台 <strong>撤销</strong>当前测试 token，或  </li>
+<li>临时把环境变量里的 access token <strong>改成错误字符串</strong>（与 Zalo 同理），</li>
+</ul>
+<p>然后对 <strong>对应通道</strong> 发 <strong><code>docs/129</code></strong> 里的 <strong>POST <code>/webhooks/whatsapp</code> 或 <code>/webhooks/messenger</code></strong>。</p>
+<h3>7.4 看什么算成功</h3>
+<p>在 <strong><code>debug_steps</code> 或日志</strong>中查找：</p>
+<ul>
+<li>WhatsApp：<strong><code>whatsapp_real_meta_token_exchange_retry</code></strong>  </li>
+<li>Messenger：<strong><code>messenger_real_meta_token_exchange_retry</code></strong></li>
+</ul>
+<h3>7.5 Rollback</h3>
+<p>关掉 <code>CHATFLOW_INPROCESS_TOKEN_REFRESH</code>，按 <strong><code>docs/152</code></strong> 恢复合法 token，重启，再 smoke。</p>
+<hr>
+<h2>8. 可复制：最小证据清单</h2>
+<pre><code>[ ] Phase 0：完成（日期：_______） 跳过通道：___________
+[ ] Phase A：完成 / 跳过   通道：_______ 日期：_______
+[ ] Phase B（Zalo）：观察到 zalo_real_token_refresh_retry：是 / 否   日期：_______
+[ ] Phase C（WhatsApp）：观察到 whatsapp_real_meta_token_exchange_retry：是 / 否   日期：_______
+[ ] Phase C（Messenger）：观察到 messenger_real_meta_token_exchange_retry：是 / 否   日期：_______
+[ ] Rollback 已做：是 / 否
+</code></pre>
+<hr>
+<h2>9. 如何导出为 PDF（任选一种）</h2>
+<h3>方法 A — VS Code / Cursor（最简单）</h3>
+<ol>
+<li>用编辑器打开本文件 <code>docs/160_phase17_minimal_test_matrix_beginner.md</code>。  </li>
+<li>打开 Markdown 预览（预览图标或命令面板搜 “Markdown: Open Preview”）。  </li>
+<li>在预览窗口右键 → <strong>Print</strong> → 打印机选 <strong>Microsoft Print to PDF</strong> / <strong>另存为 PDF</strong> → 保存。</li>
+</ol>
+<h3>方法 B — 浏览器</h3>
+<ol>
+<li>把本 <code>.md</code> 拖到支持 Markdown 的查看器，或用 GitHub / Gitea 网页打开该文件。  </li>
+<li><strong>打印</strong> → <strong>另存为 PDF</strong>。</li>
+</ol>
+<h3>方法 C — 仓库自带脚本（Windows + 本机已装 Microsoft Edge，推荐）</h3>
+<p>在项目根目录执行：</p>
+<pre><code class="language-bash">npm run docs:pdf:160
+</code></pre>
+<p>会生成：</p>
+<ul>
+<li><strong><code>docs/160_phase17_minimal_test_matrix_beginner_print.html</code></strong>（可双击用浏览器打开再打印）  </li>
+<li><strong><code>docs/160_phase17_minimal_test_matrix_beginner.pdf</code></strong></li>
+</ul>
+<p>依赖：<code>npx marked</code>（首次自动下载）；脚本见 <strong><code>scripts/build-doc160-pdf.mjs</code></strong>。</p>
+<h3>方法 D — md-to-pdf（可选，可能需下载 Chromium，较慢）</h3>
+<pre><code class="language-bash">npx --yes md-to-pdf docs/160_phase17_minimal_test_matrix_beginner.md
+</code></pre>
+<h3>方法 E — Pandoc（已安装时）</h3>
+<pre><code class="language-bash">pandoc docs/160_phase17_minimal_test_matrix_beginner.md -o docs/160_phase17_minimal_test_matrix_beginner.pdf
+</code></pre>
+<hr>
+<h2>10. 参考文档（按顺序）</h2>
+<table>
+<thead>
+<tr>
+<th>文档</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong><code>docs/157</code></strong></td>
+<td>总 playbook（精简版）</td>
+</tr>
+<tr>
+<td><strong><code>docs/158</code></strong></td>
+<td>Docker 本机 staging</td>
+</tr>
+<tr>
+<td><strong><code>docs/152</code></strong></td>
+<td>Token 轮换与 smoke 跳过验签</td>
+</tr>
+<tr>
+<td><strong><code>docs/154</code></strong></td>
+<td>Zalo 换票实现说明</td>
+</tr>
+<tr>
+<td><strong><code>docs/156</code></strong></td>
+<td>Meta 换票说明</td>
+</tr>
+<tr>
+<td><strong><code>docs/129</code></strong></td>
+<td>七路 curl 与示例 body</td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>文档版本：与 ChatFlow Pro <code>docs/157</code> 对齐；导出 PDF 前请确认已拉取最新 <code>main</code>。</em></p>
+
+</body>
+</html>

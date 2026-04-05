@@ -4,6 +4,8 @@
 
 Single place to **validate** Phase **17.1** (Zalo in-process refresh) and **17.2** (Meta `fb_exchange_token`) in a **non-production** environment, and to chain **remote smoke** + **platform rotation** (`docs/152`) without guessing the order.
 
+**小白逐步版 + 最小必测矩阵 + PDF 导出说明** → **`docs/160_phase17_minimal_test_matrix_beginner.md`**（可导出为同路径 `.pdf`）。
+
 ## Preconditions
 
 - **Staging** (or isolated Meta/Zalo test apps) — not customer production.  
@@ -59,6 +61,7 @@ Single place to **validate** Phase **17.1** (Zalo in-process refresh) and **17.2
 
 ## References
 
+- `docs/160_phase17_minimal_test_matrix_beginner.md` — minimal test matrix, step-by-step for beginners, PDF export options.  
 - `docs/158_docker_staging_quickstart.md` — local Docker → `SMOKE_BASE_URL`.  
 - `docs/152_phase16_ops_token_rotation_runbook.md` — platform rotation (option A).  
 - `docs/154_phase17_inprocess_token_refresh.md` — Zalo 17.1.  
