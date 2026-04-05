@@ -129,7 +129,11 @@
   - ✅ **Phase 16.1 (minimal)**: `httpRequestId` from `server` → all `handle*Webhook` → `createMinimalTraceContext` → outbound `debug_metadata.request_id` matches `X-Request-Id`; **1.7.14** (Pro_v1.07.14); `docs/150` updated
   - ✅ **Phase 16.2 (minimal)**: `observability.phases_ms` on webhook JSON + copied into `http_access` log (`prepare_ms`, `outbound_send_ms`); `webhook-timing.ts`, `webhookPhasesFromHandlerResult`; **1.7.15** (Pro_v1.07.15)
 
-- **Pause Status**: **Active** — Phase 16.2 observability enhanced with webhook phase timings delivered
+- **Pause Status**: **Active** — Phase 16.2 observability enhanced with webhook phase timings delivered; CI + Website outbound sprint completed
 - **Commander preference**: 完成约定 phase 交付后，**自动继续推进**下一立项阶段，无需指挥官每轮提醒「继续」；遇阻塞或范围不明时再停问。
 - **Implementation split**: **实现一律龙虾**；**Cursor 默认只出指令与验收**；仅**极小改动**可由 Cursor 直接改。详见 `memory/05_handoff_for_new_chat.md`。
+- **CI infrastructure**: `.github/workflows/ci.yml` — build validation on push/pull_request
+- **Website real outbound**: `docs/153_phase17_0_website_outbound_push.md` — ADR + implementation (`website-outbound.ts`, `real-send.ts`, integration)
+- **Version**: **Pro_v1.07.16** (package.json 1.7.16) — seventh channel real transport capability complete
+- **Pro_v1.07.17** (package.json 1.7.17): Website `real-send` — **429 / 5xx** 与网络/超时一致为「最多 2 次请求」；`User-Agent` 与 `docs/153` 示例端口与 package 对齐
 - Next Unique Priority Action: **docs/152** 运维 **token 轮换 runbook** 已落盘（ADR 151 选项 A）；下一可选：在 **staging 按 152 做一次轮换演练** 并记结果；**Phase 17** in-process 刷新仍后置

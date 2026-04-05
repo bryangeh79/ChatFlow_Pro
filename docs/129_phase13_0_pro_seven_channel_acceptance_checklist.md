@@ -9,7 +9,7 @@ This document provides acceptance test cases for all seven unified inbound chann
 - **Current limitations** (synthetic sender, no production credentials)
 
 ## Test Environment
-- **Base URL**: `http://localhost:3000` (default ChatFlow Pro server)
+- **Base URL**: `http://localhost:3030` (default ChatFlow Pro server)
 - **All routes**: Return HTTP 200 OK for both processed and skipped messages
 - **Pipeline integration**: All channels share same unified inbound pipeline (lead capture + FAQ)
 - **Sender status**: **Synthetic sender** only – no real platform API credentials configured
@@ -19,7 +19,7 @@ This document provides acceptance test cases for all seven unified inbound chann
 
 ### Test Case 1.1: Text Message (Processed)
 ```bash
-curl -X POST http://localhost:3000/webhooks/website \
+curl -X POST http://localhost:3030/webhooks/website \
   -H "Content-Type: application/json" \
   -d '{
     "id": "w-upd-001",
@@ -39,7 +39,7 @@ curl -X POST http://localhost:3000/webhooks/website \
 
 ### Test Case 1.2: Lead Capture Trigger
 ```bash
-curl -X POST http://localhost:3000/webhooks/website \
+curl -X POST http://localhost:3030/webhooks/website \
   -H "Content-Type: application/json" \
   -d '{
     "id": "w-upd-002",
@@ -60,7 +60,7 @@ curl -X POST http://localhost:3000/webhooks/website \
 
 ### Test Case 2.1: Text Message (Processed)
 ```bash
-curl -X POST http://localhost:3000/webhooks/telegram \
+curl -X POST http://localhost:3030/webhooks/telegram \
   -H "Content-Type: application/json" \
   -d '{
     "update_id": 123456789,
@@ -92,7 +92,7 @@ curl -X POST http://localhost:3000/webhooks/telegram \
 
 ### Test Case 2.2: /start Command (Help Response)
 ```bash
-curl -X POST http://localhost:3000/webhooks/telegram \
+curl -X POST http://localhost:3030/webhooks/telegram \
   -H "Content-Type: application/json" \
   -d '{
     "update_id": 123456790,
@@ -115,7 +115,7 @@ curl -X POST http://localhost:3000/webhooks/telegram \
 
 ### Test Case 3.1: Text Message (Processed) - Flat Format
 ```bash
-curl -X POST http://localhost:3000/webhooks/whatsapp \
+curl -X POST http://localhost:3030/webhooks/whatsapp \
   -H "Content-Type: application/json" \
   -d '{
     "from": "wa-user-1",
@@ -134,7 +134,7 @@ curl -X POST http://localhost:3000/webhooks/whatsapp \
 
 ### Test Case 3.2: WhatsApp Business Webhook Format (Processed)
 ```bash
-curl -X POST http://localhost:3000/webhooks/whatsapp \
+curl -X POST http://localhost:3030/webhooks/whatsapp \
   -H "Content-Type: application/json" \
   -d '{
     "object": "whatsapp_business_account",
@@ -171,7 +171,7 @@ curl -X POST http://localhost:3000/webhooks/whatsapp \
 
 ### Test Case 3.3: Non-Message Event (Skipped)
 ```bash
-curl -X POST http://localhost:3000/webhooks/whatsapp \
+curl -X POST http://localhost:3030/webhooks/whatsapp \
   -H "Content-Type: application/json" \
   -d '{
     "object": "whatsapp_business_account",
@@ -196,7 +196,7 @@ curl -X POST http://localhost:3000/webhooks/whatsapp \
 
 ### Test Case 4.1: Text Message (Processed) - Flat Format
 ```bash
-curl -X POST http://localhost:3000/webhooks/messenger \
+curl -X POST http://localhost:3030/webhooks/messenger \
   -H "Content-Type: application/json" \
   -d '{
     "sender": { "id": "fb-user-1", "name": "Test User" },
@@ -214,7 +214,7 @@ curl -X POST http://localhost:3000/webhooks/messenger \
 
 ### Test Case 4.2: Facebook Graph API Webhook Format
 ```bash
-curl -X POST http://localhost:3000/webhooks/messenger \
+curl -X POST http://localhost:3030/webhooks/messenger \
   -H "Content-Type: application/json" \
   -d '{
     "entry": [{
@@ -239,7 +239,7 @@ curl -X POST http://localhost:3000/webhooks/messenger \
 
 ### Test Case 4.3: Delivery Event (Skipped)
 ```bash
-curl -X POST http://localhost:3000/webhooks/messenger \
+curl -X POST http://localhost:3030/webhooks/messenger \
   -H "Content-Type: application/json" \
   -d '{
     "entry": [{
@@ -266,7 +266,7 @@ curl -X POST http://localhost:3000/webhooks/messenger \
 
 ### Test Case 5.1: Text Message (Processed) - Flat Format
 ```bash
-curl -X POST http://localhost:3000/webhooks/line \
+curl -X POST http://localhost:3030/webhooks/line \
   -H "Content-Type: application/json" \
   -d '{
     "userId": "line-user-1",
@@ -284,7 +284,7 @@ curl -X POST http://localhost:3000/webhooks/line \
 
 ### Test Case 5.2: Line Webhook Format
 ```bash
-curl -X POST http://localhost:3000/webhooks/line \
+curl -X POST http://localhost:3030/webhooks/line \
   -H "Content-Type: application/json" \
   -d '{
     "destination": "U1234567890abcdef1234567890abcdef",
@@ -310,7 +310,7 @@ curl -X POST http://localhost:3000/webhooks/line \
 
 ### Test Case 5.3: Follow Event (Skipped)
 ```bash
-curl -X POST http://localhost:3000/webhooks/line \
+curl -X POST http://localhost:3030/webhooks/line \
   -H "Content-Type: application/json" \
   -d '{
     "destination": "U1234567890abcdef1234567890abcdef",
@@ -336,7 +336,7 @@ curl -X POST http://localhost:3000/webhooks/line \
 
 ### Test Case 6.1: Text Message (Processed) - Flat Format
 ```bash
-curl -X POST http://localhost:3000/webhooks/zalo \
+curl -X POST http://localhost:3030/webhooks/zalo \
   -H "Content-Type: application/json" \
   -d '{
     "user_id": "zalo-user-1",
@@ -354,7 +354,7 @@ curl -X POST http://localhost:3000/webhooks/zalo \
 
 ### Test Case 6.2: Zalo OA Webhook Format
 ```bash
-curl -X POST http://localhost:3000/webhooks/zalo \
+curl -X POST http://localhost:3030/webhooks/zalo \
   -H "Content-Type: application/json" \
   -d '{
     "event_name": "user_send_text",
@@ -371,7 +371,7 @@ curl -X POST http://localhost:3000/webhooks/zalo \
 
 ### Test Case 6.3: Nested Zalo Webhook Format
 ```bash
-curl -X POST http://localhost:3000/webhooks/zalo \
+curl -X POST http://localhost:3030/webhooks/zalo \
   -H "Content-Type: application/json" \
   -d '{
     "data": {
@@ -390,7 +390,7 @@ curl -X POST http://localhost:3000/webhooks/zalo \
 
 ### Test Case 6.4: Follow Event (Skipped)
 ```bash
-curl -X POST http://localhost:3000/webhooks/zalo \
+curl -X POST http://localhost:3030/webhooks/zalo \
   -H "Content-Type: application/json" \
   -d '{
     "event_name": "user_follow",
@@ -410,7 +410,7 @@ curl -X POST http://localhost:3000/webhooks/zalo \
 
 ### Test Case 7.1: All Channels Verification
 ```bash
-curl -X GET http://localhost:3000/verification
+curl -X GET http://localhost:3030/verification
 ```
 
 **Expected Response**:

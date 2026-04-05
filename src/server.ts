@@ -28,7 +28,7 @@ import { handleLineWebhook } from './webhooks/line';
 import { handleZaloWebhook } from './webhooks/zalo';
 import { runMinimalInboundVerification } from './webhooks/verification';
 
-const port = Number(process.env.PORT ?? 3000);
+const port = Number(process.env.PORT ?? 3030);
 
 // Load webhook config once at startup
 const metaConfig = loadMetaWebhookConfig();

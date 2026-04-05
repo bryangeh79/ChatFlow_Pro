@@ -75,7 +75,7 @@ With the server already running on the target base URL:
 ```bash
 npm run build
 npm run start   # other terminal, or your process manager
-SMOKE_BASE_URL=http://127.0.0.1:3000 npm run smoke:webhooks
+SMOKE_BASE_URL=http://127.0.0.1:3030 npm run smoke:webhooks
 ```
 
 - Checks `GET /health` and minimal `POST /webhooks/*` bodies aligned with `docs/129` flat samples.  

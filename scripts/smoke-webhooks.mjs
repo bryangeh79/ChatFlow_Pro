@@ -4,12 +4,12 @@
  * Requires server already listening (e.g. npm run build && npm run start).
  *
  * Env:
- *   SMOKE_BASE_URL — default http://127.0.0.1:3000
+ *   SMOKE_BASE_URL — default http://127.0.0.1:3030
  *   SMOKE_SKIP_WEBSITE=1 — skip POST /webhooks/website (use when WEBSITE_WEBHOOK_SIGNING_SECRET is set)
  *   SMOKE_SKIP_CHANNELS — comma list: website,telegram,whatsapp,messenger,line,zalo (e.g. when POST signature is enforced)
  */
 
-const base = (process.env.SMOKE_BASE_URL || 'http://127.0.0.1:3000').replace(/\/$/, '');
+const base = (process.env.SMOKE_BASE_URL || 'http://127.0.0.1:3030').replace(/\/$/, '');
 
 const skipSet = new Set(
   (process.env.SMOKE_SKIP_CHANNELS || '')
