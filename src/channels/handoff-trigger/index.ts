@@ -1,10 +1,54 @@
 import type { UnifiedInboundMessage } from '../../../shared/types/unified-inbound-message';
 import type { UnifiedSessionContext } from '../../../shared/types/unified-session-context';
+import { containsHandoffKeyword } from '../../config/handoff';
 
 export function shouldTriggerHandoff(
   message: UnifiedInboundMessage,
   session: UnifiedSessionContext,
 ): boolean {
-  // TODO: add real trigger rules later
-  return Boolean(message.handoff_flag || session.handoff_state.status === 'pending');
+  // 1. Explicit handoff flag from message
+  if (message.handoff_flag) {
+    return true;
+  }
+  
+  // 2. Session already in pending handoff state
+  if (session.handoff_state.status === 'pending') {
+    return true;
+  }
+  
+  // 3. Keyword detection (only if session is in 'none' state)
+  if (session.handoff_state.status === 'none' && message.text) {
+    return containsHandoffKeyword(message.text);
+  }
+  
+  return false;
+}
+
+/**
+ * Update session handoff state if triggered by keyword.
+ * Returns updated session (immutable update).
+ */
+export function updateHandoffStateIfTriggered(
+  message: UnifiedInboundMessage,
+  session: UnifiedSessionContext,
+): UnifiedSessionContext {
+  // Only trigger if session is in 'none' state and message has text
+  if (session.handoff_state.status !== 'none' || !message.text) {
+    return session;
+  }
+  
+  // Check for keyword trigger
+  if (containsHandoffKeyword(message.text)) {
+    return {
+      ...session,
+      handoff_state: {
+        ...session.handoff_state,
+        status: 'pending',
+        reason: 'keyword',
+        triggered_at: new Date().toISOString(),
+      },
+    };
+  }
+  
+  return session;
 }

@@ -5,7 +5,7 @@
 - Do not expand into menu / command / state systems just because the webhook baselines are now alive.
 - Do not let channel-specific changes pollute shared core behavior without a hard reason.
 - Continue protecting the **seven-route baseline**: All 7 channels must remain independently verifiable and non-breaking.
-- The current version is **Pro_v1.07.39** (package.json **1.7.39**; Phase **17.2** + **17.1** + Docker / **docs/155**; 可选 **lead notify** POST). Truth → **`memory/01_project_status.md`**.
+- The current version is **Pro_v1.07.40** (package.json **1.7.40**; **Handoff 最小接入包** + Phase **17.2** + **17.1** + Docker / **docs/155**; 可选 **lead notify** POST). Truth → **`memory/01_project_status.md`**.
 - The biggest recurring error to avoid is confusing stable minimal entrypoints with full platform completion.
 - Regression risk remains live whenever shared contracts or routing paths are touched.
 - **Pause Status**: **Not blocked** — default gate **T0 build + T1 `docker-smoke`** (incl. `smoke:webhooks` + `verify:lead-capture-states`); read-only agent env → **docs/155** *T1 equivalence* + **`npm run report:github-ci`**. No public staging URL does **not** block dev; **docs/157** Phase 0 waits on **HTTPS** staging.
@@ -51,6 +51,13 @@
 - **FAQ over-matching**: With gate removed, FAQ may match too aggressively
 - **Intent placeholder**: Real intent dispatch needed for proper FAQ gating
 - **Seed content quality**: Current FAQ seeds are placeholder English-only
+
+## New Risks from Handoff Integration (Pro_v1.07.40)
+- **Keyword false positives**: Default keywords may trigger handoff unintentionally
+- **Session state persistence**: Handoff state stored in memory only, lost on restart
+- **No external notification**: Handoff pending状态无外呼通知（仅进程内）
+- **Missing UI integration**: Handoff状态无坐席UI对接
+- **Testing coverage**: Handoff触发逻辑需要更多测试场景
 
 ## Pro_v1.06 Known Limitations
 - **Session store**: In-memory only, single-process, no TTL expiration

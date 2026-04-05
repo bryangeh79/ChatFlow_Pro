@@ -10,6 +10,7 @@ import { resolveUnifiedFaqSkeleton } from './faq-resolver';
 import { runLeadCaptureHook } from '../lead-capture-hook';
 import { detectContactIntent } from '../lead-capture-hook/contact-intent-detector';
 import { getLeadCaptureI18n } from '../lead-capture-hook/i18n';
+import { shouldTriggerHandoff, updateHandoffStateIfTriggered } from '../handoff-trigger';
 
 export function runUnifiedInboundPipeline(
   message: UnifiedInboundMessage,
@@ -104,11 +105,14 @@ export function runUnifiedInboundPipeline(
     faqResult.matched ? 'faq_hit' : 'faq_no_match',
   ];
 
+  // 在 lead capture 之后处理 handoff 触发
+  const sessionAfterHandoffCheck = updateHandoffStateIfTriggered(message, sessionAfterLeadCapture);
+  
   // 证据对齐：添加 leadCaptureResult
   const leadCaptureResult = {
-    status: sessionAfterLeadCapture.lead_capture_state.status,
-    captured_fields: sessionAfterLeadCapture.lead_capture_state.collected_fields,
-    missing_fields: sessionAfterLeadCapture.lead_capture_state.missing_fields,
+    status: sessionAfterHandoffCheck.lead_capture_state.status,
+    captured_fields: sessionAfterHandoffCheck.lead_capture_state.collected_fields,
+    missing_fields: sessionAfterHandoffCheck.lead_capture_state.missing_fields,
   };
 
   // 获取 i18n 字符串
@@ -124,7 +128,7 @@ export function runUnifiedInboundPipeline(
     if (missingFields.length > 0) {
       lead_capture_prompt = i18n.partialPrompt(missingFields);
     }
-  } else if (sessionAfterLeadCapture.lead_capture_state.status === 'captured' && !faqResult.matched) {
+  } else if (sessionAfterHandoffCheck.lead_capture_state.status === 'captured' && !faqResult.matched) {
     // captured 状态且 FAQ 未命中时使用简短确认（i18n）
     replyText = i18n.capturedConfirmation;
   }
@@ -142,13 +146,16 @@ export function runUnifiedInboundPipeline(
     }
   }
 
+  // 确定是否需要 handoff
+  const handoffRequired = shouldTriggerHandoff(message, sessionAfterHandoffCheck);
+
   const response: UnifiedResponse = applyUnifiedDispatchPlaceholder({
     channel: message.channel,
-    session_id: sessionAfterLeadCapture.session_id,
+    session_id: sessionAfterHandoffCheck.session_id,
     kind: faqResult.matched ? 'text' : 'text',
     reply_text: replyText,
     should_send: true,
-    handoff_required: Boolean(message.handoff_flag),
+    handoff_required: handoffRequired,
     lead_capture_prompt,
     debug_steps,
     debug_metadata: {
@@ -160,14 +167,14 @@ export function runUnifiedInboundPipeline(
     },
   });
 
-  sessionAfterLeadCapture.recent_faq_hit = {
+  sessionAfterHandoffCheck.recent_faq_hit = {
     faq_id: faqResult.matched ? faqResult.matched_topic ?? undefined : undefined,
     matched: faqResult.matched,
     confidence: faqResult.confidence,
   };
 
   return {
-    session: sessionAfterLeadCapture,
+    session: sessionAfterHandoffCheck,
     response,
   };
 }
