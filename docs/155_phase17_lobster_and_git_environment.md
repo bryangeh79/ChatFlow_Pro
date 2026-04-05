@@ -50,7 +50,8 @@ Many agent hosts use a **minimal image** (no `git`, read-only FS). Then:
 
 - **Working directory**: must be the **repository root** (folder that contains `package.json` and `.git`).  
 - **Shell**: PowerShell or cmd is fine if `git` resolves on PATH.  
-- If the agent runs in a **minimal container** without `git`, use **`npm run report:agent-git`** for SHA reporting and offload **commit/push** to a host with git (see table above).
+- If the agent runs in a **minimal container** without `git`, use **`npm run report:agent-git`** for SHA reporting and offload **commit/push** to a host with git (see table above).  
+- **Want git + Docker inside 龙虾?** See **`docs/159_phase17_lobster_runtime_git_docker.md`** (custom image, host run, or `docker.sock` mount).
 
 ## After check passes
 
