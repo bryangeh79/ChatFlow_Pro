@@ -62,6 +62,20 @@ For another machine on the LAN, use the host’s IP, e.g. `http://192.168.1.10:3
 - Alternatively, uncomment **`env_file: .env`** in `docker-compose.yml` locally (do not commit that change if it points at real secrets).  
 - Continue **Phase 0 → A → B/C** in **`docs/157`** when validating token refresh.
 
+## Default staging ladder (project decision — **does not block** shipping code)
+
+**Verdict:** Merging and continuing feature work **do not** require a public cloud staging URL, full signed smoke on every channel, or a Zalo OA. Those are **confidence layers**, not hard gates.
+
+| Tier | When | Command / action | Pass criterion |
+|------|------|------------------|----------------|
+| **T0 — always** | Every push / before PR | CI **`npm run build`** (and repo **`npm run verify:local`** if you use git locally) | Build green |
+| **T1 — default local** | After Docker or infra change | **`npm run staging:docker-smoke`** (compose **without** `.env`) | **`[smoke] all passed`** on **seven** webhook routes |
+| **T2 — secrets in container** | After editing `.env` for Meta/Line POST verify | **`npm run docker:up:local-env`** (or dual `-f` compose) + smoke with skips | **`SMOKE_SKIP_CHANNELS=whatsapp,messenger,line`** (add `website` if Website signing is on) → **all passed** on non-skipped routes; **403** on skipped routes without skip is **expected** |
+| **T3 — real traffic** | Before production cutover | Public **HTTPS** URL + platform webhooks + one **manual** test message per channel you ship | Human confirms reply / logs + **`X-Request-Id`** |
+| **T4 — optional drills** | When you enable in-process refresh | **`docs/157`** Phase **A → B/C** | Checklist only |
+
+**Deferred without blocking the repo:** Zalo OA creation (platform permission), Phase **B** until OA exists, Phase **C** until you schedule a Meta test window.
+
 ## CI note
 
 GitHub Actions still uses **`npm run build`** only; the Docker image is validated when you build locally or add a future optional workflow.

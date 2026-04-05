@@ -1,7 +1,7 @@
 # Project Status
 
 - Project Name: ChatFlow Pro
-- Current Phase: **Phase 17.2** (Meta WA + Messenger **fb_exchange_token** on 401 / Graph **190**) — MVP 已落地；**staging 验证**仍必须
+- Current Phase: **Phase 17.2** (Meta WA + Messenger **fb_exchange_token** on 401 / Graph **190**) — MVP 已落地；**云 staging / 157 B·C** 为上线前增强验证，**不挡**日常开发与合并（见 **158** 阶梯）
 - Current Version: **Pro_v1.07.26** (package.json: 1.7.26)
 - Execution Root: C:\AI_WORKSPACE\Chatflow\ChatFlow_Pro
 - Current Project State: 
@@ -29,5 +29,5 @@
 - Current Completion Point: **Pro_v1.07.26** — **`npm run check:staging-env`**（`scripts/check-staging-env.mjs`）+ **`docs/160`** §4；**157/AGENTS** 已链
 - Pro Target Channels (product scope, Bryan-locked): **Telegram**, **WhatsApp**, **Facebook Messenger**, **Line**, **Zalo**; architecture must keep an **extension slot** for additional messaging platforms later. **Website live chat** remains part of Pro (already implemented alongside messaging channels).
 - Current Channel Boundary (runtime today): **All seven channels live** — unified pipeline; **Telegram** real outbound when token + not sandbox (**optional proxy**); **WhatsApp** real outbound when token + phone number ID + not sandbox; **Messenger** real outbound when token + page ID + not sandbox; **Line** real outbound when token + not sandbox; **Zalo** real outbound when token + OA ID + not sandbox; **Website** real outbound when `WEBSITE_OUTBOUND_URL` configured + not sandbox/disabled; **WhatsApp/Messenger/Line/Website** POST signature validation when secret configured; **Zalo** inbound relies on IP whitelisting (per official docs).
-- **Pause Status**: **Active** — Phase 16.2 observability enhanced with webhook phase timings delivered
-- Next Unique Priority Action: 无密钥 compose 已绿；若要容器内**真 outbound**，用 **`docker compose -f docker-compose.yml -f docker-compose.local-credentials.yml up`**（**158**）；本机亦可 **`npm run start`** 读 `.env` 做端到端；**157** Phase A/B/C 与云 staging 仍可选
+- **Pause Status**: **Not blocked on staging** — 默认门槛：**T0 build + T1 `staging:docker-smoke`**（**`docs/158`** *Default staging ladder*）；公网/T3、Zalo OA、157 B/C 为**可选增强**，不挡合并与后续功能开发
+- Next Unique Priority Action: 按 **158** 默认阶梯推进 — 日常 **T1**；改 `.env` 后 **T2**+`SMOKE_SKIP_CHANNELS`；上线前再做 **T3**；**157** A/B/C 与 Zalo 仅在有资源时做

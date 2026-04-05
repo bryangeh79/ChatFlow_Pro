@@ -145,4 +145,4 @@
 - **Pro_v1.07.24** (package.json 1.7.24): **Docker** 交付 — `Dockerfile`、`.dockerignore`、`docker-compose.yml`、**`docs/158`**；**CI** 增加 `npm run report:agent-git`
 - **Pro_v1.07.25** (package.json 1.7.25): **`docs/159`** — 龙虾运行时安装 **git/Docker** 与宿主能力匹配（镜像 / PATH / `docker.sock` 安全说明）；**155** 链到 159；**155** 增补 *Typical OpenClaw profile*（只读容器正式口径）；**AGENTS.md** 指到该节
 - **Pro_v1.07.26** (package.json 1.7.26): **`npm run staging:docker-smoke`** + `scripts/staging-docker-smoke.mjs` — Phase **0** 本地一键：compose up → `/health` → `smoke:webhooks` → compose down；**157/158** 更新；**`docs/160`** 最小必测矩阵小白版 + **`docs:pdf:160`**（Edge 打 PDF）+ 已生成 **`docs/160_phase17_minimal_test_matrix_beginner.pdf`**；**`npm run check:staging-env`**（`check-staging-env.mjs`，不打印密钥）+ **160** §4 / **157** / **AGENTS**
-- Next Unique Priority Action: 宿主执行 **`staging:docker-smoke`** 或云 staging；**157** Phase **A**（152 轮换）→ **B/C**（Zalo/Meta 进程内刷新验证）
+- Next Unique Priority Action: **Staging 不挡进度** — 默认 **T0+T1**（**`docs/158`** *Default staging ladder*）；**T2** 带 `.env` 时用 **`SMOKE_SKIP_CHANNELS`**；**T3/T4** 与 **157** 按需排期
