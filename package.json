@@ -1,12 +1,13 @@
 {
   "name": "chatflow-pro",
-  "version": "1.7.26",
+  "version": "1.7.27",
   "private": true,
   "type": "commonjs",
   "scripts": {
     "start": "node dist/src/index.js",
     "build": "tsc -p tsconfig.json",
     "smoke:webhooks": "node scripts/smoke-webhooks.mjs",
+    "verify:lead-capture-states": "node scripts/verify-lead-capture-states.mjs",
     "dev:website-outbound-echo": "node scripts/website-outbound-echo.mjs",
     "check:agent-env": "node scripts/agent-env-check.mjs",
     "check:staging-env": "node scripts/check-staging-env.mjs",

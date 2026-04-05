@@ -1,9 +1,9 @@
 # Handoff for New Chat
 
 - This is an existing project handoff, not a fresh project restart.
-- **Current Phase: Phase 16.2** (HTTP access observability — webhook phases_ms + verification type narrowing)
-- Current Version: **Pro_v1.07.15** (package.json: 1.7.15)
-- **Pause Status: Active — Phase 16.2 observability enhanced delivered; next is Phase 16+** (token refresh ADR or extend observability)
+- **Current Phase: Phase 17.x** — seven-channel real transports + Docker staging ladder + **`docs/157`** validation playbook; HTTP observability through **Phase 16.2** remains in tree.
+- Current Version: **Pro_v1.07.27** (package.json: **1.7.27**)
+- **Pause Status: Not blocked** — CI **`docker-smoke`** (T1) green; local **T2** = **`npm run staging:docker-smoke:t2`**; next confidence layers = **`docs/157`** Phase 0 remote smoke → A → B/C when staging exists.
 
 ## Completed Summary
 - Phase 1 blueprint work is complete.
@@ -169,7 +169,7 @@
   - **功能**: 访问日志包含 `phases_ms` (prepare vs outbound send)，verification 响应类型更精确
   - **状态**: 代码已交付，HTTP 可观测性增强完成
 
-## Unfinished Summary (Pro_v1.07.15 + post–16.2 limitations)
+## Unfinished Summary (Pro_v1.07.27 + current limitations)
 - Session store: in-memory only, single-process, **with 24h TTL expiration**
 - JSONL persistence: **backup accumulation controlled** (max 5 files, 50MB total)
 - Field extraction: regex-based, **with minimal format validation**
@@ -179,13 +179,21 @@
 - **POST 签名债务收口**: WhatsApp/Messenger/Line/Website 已实现；Zalo 无官方机制（依赖 IP 白名单）
 
 ## Next Unique Priority Action
-**Phase 15.9+** — 其他优先级任务
+1. **龙虾 / 指挥官（环境就绪后）**: **`docs/157`** Phase **0** 远程 `SMOKE_BASE_URL` smoke → Phase **A**（`docs/152`）→ **B/C**（in-process refresh，仅隔离 staging）。  
+2. **产品向**: **`memory/31`** — lead capture 已有一切片实现；下一能力段可按 **`memory/32`–`37`** 扩展信号/运营面（需另立项时由龙虾主笔代码）。
+
+## 龙虾下一包（OpenClaw — 粘贴执行）
+
+- **本轮 Cursor 已合入**: **`npm run verify:lead-capture-states`** + 已挂进 **`npm run staging:docker-smoke`**（CI **`docker-smoke`** job 自动跑）；**`package.json` → 1.7.27**。  
+- **龙虾接手后必做**: `npm run build`；有 Docker 时 **`npm run staging:docker-smoke`** 或 **`staging:docker-smoke:t2`**；**禁止**在日志/聊天粘贴密钥。  
+- **有公网 staging URL 时**: `SMOKE_BASE_URL=https://… npm run smoke:webhooks`，并按 **`docs/152`** 处理签名校验；把每通道 pass/fail + 一条 **`X-Request-Id`** 写进当日 `memory/YYYY-MM-DD.md`（脱敏）。  
+- **指挥官发「转换新聊天室指令 2」时**: 全量回写 **`./memory/`** 七文件（协议见用户技能 *memory-physical-sync*）。
 
 ## New Chat Rule
 - Read the memory files first, then continue from the current state without reopening product definition or architecture.
 - New chats must read docs `81_phase9_5_telegram_minimal_interaction_result.md`, `82_phase9_6_telegram_minimal_observability_enhancement_closure.md`, `83_phase10_8_host_and_minimal_evidence_closure.md`, and `84_phase11_8_dual_webhook_minimal_regression_closure.md` before changing anything.
 - New chats must first restate the current boundary: **All seven channels live** (Website, Telegram, WhatsApp, Messenger, Line, Zalo) with unified pipeline, acceptance checklist ready at docs/129.
-- **Current pause status**: Not paused — Phase 15.6 shipped (已交付); pick next item from Phase 15.7+.
+- **Current pause status**: **Not blocked** — 与 **`memory/03`** 一致；默认门禁 **T0+T1**；**T3/T4** 与 **157** 按需。
 - **Commander preference**: After a phase is delivered, **continue** to the next planned phase without waiting for a separate「继续」unless blocked or scope is unclear.
 - **Implementation split (commander-locked)**:
   - **龙虾 (local agent)**: Default owner of **all implementation** — code changes, builds, fixes, and **Memory 指令 2** physical write-back to `./memory/`.

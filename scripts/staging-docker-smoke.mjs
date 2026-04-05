@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * One-shot local staging: docker compose up → wait /health → smoke:webhooks → compose down.
+ * One-shot local staging: docker compose up → wait /health → smoke:webhooks → verify:lead-capture-states → compose down.
  * Requires Docker Compose v2 + Node on the host (same as docs/158).
  *
  * Env:
@@ -75,6 +75,7 @@ async function main() {
     upOk = true;
     await waitHealth();
     sh('npm run smoke:webhooks');
+    sh('npm run verify:lead-capture-states');
     console.log('staging-docker-smoke: done');
   } finally {
     if (upOk && !skipDown) {
