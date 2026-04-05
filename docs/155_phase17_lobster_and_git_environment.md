@@ -112,6 +112,15 @@ git push origin main
 
 Report **actual** HEAD in `memory/YYYY-MM-DD.md`: either `git rev-parse HEAD` or the line printed by **`npm run report:agent-git`** — not a placeholder.
 
+## Environment & secrets (`.env`) — project policy
+
+1. **Never commit** a file that contains real tokens (`.env`, `.env.production`, `.env.local`, overrides, etc.). **`.env.example`** is the **only** env file that belongs in git: names + comments + empty values, no secrets.  
+2. **GitHub Actions / CI** must use **repository Secrets** (or OIDC to a secret store), not a committed `.env`. This repo’s workflows do not ship env files.  
+3. **Pro vs future Enterprise**: use **separate** `.env` (or secret store namespaces) per **environment** and per **product line** when you split repos — **do not** copy production `.env` into a second repo or paste it into chat/issues.  
+4. **Agents (龙虾 / Cursor)**: do not paste `.env` lines into tickets or model context; use **`npm run check:staging-env`** / **`--debug-parse`** (lengths only) and **`docs/160`** §4.  
+5. **Rotation / incidents**: follow **`docs/152`**; revoke leaked keys at the **platform** (Meta / Line / Telegram / Zalo) even if git history was cleaned.  
+6. **`.gitignore`** intentionally allows **`.env.example`** and ignores **`.env.*`** otherwise, plus common key extensions (`*.pem`, `*.p12`).
+
 ## References
 
 - `scripts/agent-env-check.mjs` — strict check (git on PATH)  

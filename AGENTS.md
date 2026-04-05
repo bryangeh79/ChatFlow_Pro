@@ -57,6 +57,7 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 
 ## Red Lines
 
+- **Secrets**: Never commit **`.env`** or paste real tokens into chat, tickets, or `memory/*.md`. Only **`.env.example`** (placeholders) belongs in git — see **`docs/155`** *Environment & secrets*.  
 - Don't exfiltrate private data. Ever.
 - Don't run destructive commands without asking.
 - `trash` > `rm` (recoverable beats gone forever)

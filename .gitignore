@@ -2,8 +2,16 @@ node_modules/
 .dist/
 .next/
 dist/
+
+# Local secrets — never commit real values (template is tracked on purpose)
 .env
 .env.*
+!.env.example
+
+# Common accidental key material
+*.pem
+*.p12
+
 data/
 .npm/
 .openclaw/
