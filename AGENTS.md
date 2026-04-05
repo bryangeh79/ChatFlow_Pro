@@ -8,7 +8,8 @@ This folder is home. Treat it that way.
 - In **Docker / no-git** shells: `npm run report:agent-git` reads **HEAD from `.git`** for accurate SHA in notes; **commit/push may be done by Cursor or the human on the host** after reviewing the diff (龙虾不冒充已 push).  
 - Do not fake git output — use one of the two commands above for SHA.  
 - **Read-only `/workspace` OpenClaw image** (no `git`, no DinD): canonical duties table → **`docs/155`** section *Typical OpenClaw profile*; optional git/Docker-in-image → **`docs/159`**.  
-- Staging Phase B/C env self-check (no secret echo): **`npm run check:staging-env`** — **`docs/160`** §4.
+- Staging Phase B/C env self-check (no secret echo): **`npm run check:staging-env`** — **`docs/160`** §4.  
+- **No `docker` in your shell?** You **cannot** run **`npm run staging:docker-smoke`** there — that is **expected** for read-only OpenClaw. Use **T1 equivalence** in **`docs/155`** (*T1 equivalence when the agent has no Docker*): CI **`docker-smoke`** green on **`main`** + **`npm run build`** + against a running server **`smoke:webhooks`** and **`verify:lead-capture-states`**. **Cursor or the human host** runs full **`staging:docker-smoke`** when Docker is available.
 
 ## First Run
 
