@@ -1,8 +1,8 @@
 # Project Status
 
 - Project Name: ChatFlow Pro
-- Current Phase: **Phase 17.1** shipped; **Phase 17.2** (Meta in-process refresh) **spec only** — `docs/156`（实现待 staging + Graph 错误样例）
-- Current Version: **Pro_v1.07.21** (package.json: 1.7.21)
+- Current Phase: **Phase 17.2** (Meta WA + Messenger **fb_exchange_token** on 401 / Graph **190**) — MVP 已落地；**staging 验证**仍必须
+- Current Version: **Pro_v1.07.22** (package.json: 1.7.22)
 - Execution Root: C:\AI_WORKSPACE\Chatflow\ChatFlow_Pro
 - Current Project State: 
   - ✅ **Seven-route webhook baseline**: Website, Telegram, WhatsApp, Messenger, Line, Zalo (`POST /webhooks/*` + **`GET /webhooks/*`** verification per docs/141)
@@ -26,8 +26,8 @@
   - ✅ **Line Messaging API real outbound**: When `LINE_CHANNEL_ACCESS_TOKEN` valid and not sandbox, outbound uses push API (`docs/148`, `src/channels/outbound-sender/index.ts`) — **15.7.1 稳定性修订：恢复 LINE_MESSAGING_DISABLED 检查，session 解析返回 null 而非 'unknown'，每轮独立超时，redact 用 split/join**
   - ✅ **Zalo Open API real outbound**: When `ZALO_ACCESS_TOKEN` + `ZALO_OA_ID` valid and not sandbox, outbound uses Open API (`docs/149`, `src/channels/outbound-sender/index.ts`)
   - ✅ **HTTP observability (Phase 16)**: All responses include `X-Request-Id`; optional one-line JSON access log when `CHATFLOW_HTTP_ACCESS_LOG` set (`docs/150`, `src/observability/http-access.ts`, `server.ts`); **HTTP `request_id` = `debug_metadata.request_id`** on all seven `POST /webhooks/*` paths via `createMinimalTraceContext({ httpRequestId })`; access log may include **`phases_ms`** (`prepare_ms`, optional `outbound_send_ms`) from webhook handlers
-- Current Completion Point: **Pro_v1.07.21** — `npm run verify:local`（build + `report:agent-git`）；**docs/156** Meta 17.2 规格落盘；Zalo 17.1 + 代理 Git 流程见 154/155
+- Current Completion Point: **Pro_v1.07.22** — Meta **17.2** 代码：`meta-token-cache` / `meta-graph-refresh`；与 **17.1** 共用 `CHATFLOW_INPROCESS_TOKEN_REFRESH` + **`META_APP_ID`** + app secret；`verify:local` / 155 照旧
 - Pro Target Channels (product scope, Bryan-locked): **Telegram**, **WhatsApp**, **Facebook Messenger**, **Line**, **Zalo**; architecture must keep an **extension slot** for additional messaging platforms later. **Website live chat** remains part of Pro (already implemented alongside messaging channels).
 - Current Channel Boundary (runtime today): **All seven channels live** — unified pipeline; **Telegram** real outbound when token + not sandbox (**optional proxy**); **WhatsApp** real outbound when token + phone number ID + not sandbox; **Messenger** real outbound when token + page ID + not sandbox; **Line** real outbound when token + not sandbox; **Zalo** real outbound when token + OA ID + not sandbox; **Website** real outbound when `WEBSITE_OUTBOUND_URL` configured + not sandbox/disabled; **WhatsApp/Messenger/Line/Website** POST signature validation when secret configured; **Zalo** inbound relies on IP whitelisting (per official docs).
 - **Pause Status**: **Active** — Phase 16.2 observability enhanced with webhook phase timings delivered
-- Next Unique Priority Action: **staging** 采集 Meta Graph 过期/错误样例 → 按 **docs/156** 实现 17.2；或 **docs/152** 轮换演练；Zalo 17.1 上生产前对照官方 OAuth 文档复核
+- Next Unique Priority Action: **staging** 验证 Meta **fb_exchange_token** 与 WA/Messenger 令牌类型；**docs/152** 轮换演练；按需扩展 Graph **error code** 白名单（见 `docs/156`）

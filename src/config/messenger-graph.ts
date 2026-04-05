@@ -1,4 +1,5 @@
 import { env } from 'node:process';
+import { getMessengerPageAccessTokenResolved } from '../tokens/meta-token-cache';
 
 export interface MessengerGraphConfig {
   pageAccessToken: string;
@@ -33,15 +34,15 @@ export function loadMessengerGraphConfigForRealSend(): MessengerGraphConfig | nu
     return null;
   }
 
-  const pageAccessToken = env.MESSENGER_PAGE_ACCESS_TOKEN;
+  const pageAccessToken = getMessengerPageAccessTokenResolved();
   const pageId = env.MESSENGER_PAGE_ID;
 
-  if (!pageAccessToken?.trim() || !pageId?.trim()) {
+  if (!pageAccessToken || !pageId?.trim()) {
     return null;
   }
 
   return {
-    pageAccessToken: pageAccessToken.trim(),
+    pageAccessToken,
     pageId: pageId.trim(),
     apiVersion: getMessengerApiVersionRaw(),
   };

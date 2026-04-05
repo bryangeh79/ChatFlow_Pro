@@ -2,7 +2,7 @@
 
 ## Status
 
-**Decision / documentation.** The original Phase 16.x deliverable was design-only. **Update:** **Zalo** option **C** is partially implemented as **Phase 17.1** — see **`docs/154_phase17_inprocess_token_refresh.md`**. **Meta** channels remain **option A** (platform rotation) until a later slice.
+**Decision / documentation.** The original Phase 16.x deliverable was design-only. **Update:** **Zalo** option **C** = **Phase 17.1** (`docs/154`). **Meta** (WhatsApp + Messenger) option **C** MVP = **Phase 17.2** (`docs/156`, `fb_exchange_token`). Unconfigured in-process refresh still behaves like **option A** (env + restart).
 
 ## Problem
 

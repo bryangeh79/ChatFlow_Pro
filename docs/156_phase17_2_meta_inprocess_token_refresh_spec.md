@@ -1,8 +1,10 @@
-# Phase 17.2 — Meta (WhatsApp Cloud + Messenger) in-process token refresh — **spec only**
+# Phase 17.2 — Meta (WhatsApp Cloud + Messenger) in-process token refresh
 
 ## Status
 
-**Specification / planning.** No runtime implementation in this document. Implement only after **staging** can exercise real Graph errors and token exchange (see `docs/151` option **C**, `docs/154` patterns).
+**Implemented (MVP)** in code: `src/tokens/meta-token-cache.ts`, `src/tokens/meta-graph-refresh.ts`, WhatsApp/Messenger `real-send.ts`. Uses Graph **`fb_exchange_token`** when **`CHATFLOW_INPROCESS_TOKEN_REFRESH=1`** and **`META_APP_ID`** + app secret are set.
+
+**Staging still required** to validate token types (system user vs page), error shapes, and whether **190** / **401** cover your deployment.
 
 ## Goals
 
@@ -26,20 +28,33 @@ Meta’s token model depends on **how** the Page / System User token was created
 
 **Never** log `access_token`, `client_secret`, or full Graph error payloads containing secrets.
 
-## Proposed modules (future)
+## Implemented modules
 
-| Piece | Role |
-|-------|------|
-| `meta-token-cache.ts` | In-memory overrides for `WHATSAPP_ACCESS_TOKEN` / `MESSENGER_PAGE_ACCESS_TOKEN` after refresh. |
-| `meta-token-refresh.ts` | Single-flight OAuth exchange; reads secrets from env only. |
-| `whatsapp-cloud.ts` / `messenger-graph.ts` | Resolve “effective” token = cache override ?? `process.env`. |
-| `real-send.ts` (WA + Messenger) | After allowlisted failure, call refresh once, retry send once. |
+| File | Role |
+|------|------|
+| `src/tokens/meta-token-cache.ts` | In-memory overrides after successful exchange. |
+| `src/tokens/meta-graph-refresh.ts` | `fb_exchange_token`, single-flight per channel, `isMetaGraphTokenRefreshCandidate`. |
+| `src/config/whatsapp-cloud.ts` / `messenger-graph.ts` | Effective token via cache ?? env. |
+| `src/channels/adapters/whatsapp/real-send.ts` / `messenger/real-send.ts` | Bearer uses resolved token; refresh + full send retry. |
 
-## Preconditions before coding
+## Environment (implemented)
 
-1. Staging (or dedicated Meta test app) where tokens can be **forced** to expire or rotate.  
-2. Captured **raw** Graph error JSON for each failure mode you intend to handle.  
-3. Security review: app secret in env, no persistence of new tokens to disk unless product explicitly requires it.
+| Variable | Role |
+|----------|------|
+| `CHATFLOW_INPROCESS_TOKEN_REFRESH` | Same as Zalo 17.1 — must be enabled. |
+| `META_APP_ID` | Facebook App ID (`client_id`). |
+| `META_APP_SECRET` or `WHATSAPP_APP_SECRET` or `MESSENGER_APP_SECRET` | `client_secret` for exchange (first set wins same as webhook precedence). |
+
+## Behavior
+
+1. After a failed send, if **HTTP 401** or **HTTP 400** with Graph **`error.code === 190`**, Pro attempts **one** `GET .../oauth/access_token?grant_type=fb_exchange_token&...` per channel (**single-flight** per channel).  
+2. New access token stored **in memory** only; env on disk unchanged.  
+3. Send is **retried once** (full `postSendMessage` again, including existing 5xx/429 retry behavior).
+
+## Preconditions before relying in production
+
+1. Staging (or Meta test app) to confirm **`fb_exchange_token`** accepts your WhatsApp / Messenger token class.  
+2. Security review: never log tokens or secrets.
 
 ## References
 

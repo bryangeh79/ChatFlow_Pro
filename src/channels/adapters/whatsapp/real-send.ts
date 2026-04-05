@@ -1,6 +1,11 @@
 import { fetch as undiciFetch } from 'undici';
 import type { WhatsAppCloudConfig } from '../../../config/whatsapp-cloud';
 import { redactWhatsAppTokenInMessage } from '../../../config/whatsapp-cloud';
+import { getWhatsAppAccessTokenResolved } from '../../../tokens/meta-token-cache';
+import {
+  isMetaGraphTokenRefreshCandidate,
+  refreshWhatsAppAccessTokenSingleFlight,
+} from '../../../tokens/meta-graph-refresh';
 
 const GRAPH_API_BASE = 'https://graph.facebook.com';
 const MAX_MESSAGE_LENGTH = 4096;
@@ -36,11 +41,15 @@ function shouldRetryWhatsAppSend(status: number): boolean {
   return status >= 500 || status === 429;
 }
 
+type PostOnceResult =
+  | { ok: true; messageId: string }
+  | { ok: false; status: number; description: string; retryable: boolean; graphErrorCode?: number };
+
 async function postSendMessageOnce(
   config: WhatsAppCloudConfig,
   recipient: string,
   text: string,
-): Promise<{ ok: true; messageId: string } | { ok: false; status: number; description: string; retryable: boolean }> {
+): Promise<PostOnceResult> {
   const url = `${GRAPH_API_BASE}/${config.apiVersion}/${config.phoneNumberId}/messages`;
   const body = {
     messaging_product: 'whatsapp',
@@ -51,12 +60,14 @@ async function postSendMessageOnce(
     },
   };
 
+  const token = getWhatsAppAccessTokenResolved() ?? config.accessToken;
+
   try {
     const res = await undiciFetch(url, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        authorization: `Bearer ${config.accessToken}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(10_000),
@@ -71,6 +82,7 @@ async function postSendMessageOnce(
       status: res.status,
       description: desc,
       retryable: shouldRetryWhatsAppSend(res.status),
+      graphErrorCode: data.error?.code,
     };
   } catch {
     return {
@@ -82,20 +94,34 @@ async function postSendMessageOnce(
   }
 }
 
+type PostSendResult =
+  | { ok: true; messageId: string }
+  | { ok: false; status: number; description: string; graphErrorCode?: number };
+
 async function postSendMessage(
   config: WhatsAppCloudConfig,
   recipient: string,
   text: string,
-): Promise<{ ok: true; messageId: string } | { ok: false; status: number; description: string }> {
+): Promise<PostSendResult> {
   const first = await postSendMessageOnce(config, recipient, text);
   if (first.ok) return first;
   if (first.retryable) {
     await new Promise((r) => setTimeout(r, 1000));
     const second = await postSendMessageOnce(config, recipient, text);
     if (second.ok) return second;
-    return { ok: false, status: second.status, description: second.description };
+    return {
+      ok: false,
+      status: second.status,
+      description: second.description,
+      graphErrorCode: second.graphErrorCode,
+    };
   }
-  return { ok: false, status: first.status, description: first.description };
+  return {
+    ok: false,
+    status: first.status,
+    description: first.description,
+    graphErrorCode: first.graphErrorCode,
+  };
 }
 
 export async function sendWhatsAppTextMessage(
@@ -126,7 +152,18 @@ export async function sendWhatsAppTextMessage(
 
   debug_steps.push('whatsapp_real_api_call');
   try {
-    const result = await postSendMessage(config, recipient, trimmed);
+    let result = await postSendMessage(config, recipient, trimmed);
+
+    if (
+      !result.ok &&
+      isMetaGraphTokenRefreshCandidate(result.status, result.graphErrorCode)
+    ) {
+      const refreshed = await refreshWhatsAppAccessTokenSingleFlight(config.apiVersion);
+      if (refreshed) {
+        debug_steps.push('whatsapp_real_meta_token_exchange_retry');
+        result = await postSendMessage(config, recipient, trimmed);
+      }
+    }
 
     if (result.ok) {
       debug_steps.push('whatsapp_real_success');
@@ -137,7 +174,10 @@ export async function sendWhatsAppTextMessage(
       };
     }
 
-    const safeDesc = redactWhatsAppTokenInMessage(result.description, config.accessToken);
+    const safeDesc = redactWhatsAppTokenInMessage(
+      result.description,
+      getWhatsAppAccessTokenResolved() ?? config.accessToken,
+    );
     // eslint-disable-next-line no-console
     console.error('[WhatsApp] sendMessage failed:', { status: result.status, description: safeDesc });
     debug_steps.push('whatsapp_real_failed');
@@ -147,7 +187,10 @@ export async function sendWhatsAppTextMessage(
       debug_steps,
     };
   } catch (error) {
-    const safeError = redactWhatsAppTokenInMessage(String(error), config.accessToken);
+    const safeError = redactWhatsAppTokenInMessage(
+      String(error),
+      getWhatsAppAccessTokenResolved() ?? config.accessToken,
+    );
     debug_steps.push('whatsapp_real_exception');
     return {
       transport: 'whatsapp_real',

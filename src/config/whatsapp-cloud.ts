@@ -2,6 +2,8 @@
  * WhatsApp Cloud API configuration (env only — never log token values).
  */
 
+import { getWhatsAppAccessTokenResolved } from '../tokens/meta-token-cache';
+
 export interface WhatsAppCloudConfig {
   accessToken: string;
   phoneNumberId: string;
@@ -18,8 +20,7 @@ export function isWhatsAppSandboxOrDisabled(): boolean {
 }
 
 export function getWhatsAppAccessTokenRaw(): string | undefined {
-  const t = process.env.WHATSAPP_ACCESS_TOKEN?.trim();
-  return t || undefined;
+  return getWhatsAppAccessTokenResolved();
 }
 
 export function getWhatsAppPhoneNumberIdRaw(): string | undefined {

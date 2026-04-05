@@ -1,6 +1,11 @@
 import { fetch as undiciFetch } from 'undici';
 import type { MessengerGraphConfig } from '../../../config/messenger-graph';
 import { redactMessengerTokenInMessage } from '../../../config/messenger-graph';
+import { getMessengerPageAccessTokenResolved } from '../../../tokens/meta-token-cache';
+import {
+  isMetaGraphTokenRefreshCandidate,
+  refreshMessengerPageAccessTokenSingleFlight,
+} from '../../../tokens/meta-graph-refresh';
 
 const GRAPH_API_BASE = 'https://graph.facebook.com';
 const MAX_MESSAGE_LENGTH = 2000; // Messenger text message limit
@@ -27,13 +32,17 @@ interface SendResult {
   debug_steps: string[];
 }
 
+type MsPostOnce =
+  | { ok: true; messageId: string }
+  | { ok: false; status: number; description: string; retryable: boolean; graphErrorCode?: number };
+
 async function postSendMessageOnce(
   config: MessengerGraphConfig,
   recipient: string,
   text: string,
-): Promise<{ ok: true; messageId: string } | { ok: false; status: number; description: string; retryable: boolean }> {
+): Promise<MsPostOnce> {
   const url = `${GRAPH_API_BASE}/${config.apiVersion}/${config.pageId}/messages`;
-  
+
   // Messenger Send API requires messaging_type field
   const body = {
     recipient: {
@@ -45,12 +54,14 @@ async function postSendMessageOnce(
     messaging_type: 'RESPONSE', // Required for non-promotional messages
   };
 
+  const token = getMessengerPageAccessTokenResolved() ?? config.pageAccessToken;
+
   try {
     const res = await undiciFetch(url, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        authorization: `Bearer ${config.pageAccessToken}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(10_000),
@@ -82,12 +93,21 @@ async function postSendMessageOnce(
       }
     }
 
+    let graphErrorCode: number | undefined;
+    try {
+      const errJson = JSON.parse(responseText) as { error?: { code?: number; message?: string } };
+      graphErrorCode = errJson.error?.code;
+    } catch {
+      /* plain text error */
+    }
+
     const retryable = status >= 500 || status === 429;
     return {
       ok: false,
       status,
       description: responseText || `HTTP ${status}`,
       retryable,
+      graphErrorCode,
     };
   } catch (error) {
     const description = error instanceof Error ? error.message : String(error);
@@ -100,20 +120,34 @@ async function postSendMessageOnce(
   }
 }
 
+type MsPostSend =
+  | { ok: true; messageId: string }
+  | { ok: false; status: number; description: string; graphErrorCode?: number };
+
 async function postSendMessage(
   config: MessengerGraphConfig,
   recipient: string,
   text: string,
-): Promise<{ ok: true; messageId: string } | { ok: false; status: number; description: string }> {
+): Promise<MsPostSend> {
   const first = await postSendMessageOnce(config, recipient, text);
   if (first.ok) return first;
   if (first.retryable) {
     await new Promise((r) => setTimeout(r, 1000));
     const second = await postSendMessageOnce(config, recipient, text);
     if (second.ok) return second;
-    return { ok: false, status: second.status, description: second.description };
+    return {
+      ok: false,
+      status: second.status,
+      description: second.description,
+      graphErrorCode: second.graphErrorCode,
+    };
   }
-  return { ok: false, status: first.status, description: first.description };
+  return {
+    ok: false,
+    status: first.status,
+    description: first.description,
+    graphErrorCode: first.graphErrorCode,
+  };
 }
 
 /**
@@ -141,7 +175,18 @@ export async function sendMessengerTextMessage(
 
   debug_steps.push('messenger_real_api_call');
   try {
-    const result = await postSendMessage(config, recipient, trimmed);
+    let result = await postSendMessage(config, recipient, trimmed);
+
+    if (
+      !result.ok &&
+      isMetaGraphTokenRefreshCandidate(result.status, result.graphErrorCode)
+    ) {
+      const refreshed = await refreshMessengerPageAccessTokenSingleFlight(config.apiVersion);
+      if (refreshed) {
+        debug_steps.push('messenger_real_meta_token_exchange_retry');
+        result = await postSendMessage(config, recipient, trimmed);
+      }
+    }
 
     if (result.ok) {
       debug_steps.push('messenger_real_success');
@@ -152,7 +197,10 @@ export async function sendMessengerTextMessage(
       };
     }
 
-    const safeDesc = redactMessengerTokenInMessage(result.description, config.pageAccessToken);
+    const safeDesc = redactMessengerTokenInMessage(
+      result.description,
+      getMessengerPageAccessTokenResolved() ?? config.pageAccessToken,
+    );
     // eslint-disable-next-line no-console
     console.error('[Messenger] sendMessage failed:', { status: result.status, description: safeDesc });
     debug_steps.push('messenger_real_failed');
@@ -164,7 +212,7 @@ export async function sendMessengerTextMessage(
   } catch (error) {
     const safeDesc = redactMessengerTokenInMessage(
       error instanceof Error ? error.message : String(error),
-      config.pageAccessToken,
+      getMessengerPageAccessTokenResolved() ?? config.pageAccessToken,
     );
     // eslint-disable-next-line no-console
     console.error('[Messenger] sendMessage exception:', safeDesc);
