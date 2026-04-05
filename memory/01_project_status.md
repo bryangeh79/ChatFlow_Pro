@@ -1,0 +1,33 @@
+# Project Status
+
+- Project Name: ChatFlow Pro
+- Current Phase: **Phase 16.2** (HTTP access observability — webhook phases_ms + verification type narrowing)
+- Current Version: **Pro_v1.07.15** (package.json: 1.7.15)
+- Execution Root: C:\AI_WORKSPACE\Chatflow\ChatFlow_Pro
+- Current Project State: 
+  - ✅ **Seven-route webhook baseline**: Website, Telegram, WhatsApp, Messenger, Line, Zalo (`POST /webhooks/*` + **`GET /webhooks/*`** verification per docs/141)
+  - ✅ Lead capture complete flow: detection → cross-turn merging → file persistence → i18n prompts
+  - ✅ FAQ integration: multilingual matching (4 languages), language priority, 20 entries across 5 topics
+  - ✅ Intent dispatch system: 4 intent types, 4 dispatch stages, smart routing between FAQ/lead
+  - ✅ Infrastructure: in-memory session store (1000 cap, 24h TTL), JSONL rotation with cleanup (max 5 files, 50MB total)
+  - ✅ Field validation: minimal email/phone format validation
+  - ✅ Unified pipeline: lead+FAQ+intent dispatch with proper prioritization across all channels
+  - ✅ **Acceptance checklist**: Comprehensive test documentation (docs/129)
+  - ✅ **Real transport design**: Architecture decision record (docs/138) for Telegram as first real transport
+  - ✅ **Telegram real send**: When `TELEGRAM_BOT_TOKEN` valid and not sandbox, outbound uses Bot API (`docs/139`, `src/channels/outbound-sender/index.ts`)
+  - ✅ **Telegram proxy**: `TELEGRAM_PROXY_*` → undici `ProxyAgent` (`docs/140`, `real-send.ts`)
+  - ✅ **Webhook GET verify**: Meta-style hub challenge on WA/Messenger/Website (+ optional Line/Zalo); Telegram GET informational (`docs/141`, `webhook-verify.ts`)
+  - ✅ **Meta POST signature**: WhatsApp + Messenger validate `X-Hub-Signature-256` when app secret configured (`docs/142`, `meta-webhook.ts`) — **安全修订：配置 secret 时强制签名头**
+  - ✅ **Line POST signature**: Line validates `X-Line-Signature` when channel secret configured (`docs/143`, `line-webhook.ts`)
+  - ✅ **Zalo POST signature research**: Documented findings — no official signature mechanism (`docs/144`)
+  - ✅ **Website POST signature**: Website validates `X-Webhook-Signature` when signing secret configured (`docs/145`, `website-webhook.ts`)
+  - ✅ **WhatsApp Cloud API real outbound**: When `WHATSAPP_ACCESS_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` valid and not sandbox, outbound uses Graph API (`docs/146`, `src/channels/outbound-sender/index.ts`)
+  - ✅ **Messenger Graph API real outbound**: When `MESSENGER_PAGE_ACCESS_TOKEN` + `MESSENGER_PAGE_ID` valid and not sandbox, outbound uses Graph API (`docs/147`, `src/channels/outbound-sender/index.ts`)
+  - ✅ **Line Messaging API real outbound**: When `LINE_CHANNEL_ACCESS_TOKEN` valid and not sandbox, outbound uses push API (`docs/148`, `src/channels/outbound-sender/index.ts`) — **15.7.1 稳定性修订：恢复 LINE_MESSAGING_DISABLED 检查，session 解析返回 null 而非 'unknown'，每轮独立超时，redact 用 split/join**
+  - ✅ **Zalo Open API real outbound**: When `ZALO_ACCESS_TOKEN` + `ZALO_OA_ID` valid and not sandbox, outbound uses Open API (`docs/149`, `src/channels/outbound-sender/index.ts`)
+  - ✅ **HTTP observability (Phase 16)**: All responses include `X-Request-Id`; optional one-line JSON access log when `CHATFLOW_HTTP_ACCESS_LOG` set (`docs/150`, `src/observability/http-access.ts`, `server.ts`); **HTTP `request_id` = `debug_metadata.request_id`** on all seven `POST /webhooks/*` paths via `createMinimalTraceContext({ httpRequestId })`; access log may include **`phases_ms`** (`prepare_ms`, optional `outbound_send_ms`) from webhook handlers
+- Current Completion Point: **Pro_v1.07.15 + Phase 16** — access log + JSON body carry `phases_ms` (`prepare_ms`, optional `outbound_send_ms`) for POST webhooks when access log enabled
+- Pro Target Channels (product scope, Bryan-locked): **Telegram**, **WhatsApp**, **Facebook Messenger**, **Line**, **Zalo**; architecture must keep an **extension slot** for additional messaging platforms later. **Website live chat** remains part of Pro (already implemented alongside messaging channels).
+- Current Channel Boundary (runtime today): **All seven channels live** — unified pipeline; **Telegram** real outbound when token + not sandbox (**optional proxy**); **WhatsApp** real outbound when token + phone number ID + not sandbox; **Messenger** real outbound when token + page ID + not sandbox; **Line** real outbound when token + not sandbox; **Zalo** real outbound when token + OA ID + not sandbox; **WhatsApp/Messenger/Line/Website** POST signature validation when secret configured; **Zalo** inbound relies on IP whitelisting (per official docs).
+- **Pause Status**: **Active** — Phase 16.2 observability enhanced with webhook phase timings delivered
+- Next Unique Priority Action: **Token refresh ADR** (Graph/Zalo) or extend Phase 16 (pipeline `request_id`, sampling) per plan in `memory/03_next_phase_plan.md`

@@ -1,0 +1,135 @@
+# Next Phase Plan
+
+- Current Phase: **Phase 16.2** — HTTP access observability enhanced (`X-Request-Id`, optional `CHATFLOW_HTTP_ACCESS_LOG`, webhook `phases_ms`, verification type narrowing)
+- Previous: Phase 16 — HTTP access observability first slice
+- Completed in Phase 15.0:
+  - ✅ Created real transport architecture design document: docs/138_phase15_0_real_transport_design.md
+  - ✅ Selected Telegram as first real transport (simple API, low barrier)
+  - ✅ Defined environment configuration (BOT_TOKEN, optional PROXY)
+  - ✅ Designed transport interface boundary (outbound/sender only, no message model changes)
+  - ✅ Specified failure strategy (retry once, degraded logging, still 200 OK)
+  - ✅ Outlined security requirements (no token logging, env vars only)
+- Completed in Phase 15.1:
+  - ✅ `src/config/telegram.ts` — sandbox, token validation, `loadTelegramConfigForRealSend`, redaction
+  - ✅ `src/channels/adapters/telegram/real-send.ts` — Bot API `sendMessage`, timeout + one retry
+  - ✅ `src/channels/outbound-sender/index.ts` — Telegram branch, `should_send`, fallback/failure mapping
+  - ✅ docs/139_phase15_1_telegram_real_transport_implementation.md
+  - ✅ `.env.example` Telegram variables
+  - ✅ Build passes: `npm run build`
+  - ✅ Version: package.json **1.7.1** (Pro_v1.07.1) tags Phase 15.1 delivery
+- Completed in Phase 15.2:
+  - ✅ `TELEGRAM_PROXY_URL` / `TELEGRAM_PROXY_USERNAME` / `TELEGRAM_PROXY_PASSWORD` → `proxyConnectUri` in `telegram.ts`
+  - ✅ `real-send.ts`: undici `fetch` + `ProxyAgent`, `telegram_real_proxy` in debug_steps, `close()` in finally
+  - ✅ Runtime dependency `undici@^6`
+  - ✅ docs/140_phase15_2_telegram_proxy_implementation.md, `.env.example` proxy block
+  - ✅ Version: package.json **1.7.2** (Pro_v1.07.2) tags Phase 15.2 delivery
+- Completed in Phase 15.3:
+  - ✅ `src/config/webhook-verify.ts` — Meta-style `hub.mode` / `hub.verify_token` / `hub.challenge`, per-channel + `META_WEBHOOK_VERIFY_TOKEN` fallback
+  - ✅ `src/server.ts` — `GET /webhooks/*` for all seven channels (Telegram = informational JSON; others Meta-style or idle ping)
+  - ✅ docs/141_phase15_3_webhook_get_verification.md, `.env.example` verify block
+  - ✅ Version: package.json **1.7.3** (Pro_v1.07.3) tags Phase 15.3 delivery
+- Completed in Phase 15.4a:
+  - ✅ `src/config/meta‑webhook.ts` — `loadMetaWebhookConfig()`, `verifyMetaSignature()`, constant‑time HMAC‑SHA256
+  - ✅ `src/server.ts` — `readRequestBody()` returns raw Buffer + parsed; WhatsApp/Messenger POST validate `X‑Hub‑Signature‑256`
+  - ✅ Invalid signature → HTTP 403 with `{ ok:false, error:'signature_invalid' }`
+  - ✅ No secret configured → backward compatibility (no verification)
+  - ✅ **安全修订**：配置 secret 时强制要求有效签名头（缺失/空/格式错误 → 403）
+  - ✅ docs/142_phase15_4a_meta_post_signature_verification.md updated with security tightening
+  - ✅ `.env.example` updated with Meta secret variables
+  - ✅ Build passes: `npm run build`
+  - ✅ Version: package.json **1.7.4** (Pro_v1.07.4) tags Phase 15.4a delivery
+- Completed in Phase 15.4b:
+  - ✅ `src/config/line‑webhook.ts` — `getLineChannelSecret()`, `verifyLineSignature()`, constant‑time HMAC‑SHA256 (base64)
+  - ✅ `src/server.ts` — Line POST validates `X‑Line‑Signature` header
+  - ✅ Invalid signature → HTTP 403 with `{ ok:false, error:'signature_invalid' }`
+  - ✅ No channel secret configured → backward compatibility (no verification)
+  - ✅ docs/143_phase15_4b_line_post_signature_verification.md
+  - ✅ `.env.example` updated with Line channel secret variable
+  - ✅ Build passes: `npm run build`
+  - ✅ Version: package.json **1.7.5** (Pro_v1.07.5) tags Phase 15.4b delivery
+- Completed in Phase 15.4c:
+  - ✅ **Zalo 官方文档研究**: 确认 Zalo Open API / OA Webhook 安全机制
+  - ✅ **研究结论**: Zalo 无标准 POST body 签名头，主要依赖 IP 白名单 + OAuth 2.0
+  - ✅ **决策**: 不实现伪签名（避免虚假安全预期），待官方机制再立项
+  - ✅ docs/144_phase15_4c_zalo_post_signature_research.md — 完整记录研究依据与决策
+  - ✅ **无代码变更**: 保持现有 `POST /webhooks/zalo` 行为
+  - ✅ Build passes: `npm run build`
+  - ✅ Version: package.json **1.7.6** (Pro_v1.07.6) tags Phase 15.4c delivery
+- Completed in Phase 15.4d:
+  - ✅ **设计文档**: `docs/145_phase15_4d_website_post_signature_design.md` — 定义 `X‑Webhook‑Signature` (sha256=<hex>) 格式
+  - ✅ **代码实现**: `src/config/website‑webhook.ts` — `getWebsiteSigningSecret()`, `verifyWebsiteSignature()` (复用 Meta 逻辑)
+  - ✅ **服务器集成**: `src/server.ts` — Website POST 验签，无效签名 → 403
+  - ✅ **环境配置**: `.env.example` 添加 `WEBSITE_WEBHOOK_SIGNING_SECRET`
+  - ✅ **向后兼容**: 未配置 secret → 保持现有行为
+  - ✅ Build passes: `npm run build`
+  - ✅ Version: package.json **1.7.7** (Pro_v1.07.7) tags Phase 15.4d delivery
+- Completed in Phase 15.5 (implementation):
+  - ✅ **配置模块**: `src/config/whatsapp‑cloud.ts` — `isWhatsAppSandboxOrDisabled`, `loadWhatsAppCloudConfigForRealSend`, `redactWhatsAppTokenInMessage`
+  - ✅ **发送模块**: `src/channels/adapters/whatsapp/real‑send.ts` — `parseWhatsAppRecipientFromSessionId`, `sendWhatsAppTextMessage` (undici、10s、5xx/429/网络重试 1 次)
+  - ✅ **集成**: `src/channels/outbound‑sender/index.ts` — WhatsApp 分支与 Telegram 对称 (real/synthetic、`should_send`、fallback/failure)
+  - ✅ **环境配置**: `.env.example` WhatsApp Cloud 变量已添加 (Phase 15.5 ADR)
+  - ✅ **构建**: `npm run build` 成功
+  - ✅ **版本**: package.json **1.7.8** (Pro_v1.07.8) tags Phase 15.5 delivery
+- Completed in Phase 15.6 (implementation):
+  - ✅ **配置模块**: `src/config/messenger‑graph.ts` — `isMessengerSandboxOrDisabled`, `loadMessengerGraphConfigForRealSend`, `redactMessengerTokenInMessage`
+  - ✅ **发送模块**: `src/channels/adapters/messenger/real‑send.ts` — `parseMessengerRecipientFromSessionId`, `sendMessengerTextMessage` (undici、10s、5xx/429/网络重试 1 次)
+  - ✅ **集成**: `src/channels/outbound‑sender/index.ts` — Messenger 分支与 WhatsApp/Telegram 对称 (real/synthetic、`should_send`、fallback/failure)
+  - ✅ **环境配置**: `.env.example` Messenger Graph 变量已添加 (Phase 15.6 ADR)
+  - ✅ **构建**: `npm run build` 成功
+  - ✅ **版本**: package.json **1.7.9** (Pro_v1.07.9) tags Phase 15.6 delivery
+  - ✅ **ADR 更新**: `docs/147` 添加 `messaging_type: "RESPONSE"` 字段 (Messenger API 文档要求)
+
+- Completed in Phase 15.7 (implementation):
+  - ✅ **配置模块**: `src/config/line‑messaging.ts` — `isLineSandboxOrDisabled`, `loadLineMessagingConfigForRealSend`, `redactLineTokenInMessage`
+  - ✅ **发送模块**: `src/channels/adapters/line/real‑send.ts` — `parseLineRecipientFromSessionId`, `sendLineTextMessage` (undici、10s、5xx/429/网络重试 1 次、push API 而非 reply API)
+  - ✅ **集成**: `src/channels/outbound‑sender/index.ts` — Line 分支与 WhatsApp/Messenger/Telegram 对称 (real/synthetic、`should_send`、fallback/failure)
+  - ✅ **环境配置**: `.env.example` Line Messaging 变量已添加 (Phase 15.7 ADR)
+  - ✅ **构建**: `npm run build` 成功
+  - ✅ **版本**: package.json **1.7.10** (Pro_v1.07.10) tags Phase 15.7 delivery
+  - ✅ **ADR 更新**: `docs/148` 修正为 push API 端点与请求体
+  - ✅ **Phase 15.7.1 稳定性修订**: 移除 `LINE_MESSAGING_DISABLED` 检查，`parseLineRecipientFromSessionId` 返回 `null` 而非 `'unknown'`
+
+- Technical Debt Progress:
+  - ✅ **Real transport design**: Architecture decision record created
+  - ✅ **Intent dispatch boundary fix**: Partial session FAQ access improved
+  - ✅ **Intent dispatch documentation**: Comprehensive regression matrix created
+  - ✅ **Intent dispatch implementation**: Minimal classification and routing implemented
+  - ✅ **FAQ language priority**: Three-tier matching with English fallback
+  - ✅ **FAQ content**: Expanded to 4 languages (20 entries across 5 topics)
+  - ✅ **Field validation**: Minimal email/phone format validation
+  - ✅ **Session TTL**: 24-hour expiration with lazy cleanup
+  - ✅ **JSONL backup cleanup**: Max 5 files, 50MB total size limit
+  - 🔄 **Real transports beyond Telegram**: WhatsApp / others still synthetic
+
+- Known Limitations (Pro_v1.07.9 + Phase 15.6):
+  - Session store: in-memory only, single-process, **with 24h TTL expiration**
+  - JSONL persistence: **backup accumulation controlled** (max 5 files, 50MB total)
+  - Field extraction: regex-based, **with minimal format validation**
+  - FAQ content: **multilingual with language-priority matching** (4 languages, 5 topics)
+  - Intent dispatch: **implemented with partial session boundary fix**
+  - Real transports: **Telegram real send** when token set and not sandbox (optional proxy); **WhatsApp Cloud real send** when token + phone number ID + not sandbox; **Messenger Graph real send** when token + page ID + not sandbox; **Line real send** when token + not sandbox; **Zalo real send** when token + OA ID + not sandbox
+  - **POST signature validation**: **全部完成** — WhatsApp/Messenger/Line/Website 已实现；Zalo 无官方机制（依赖 IP 白名单）
+
+- Completed in Phase 16 (observability slice):
+  - ✅ `src/observability/http-access.ts` — `createRequestId`, `channelFromPathname`, `writeHttpAccessLog`, env gate
+  - ✅ `src/server.ts` — always `X-Request-Id`; optional JSON access line on `res` `finish` (`duration_ms`, `channel` for `/webhooks/*`)
+  - ✅ `docs/150_phase16_http_access_observability.md`, `.env.example` `CHATFLOW_HTTP_ACCESS_LOG`
+  - ✅ Build: `npm run build`
+  - ✅ Version: package.json **1.7.13** (Pro_v1.07.13)
+
+- Completed in Phase 16.2 (webhook phases_ms + verification type narrowing):
+  - ✅ `src/webhooks/webhook-timing.ts` — `webhookObservabilityPhases`, `WebhookHandlerObservability` interface
+  - ✅ All six webhook handlers (`telegram.ts`, `whatsapp.ts`, `messenger.ts`, `line.ts`, `zalo.ts`, `website.ts`) — integrate `phases_ms` timing
+  - ✅ `src/observability/http-access.ts` — `webhookPhasesFromHandlerResult` extracts timings for access logs
+  - ✅ `src/server.ts` — passes `httpRequestId` to handlers, copies `phases_ms` to access logs
+  - ✅ `src/webhooks/verification.ts` — type narrowing for verification responses
+  - ✅ `docs/150` updated with `phases_ms` documentation
+  - ✅ Build: `npm run build`
+  - ✅ Version: package.json **1.7.15** (Pro_v1.07.15) — HTTP access log slice
+  - ✅ **Phase 16.1 (minimal)**: `httpRequestId` from `server` → all `handle*Webhook` → `createMinimalTraceContext` → outbound `debug_metadata.request_id` matches `X-Request-Id`; **1.7.14** (Pro_v1.07.14); `docs/150` updated
+  - ✅ **Phase 16.2 (minimal)**: `observability.phases_ms` on webhook JSON + copied into `http_access` log (`prepare_ms`, `outbound_send_ms`); `webhook-timing.ts`, `webhookPhasesFromHandlerResult`; **1.7.15** (Pro_v1.07.15)
+
+- **Pause Status**: **Active** — Phase 16.2 observability enhanced with webhook phase timings delivered
+- **Commander preference**: 完成约定 phase 交付后，**自动继续推进**下一立项阶段，无需指挥官每轮提醒「继续」；遇阻塞或范围不明时再停问。
+- **Implementation split**: **实现一律龙虾**；**Cursor 默认只出指令与验收**；仅**极小改动**可由 Cursor 直接改。详见 `memory/05_handoff_for_new_chat.md`。
+- Next Unique Priority Action: **docs/152** 运维 **token 轮换 runbook** 已落盘（ADR 151 选项 A）；下一可选：在 **staging 按 152 做一次轮换演练** 并记结果；**Phase 17** in-process 刷新仍后置

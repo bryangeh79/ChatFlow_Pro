@@ -1,0 +1,7 @@
+{
+  "welcome": "Selamat datang ke ChatFlow Pro",
+  "fallback": "Saya akan gunakan balasan lalai dahulu.",
+  "unknown_input": "Saya belum faham sepenuhnya. Boleh ulang sekali lagi?",
+  "handoff_pending": "Anda telah dipindahkan kepada manusia. Staf akan mengambil alih sebentar lagi.",
+  "handoff_requested": "Permintaan serah kepada manusia telah diterima."
+}
