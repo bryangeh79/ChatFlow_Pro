@@ -1,4 +1,4 @@
-export interface CapturedLeadRecord {
+export interface CapturedLeadRecord extends Record<string, unknown> {
   session_id: string;
   channel: 'website' | 'telegram' | 'whatsapp' | 'messenger' | 'line' | 'zalo';
   collected_fields: {
@@ -9,4 +9,6 @@ export interface CapturedLeadRecord {
   completed_at: string;
   message_id?: string;
   captured_at: string;
+  request_id?: string;
+  message_trace_id?: string;
 }

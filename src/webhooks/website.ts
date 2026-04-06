@@ -13,7 +13,11 @@ export async function handleWebsiteWebhook(rawRequestBody: unknown, opts?: Webho
     const wall0 = Date.now();
     const message = parseWebsiteInbound(rawRequestBody);
     const session = createOrUpdateSessionContext(message);
-    const result = runUnifiedInboundPipeline(message, session);
+    const result = runUnifiedInboundPipeline(message, session, {
+      traceContext: {
+        request_id: opts?.httpRequestId,
+      },
+    });
     
     // 提交 session 到进程内存储（使跨请求 lead 合并生效）
     commitSessionContext(result.session);

@@ -9,6 +9,12 @@ export interface HandoffNotifyPayload {
   external_session_id: string;
   reason: string | null;
   triggered_at: string | null;
+  request_id?: string;
+  message_trace_id?: string;
+  assigned_owner_id?: string;
+  assign_reason?: string;
+  online_agents_count?: number;
+  assignment_log_id?: string;
 }
 
 /**

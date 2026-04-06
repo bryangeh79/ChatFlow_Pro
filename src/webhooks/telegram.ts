@@ -39,7 +39,11 @@ export async function handleTelegramWebhook(rawRequestBody: unknown, opts?: Webh
         }
       : message;
 
-    const result = runUnifiedInboundPipeline(inboundMessage, session);
+    const result = runUnifiedInboundPipeline(inboundMessage, session, {
+      traceContext: {
+        request_id: opts?.httpRequestId,
+      },
+    });
     
     // 提交 session 到进程内存储（使跨请求 lead 合并生效）
     commitSessionContext(result.session);

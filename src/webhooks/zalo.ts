@@ -79,7 +79,11 @@ export async function handleZaloWebhook(rawRequestBody: unknown, opts?: WebhookH
     }
 
     const session = createOrUpdateSessionContext(message);
-    const result = runUnifiedInboundPipeline(message, session);
+    const result = runUnifiedInboundPipeline(message, session, {
+      traceContext: {
+        request_id: opts?.httpRequestId,
+      },
+    });
     commitSessionContext(result.session);
 
     const trace = createMinimalTraceContext({

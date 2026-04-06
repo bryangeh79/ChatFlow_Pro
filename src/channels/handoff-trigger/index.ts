@@ -1,6 +1,7 @@
 import type { UnifiedInboundMessage } from '../../../shared/types/unified-inbound-message';
 import type { UnifiedSessionContext } from '../../../shared/types/unified-session-context';
 import { containsHandoffKeyword } from '../../config/handoff';
+import { determineOwnerAssignment } from './assign';
 
 export function shouldTriggerHandoff(
   message: UnifiedInboundMessage,
@@ -39,6 +40,14 @@ export function updateHandoffStateIfTriggered(
   
   // Check for keyword trigger
   if (containsHandoffKeyword(message.text)) {
+    const assignment = determineOwnerAssignment({
+      ...session,
+      handoff_state: {
+        ...session.handoff_state,
+        status: 'pending', // Temporarily set to pending for assignment logic
+      },
+    });
+    
     return {
       ...session,
       handoff_state: {
@@ -46,7 +55,9 @@ export function updateHandoffStateIfTriggered(
         status: 'pending',
         reason: 'keyword',
         triggered_at: new Date().toISOString(),
+        assigned_owner_id: assignment.assigned_owner_id || session.handoff_state.assigned_owner_id,
       },
+      current_owner_id: assignment.assigned_owner_id || session.current_owner_id,
     };
   }
   

@@ -13,10 +13,23 @@ import { getLeadCaptureI18n } from '../lead-capture-hook/i18n';
 import { shouldTriggerHandoff, updateHandoffStateIfTriggered } from '../handoff-trigger';
 import { shouldSuppressReplyOnHandoff } from '../../config/suppress-reply';
 import { scheduleHandoffNotify } from '../handoff-trigger/notify-outbound';
+import { resolveConversationPhase } from '../conversation-runtime/phase';
+import { planTurn } from '../conversation-runtime/policy';
+import { emitLeadCaptured, emitQualificationTagsUpdated } from '../conversation-runtime/events';
+import { determineOwnerAssignment } from '../handoff-trigger/assign';
+import { appendHandoffAssignmentRecord } from '../handoff-trigger/assignment-persistence';
+
+export interface PipelineOptions {
+  traceContext?: {
+    request_id?: string;
+    message_trace_id?: string;
+  };
+}
 
 export function runUnifiedInboundPipeline(
   message: UnifiedInboundMessage,
   session?: UnifiedSessionContext,
+  options?: PipelineOptions,
 ): { session: UnifiedSessionContext; response: UnifiedResponse } {
   const nextSession: UnifiedSessionContext =
     session ?? {
@@ -45,7 +58,7 @@ export function runUnifiedInboundPipeline(
       faqResult = resolveUnifiedFaqSkeleton(message, nextSession, intentPreparation, dispatchResult);
       // 如果FAQ未命中，再运行lead capture
       if (!faqResult.matched) {
-        sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession);
+        sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession, options?.traceContext);
       } else {
         sessionAfterLeadCapture = nextSession; // FAQ命中，不需要lead capture
       }
@@ -53,7 +66,7 @@ export function runUnifiedInboundPipeline(
 
     case 'prioritize_lead':
       // 先运行lead capture
-      sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession);
+      sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession, options?.traceContext);
       
       // 检查本次消息是否有新的lead信号
       const contactDetection = detectContactIntent(message);
@@ -85,14 +98,14 @@ export function runUnifiedInboundPipeline(
 
     case 'run_both':
       // 同时运行两者（无优先级）
-      sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession);
+      sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession, options?.traceContext);
       faqResult = resolveUnifiedFaqSkeleton(message, sessionAfterLeadCapture, intentPreparation, dispatchResult);
       break;
 
     case 'pass_through':
     default:
       // 原始行为：先lead capture，然后FAQ
-      sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession);
+      sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession, options?.traceContext);
       faqResult = resolveUnifiedFaqSkeleton(message, sessionAfterLeadCapture, intentPreparation, dispatchResult);
       break;
   }
@@ -109,11 +122,32 @@ export function runUnifiedInboundPipeline(
 
   // 在 lead capture 之后处理 handoff 触发
   const sessionAfterHandoffCheck = updateHandoffStateIfTriggered(message, sessionAfterLeadCapture);
+  
+  // 获取分配信息（需要在 handoff notify 之前）
+  const assignment = determineOwnerAssignment(sessionAfterHandoffCheck);
+  
+  // 如果 handoff 状态新变为 pending，发送通知
   if (
     sessionAfterLeadCapture.handoff_state.status !== 'pending' &&
     sessionAfterHandoffCheck.handoff_state.status === 'pending'
   ) {
     const hs = sessionAfterHandoffCheck.handoff_state;
+    
+    // 记录分配历史（如果发生了新分配）
+    if (assignment.assign_reason !== 'none' && assignment.assigned_owner_id) {
+      const tagHits = sessionAfterHandoffCheck.metadata?.qualification_tags as string[] || [];
+      appendHandoffAssignmentRecord(
+        sessionAfterHandoffCheck.session_id,
+        sessionAfterHandoffCheck.channel,
+        assignment.assigned_owner_id,
+        assignment.assign_mode,
+        assignment.assign_reason,
+        options?.traceContext?.request_id,
+        tagHits.length > 0 ? tagHits : undefined,
+        assignment.online_agents?.length
+      );
+    }
+    
     scheduleHandoffNotify({
       event: 'handoff_pending',
       session_id: sessionAfterHandoffCheck.session_id,
@@ -122,6 +156,14 @@ export function runUnifiedInboundPipeline(
       external_session_id: sessionAfterHandoffCheck.external_session_id,
       reason: hs.reason ?? null,
       triggered_at: hs.triggered_at ?? null,
+      request_id: options?.traceContext?.request_id,
+      message_trace_id: options?.traceContext?.message_trace_id,
+      assigned_owner_id: hs.assigned_owner_id ?? undefined,
+      assign_reason: assignment.assign_reason,
+      online_agents_count: assignment.online_agents?.length,
+      assignment_log_id: assignment.assign_reason !== 'none' ? 
+        `${Date.now().toString(36).slice(-6)}-${simpleStringHash(sessionAfterHandoffCheck.session_id).toString(36).slice(-6)}` : 
+        undefined,
     });
   }
   
@@ -132,58 +174,80 @@ export function runUnifiedInboundPipeline(
     missing_fields: sessionAfterHandoffCheck.lead_capture_state.missing_fields,
   };
 
-  // 获取 i18n 字符串
-  const i18n = getLeadCaptureI18n(sessionAfterLeadCapture);
+  // 确定对话阶段
+  const phaseContext = resolveConversationPhase(
+    message,
+    sessionAfterHandoffCheck,
+    intentPreparation,
+    faqResult.matched
+  );
 
-  // 最小出站逻辑
-  let replyText = faqResult.matched ? faqResult.answer : message.text ?? null;
-  let lead_capture_prompt: string | null = null;
-
-  if (sessionAfterLeadCapture.lead_capture_state.status === 'partial') {
-    // partial 状态时添加提示（i18n）
-    const missingFields = sessionAfterLeadCapture.lead_capture_state.missing_fields || [];
-    if (missingFields.length > 0) {
-      lead_capture_prompt = i18n.partialPrompt(missingFields);
-    }
-  } else if (sessionAfterHandoffCheck.lead_capture_state.status === 'captured' && !faqResult.matched) {
-    // captured 状态且 FAQ 未命中时使用简短确认（i18n）
-    replyText = i18n.capturedConfirmation;
-  }
-
-  // 合并 lead_capture_prompt 到 reply_text（用户可见）
-  // 兜底：如果 replyText 为空但 prompt 存在，使用 prompt 作为 replyText
-  if (lead_capture_prompt) {
-    if (replyText) {
-      replyText = `${replyText}\n\n${lead_capture_prompt}`;
-      lead_capture_prompt = null;
-    } else {
-      // 兜底：空回复时，prompt 成为主回复
-      replyText = lead_capture_prompt;
-      lead_capture_prompt = null;
-    }
-  }
+  // 使用策略规划当前轮次
+  const policyContext = {
+    message,
+    session: sessionAfterHandoffCheck,
+    phase: phaseContext,
+    faqAnswer: faqResult.answer,
+    faqMatched: faqResult.matched,
+  };
+  
+  const turnPlan = planTurn(policyContext);
 
   // 确定是否需要 handoff
   const handoffRequired = shouldTriggerHandoff(message, sessionAfterHandoffCheck);
   
-  // 确定是否发送回复：默认发送，handoff时根据配置决定是否抑制
-  const shouldSend = !(handoffRequired && shouldSuppressReplyOnHandoff());
+  // 处理 lead captured 事件和资格标签
+  if (sessionAfterHandoffCheck.lead_capture_state.status === 'captured') {
+    const capturedFields = sessionAfterHandoffCheck.lead_capture_state.collected_fields || {};
+    
+    // 计算资格标签
+    const qualificationTags = computeQualificationTags(
+      capturedFields,
+      message.text || ''
+    );
+    
+    // 发射事件 - 需要将 unknown 转换为 string
+    const stringFields: Record<string, string> = {};
+    for (const [key, value] of Object.entries(capturedFields)) {
+      stringFields[key] = String(value || '');
+    }
+    emitLeadCaptured(sessionAfterHandoffCheck, stringFields, qualificationTags);
+    
+    // 更新会话元数据中的标签
+    const previousTags = sessionAfterHandoffCheck.metadata?.qualification_tags as string[] || [];
+    if (JSON.stringify(qualificationTags) !== JSON.stringify(previousTags)) {
+      sessionAfterHandoffCheck.metadata = {
+        ...sessionAfterHandoffCheck.metadata,
+        qualification_tags: qualificationTags
+      };
+      emitQualificationTagsUpdated(sessionAfterHandoffCheck, qualificationTags, previousTags);
+    }
+  }
 
   const response: UnifiedResponse = applyUnifiedDispatchPlaceholder({
     channel: message.channel,
     session_id: sessionAfterHandoffCheck.session_id,
     kind: faqResult.matched ? 'text' : 'text',
-    reply_text: replyText,
-    should_send: shouldSend,
+    reply_text: turnPlan.reply_text,
+    should_send: turnPlan.should_send,
     handoff_required: handoffRequired,
-    lead_capture_prompt,
-    debug_steps,
+    lead_capture_prompt: turnPlan.lead_capture_prompt,
+    debug_steps: [...debug_steps, `phase:${phaseContext.phase}`, `policy:${turnPlan.policy_path}`],
     debug_metadata: {
-      debug_steps,
+      debug_steps: [...debug_steps, `phase:${phaseContext.phase}`, `policy:${turnPlan.policy_path}`],
       intentPreparation,
       dispatchResult,
       faqResult,
-      leadCaptureResult, // 证据对齐要求
+      leadCaptureResult,
+      conversation_phase: phaseContext.phase,
+      qualification_tags: sessionAfterHandoffCheck.metadata?.qualification_tags as string[] || [],
+      policy_path: turnPlan.policy_path,
+      assign_mode: assignment.assign_mode,
+      assign_reason: assignment.assign_reason,
+      assigned_owner_id: sessionAfterHandoffCheck.handoff_state.assigned_owner_id || null,
+      online_agents: assignment.online_agents,
+      balance_strategy: assignment.balance_strategy,
+      ...turnPlan.debug_metadata_patch,
     },
   });
 
@@ -197,4 +261,51 @@ export function runUnifiedInboundPipeline(
     session: sessionAfterHandoffCheck,
     response,
   };
+
+// 辅助函数：计算资格标签
+function computeQualificationTags(
+  capturedFields: Record<string, unknown>,
+  messageText: string
+): string[] {
+  const tags: string[] = [];
+
+  // 规则1: name+phone+email 全齐 => complete_profile
+  const hasName = !!String(capturedFields.name || '').trim();
+  const hasPhone = !!String(capturedFields.phone || '').trim();
+  const hasEmail = !!String(capturedFields.email || '').trim();
+  
+  if (hasName && hasPhone && hasEmail) {
+    tags.push('complete_profile');
+  }
+
+  // 规则2: 文本含高意向词 => high_intent
+  const highIntentKeywords = [
+    '咨询', '报价', '购买', '合作', '价格', '费用', '多少钱',
+    'consult', 'quote', 'buy', 'purchase', 'cooperate', 'price', 'cost', 'how much'
+  ];
+  
+  const textLower = messageText.toLowerCase();
+  const hasHighIntent = highIntentKeywords.some(keyword => 
+    textLower.includes(keyword.toLowerCase())
+  );
+  
+  if (hasHighIntent) {
+    tags.push('high_intent');
+  }
+
+  // 规则3: handoff pending => needs_handoff (在handoff阶段处理)
+
+  return tags;
+}
+
+// 辅助函数：简单字符串哈希
+function simpleStringHash(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash);
+}
 }

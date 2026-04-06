@@ -22,7 +22,11 @@ export async function handleWhatsAppWebhook(rawRequestBody: unknown, opts?: Webh
     }
 
     const session = createOrUpdateSessionContext(message);
-    const result = runUnifiedInboundPipeline(message, session);
+    const result = runUnifiedInboundPipeline(message, session, {
+      traceContext: {
+        request_id: opts?.httpRequestId,
+      },
+    });
     commitSessionContext(result.session);
 
     const trace = createMinimalTraceContext({
