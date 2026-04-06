@@ -3,6 +3,7 @@
 - This is an existing project handoff, not a fresh project restart.
 - **Current Phase / Version：** **以 `memory/01_project_status.md` 为唯一真源**（勿在本文件顶栏写死版本号，避免与 01 漂移）。撰写时复制 01 的 **Current Phase**、**Current Version**、**Current Completion Point** 各一行到当日 `memory/YYYY-MM-DD.md` 汇报即可。
 - **Pause Status: Not blocked** — CI **`docker-smoke`** (T1) green; local **T2** = **`npm run staging:docker-smoke:t2`**; next confidence layers = **`docs/157`** Phase 0 remote smoke → A → B/C when staging exists.
+- **当前发版节奏**：优先 `npm run release:verify`（只读校验）或 `npm run release:ship`（一键预检+出包+CI摘要）；客户 token/部署后置到接入阶段执行。
 
 ## Phase / Version 更新规则（龙虾 — 每次代码交付必做）
 

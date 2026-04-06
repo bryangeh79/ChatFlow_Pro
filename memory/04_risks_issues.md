@@ -159,6 +159,12 @@
 - **Partial write failures**: 文件写入失败可能导致配置处于不一致状态
 - **Whitelist mapping gaps**: autotune 建议的变更可能无法正确映射到运行时配置白名单键
 
+## New Risks from Release Automation Expansion (2026-04-06 evening)
+- **Artifact drift**: 多个 zip 产物并存可能导致发错版本（mitigation: `delivery:latest` + SHA256）。
+- **Operator over-trust**: 一键脚本成功不代表客户环境已接入（token/HTTPS 仍需 onboarding 执行）。
+- **Local environment dependence**: `docs:pdf:162` 依赖本机浏览器打印能力，跨环境可重复性有限。
+- **Cleanup misuse**: `delivery:clean` 的 `--keep` 设置过小可能误删需要留档的旧包。
+
 ## Pro_v1.06 Known Limitations
 - **Session store**: In-memory only, single-process, no TTL expiration
 - **JSONL persistence**: Backup accumulation, no automatic cleanup

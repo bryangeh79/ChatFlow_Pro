@@ -177,3 +177,5 @@
 - **Real transports**: Telegram (15.1) — **已交付** + WhatsApp Cloud (15.5) — **已交付** + Messenger Graph (15.6) — **已交付** + Line Messaging (15.7) — **已交付** + Zalo Open API (15.8) — **已交付**
 - **HTTP observability (16.2)**: Request ID header + optional access JSON + webhook `phases_ms` timings + verification type narrowing (`docs/150`) — **已交付（增强切片）**
 - **Handoff minimal integration (Pro_v1.07.40)**: Keyword trigger (`人工|转人工|agent|human` etc.), session `handoff_state` updates, unified pipeline integration — **已交付**
+- **Phase 21 / 21.2**: runtime config reload (Option B) + autotune optional runtime-write — **已交付**
+- **Commercial delivery automation**: `docs/168~172` + `release:*` + `delivery:*` + `backup:data` + `health:curl` — **已交付**

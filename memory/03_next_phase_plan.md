@@ -181,4 +181,4 @@
 - **Phase 21.2 已交付**：**`docs/167`**（autotune 可选合并写运行时 JSON）。
 - **商业形态**：**`docs/169`** — 一客户一部署；**`docs/170`** — 运维与 `backup:data`。
 - **厂商发版**：**`docs/171`** + **`CHANGELOG.md`** + **`docker-compose.customer.yml`**；HTTPS：**`docs/172`** + **`examples/reverse-proxy/`**。
-- Next Unique Priority Action: **`docs/171`**（`release:prepare`）→ **`docs/169`** → **`docs/170`** → **`docs/168`** → **`docs/161`** / **`docs/162`**；**`docs/157`**；**T0+T1** / **`docs/155`**。
+- Next Unique Priority Action: **产品冻结与交付阶段**：`release:verify` → `release:ship -- --with-pdf` → `delivery:latest`（zip+sha256）→ 文档包 `docs/168/169/170/171/172 + 161/162`；客户 token/部署后置到 onboarding。**T0+T1** / **`docs/155`**。
