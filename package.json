@@ -14,6 +14,7 @@
     "check:staging-env": "node scripts/check-staging-env.mjs",
     "check:staging-env:debug": "node scripts/check-staging-env.mjs --debug-parse",
     "check:go-live": "npm run build && node scripts/check-staging-env.mjs",
+    "release:prepare": "node scripts/release-prepare.mjs",
     "backup:data": "node scripts/backup-chatflow-data.mjs",
     "health:curl": "node scripts/curl-health.mjs",
     "report:agent-git": "node scripts/agent-git-metadata.mjs",
@@ -38,3 +39,4 @@
     "undici": "^6.24.1"
   }
 }
+

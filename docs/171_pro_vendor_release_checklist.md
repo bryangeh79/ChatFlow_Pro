@@ -5,7 +5,7 @@
 ## 制品
 
 - [ ] **`main`**（或发版 tag）**CI 绿**（build + `check:staging-env` + `docker-smoke`）。
-- [ ] **`npm run check:go-live`** 本地或通过 CI 日志确认无异常。
+- [ ] **`npm run release:prepare`**（默认含 `check:go-live` + `report:agent-git`；可选 `--with-pdf` / `--with-health`）。
 - [ ] 镜像：`docker build -t chatflow-pro:<version> .` 或 registry tag 与 **CHANGELOG** 一致。
 
 ## 交付包（发给实施 / 客户）
