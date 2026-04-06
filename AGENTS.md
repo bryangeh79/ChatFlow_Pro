@@ -14,6 +14,12 @@ This folder is home. Treat it that way.
 - **Phase / Version（真源 + 何时 bump）**：**`memory/05_handoff_for_new_chat.md`** 节 *Phase / Version 更新规则（龙虾 — 每次代码交付必做）*；当前阶段与版本以 **`memory/01_project_status.md`** 为准。  
 - **可售卖交付（一客户一部署）**：**`docs/169`** / **`docs/170`**；小文档与 ≤~80 行脚本默认可由 **Cursor** 直接合；**Helm / 多租户控制面 / 大额重构** 默认派 **龙虾**。
 
+### 分工默认（指挥官已定）
+
+1. **主责：Cursor** — 仓库内实现、文档、小脚本、CI 配置；在权限允许时 **commit / push**；给出验收与「请龙虾执行」的**粘贴块**。  
+2. **按需：龙虾** — 当 Cursor 写明 **「请龙虾：…」** 时，指挥官将粘贴块**原样**转发给龙虾。典型场景：本机/客户机 **SSH**、宿主 **Docker 全量 smoke**、Cursor **触达不了**的内网环境、或指挥官要求**人在机器旁**的发布步骤。  
+3. **版本与 memory 回写**：仍按 **`memory/05`**；若本轮仅 Cursor 改仓库，**龙虾未参与**也可由 Cursor 同步 **01/03/04**（与 **`memory/05`** 不冲突时）。
+
 ## First Run
 
 If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out who you are, then delete it. You won't need it again.
