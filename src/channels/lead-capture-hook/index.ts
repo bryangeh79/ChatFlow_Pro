@@ -10,6 +10,13 @@ export function runLeadCaptureHook(
   traceContext?: { request_id?: string; message_trace_id?: string },
   pipelineOpts?: { tenantRuntimeSettings?: TenantRuntimeSettings },
 ): UnifiedSessionContext {
+  if (
+    pipelineOpts?.tenantRuntimeSettings !== undefined &&
+    pipelineOpts.tenantRuntimeSettings.lead_capture.enabled === false
+  ) {
+    return session;
+  }
+
   const detection = detectContactIntent(message);
   
   // 如果没有检测到联系意图且没有新字段，保持原状态

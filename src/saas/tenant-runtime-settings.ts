@@ -14,11 +14,16 @@ export interface TenantRuntimeSettings {
   notify: {
     enabled: boolean;
   };
+  /** Default true when omitted. false = no lead state merge, persistence, or capture-phase follow-on. */
+  lead_capture: {
+    enabled: boolean;
+  };
 }
 
 const DEFAULT_RUNTIME: TenantRuntimeSettings = {
   handoff: { enabled: true },
   notify: { enabled: true },
+  lead_capture: { enabled: true },
 };
 
 function parseHandoffBlock(raw: unknown): TenantRuntimeSettings['handoff'] {
@@ -41,6 +46,16 @@ function parseNotifyBlock(raw: unknown): TenantRuntimeSettings['notify'] {
   return { ...DEFAULT_RUNTIME.notify };
 }
 
+function parseLeadCaptureBlock(raw: unknown): TenantRuntimeSettings['lead_capture'] {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const l = raw as Record<string, unknown>;
+    if (typeof l.enabled === 'boolean') {
+      return { enabled: l.enabled };
+    }
+  }
+  return { ...DEFAULT_RUNTIME.lead_capture };
+}
+
 /**
  * Parse DB JSON into runtime settings. Unknown keys ignored; invalid shapes fall back to defaults.
  */
@@ -48,6 +63,7 @@ export function parseTenantRuntimeSettings(raw: Record<string, unknown>): Tenant
   return {
     handoff: parseHandoffBlock(raw.handoff),
     notify: parseNotifyBlock(raw.notify),
+    lead_capture: parseLeadCaptureBlock(raw.lead_capture),
   };
 }
 
@@ -58,6 +74,7 @@ export function logSaasControlPipelineDebug(args: {
 }): void {
   const handoffOff = args.parsed.handoff.enabled === false;
   const notifyOff = args.parsed.notify.enabled === false;
+  const leadCapOff = args.parsed.lead_capture.enabled === false;
   console.debug(
     '[saas-control]',
     JSON.stringify({
@@ -69,6 +86,8 @@ export function logSaasControlPipelineDebug(args: {
       handoff_trigger_blocked: handoffOff,
       notify_enabled: args.parsed.notify.enabled,
       notify_http_blocked: notifyOff,
+      lead_capture_enabled: args.parsed.lead_capture.enabled,
+      lead_capture_hook_suppressed: leadCapOff,
     }),
   );
 }

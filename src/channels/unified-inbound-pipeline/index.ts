@@ -313,6 +313,8 @@ export function runUnifiedInboundPipeline(
               handoff_trigger_suppressed: options.tenantRuntimeSettings.handoff.enabled === false,
               notify_enabled_effective: options.tenantRuntimeSettings.notify.enabled !== false,
               notify_http_suppressed: options.tenantRuntimeSettings.notify.enabled === false,
+              lead_capture_enabled: options.tenantRuntimeSettings.lead_capture.enabled !== false,
+              lead_capture_suppressed: options.tenantRuntimeSettings.lead_capture.enabled === false,
             },
           }
         : {}),
