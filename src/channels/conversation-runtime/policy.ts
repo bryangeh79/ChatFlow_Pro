@@ -18,6 +18,11 @@ export interface PolicyContext {
   phase: ConversationPhaseContext;
   faqAnswer: string | null;
   faqMatched: boolean;
+  /**
+   * Tenant-only: `tenant_settings.suppress_reply.enabled`. When false, env-driven handoff suppress never applies.
+   * Omitted on legacy path (= allow env behavior).
+   */
+  suppress_reply_tenant_enabled?: boolean;
 }
 
 /**
@@ -50,7 +55,9 @@ export function planTurn(ctx: PolicyContext): TurnPlan {
 
 function planHandoffTurn(ctx: PolicyContext): TurnPlan {
   const { session } = ctx;
-  const suppress = shouldSuppressReplyOnHandoff();
+  const envWantsSuppress = shouldSuppressReplyOnHandoff();
+  const tenantAllowsSuppress = ctx.suppress_reply_tenant_enabled !== false;
+  const suppress = envWantsSuppress && tenantAllowsSuppress;
   const i18n = getLeadCaptureI18n(session);
   
   // handoff时根据配置决定是否抑制回复

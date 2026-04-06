@@ -13,7 +13,6 @@ import { runLeadCaptureHook } from '../lead-capture-hook';
 import { detectContactIntent } from '../lead-capture-hook/contact-intent-detector';
 import { getLeadCaptureI18n } from '../lead-capture-hook/i18n';
 import { shouldTriggerHandoff, updateHandoffStateIfTriggered } from '../handoff-trigger';
-import { shouldSuppressReplyOnHandoff } from '../../config/suppress-reply';
 import { scheduleHandoffNotify } from '../handoff-trigger/notify-outbound';
 import { resolveConversationPhase } from '../conversation-runtime/phase';
 import { planTurn } from '../conversation-runtime/policy';
@@ -247,6 +246,9 @@ export function runUnifiedInboundPipeline(
     phase: phaseContext,
     faqAnswer: faqResult.answer,
     faqMatched: faqResult.matched,
+    ...(options?.tenantRuntimeSettings !== undefined
+      ? { suppress_reply_tenant_enabled: options.tenantRuntimeSettings.suppress_reply.enabled }
+      : {}),
   };
   
   const turnPlan = planTurn(policyContext);
@@ -322,6 +324,8 @@ export function runUnifiedInboundPipeline(
               lead_capture_suppressed: options.tenantRuntimeSettings.lead_capture.enabled === false,
               bot_enabled: options.tenantRuntimeSettings.bot.enabled !== false,
               bot_reply_suppressed: options.tenantRuntimeSettings.bot.enabled === false,
+              suppress_reply_enabled: options.tenantRuntimeSettings.suppress_reply.enabled !== false,
+              suppress_reply_suppressed: options.tenantRuntimeSettings.suppress_reply.enabled === false,
             },
           }
         : {}),

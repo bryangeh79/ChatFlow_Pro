@@ -22,6 +22,13 @@ export interface TenantRuntimeSettings {
   bot: {
     enabled: boolean;
   };
+  /**
+   * Default true when omitted. false = handoff reply suppression (env-driven) cannot apply for this tenant.
+   * Independent of bot.enabled (send master switch).
+   */
+  suppress_reply: {
+    enabled: boolean;
+  };
 }
 
 const DEFAULT_RUNTIME: TenantRuntimeSettings = {
@@ -29,6 +36,7 @@ const DEFAULT_RUNTIME: TenantRuntimeSettings = {
   notify: { enabled: true },
   lead_capture: { enabled: true },
   bot: { enabled: true },
+  suppress_reply: { enabled: true },
 };
 
 function parseHandoffBlock(raw: unknown): TenantRuntimeSettings['handoff'] {
@@ -71,6 +79,16 @@ function parseBotBlock(raw: unknown): TenantRuntimeSettings['bot'] {
   return { ...DEFAULT_RUNTIME.bot };
 }
 
+function parseSuppressReplyBlock(raw: unknown): TenantRuntimeSettings['suppress_reply'] {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const s = raw as Record<string, unknown>;
+    if (typeof s.enabled === 'boolean') {
+      return { enabled: s.enabled };
+    }
+  }
+  return { ...DEFAULT_RUNTIME.suppress_reply };
+}
+
 /**
  * Parse DB JSON into runtime settings. Unknown keys ignored; invalid shapes fall back to defaults.
  */
@@ -80,6 +98,7 @@ export function parseTenantRuntimeSettings(raw: Record<string, unknown>): Tenant
     notify: parseNotifyBlock(raw.notify),
     lead_capture: parseLeadCaptureBlock(raw.lead_capture),
     bot: parseBotBlock(raw.bot),
+    suppress_reply: parseSuppressReplyBlock(raw.suppress_reply),
   };
 }
 
@@ -92,6 +111,7 @@ export function logSaasControlPipelineDebug(args: {
   const notifyOff = args.parsed.notify.enabled === false;
   const leadCapOff = args.parsed.lead_capture.enabled === false;
   const botOff = args.parsed.bot.enabled === false;
+  const suppressReplyOff = args.parsed.suppress_reply.enabled === false;
   console.debug(
     '[saas-control]',
     JSON.stringify({
@@ -107,6 +127,8 @@ export function logSaasControlPipelineDebug(args: {
       lead_capture_hook_suppressed: leadCapOff,
       bot_enabled: args.parsed.bot.enabled,
       bot_reply_suppressed: botOff,
+      suppress_reply_enabled: args.parsed.suppress_reply.enabled,
+      suppress_reply_suppressed: suppressReplyOff,
     }),
   );
 }
