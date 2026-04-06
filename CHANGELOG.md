@@ -4,6 +4,8 @@ All notable changes to this repository are documented here. **Per-customer deplo
 
 ## Unreleased
 
+- **`npm run health:curl`** — `scripts/curl-health.mjs` (`HEALTH_CHECK_URL` optional).
+- **`LICENSE`** (proprietary), **`SECURITY.md`** (reporting guidance).
 - **`docs/172`** — HTTPS reverse proxy (Caddy / Nginx); **`examples/reverse-proxy/`** templates.
 - **`docs/171`** — vendor release checklist.
 - **`docker-compose.customer.yml`** — long-running customer compose (`env_file: .env`, `restart: unless-stopped`).

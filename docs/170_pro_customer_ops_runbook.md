@@ -12,7 +12,8 @@
 | Handoff 分配审计 | `data/handoff-assignments.jsonl` |
 | 运行时 JSON（可选） | `CHATFLOW_HANDOFF_RUNTIME_CONFIG_PATH` 指向的路径 |
 
-**备份**：`npm run backup:data`（见下）或平台级卷快照。
+**备份**：`npm run backup:data`（见下）或平台级卷快照。  
+**存活检查**（进程已起）：`npm run health:curl` 或 **`HEALTH_CHECK_URL`** 指向公网 **`https://…/health`**（见 **`scripts/curl-health.mjs`**）。
 
 ## 2. 备份
 

@@ -283,4 +283,5 @@ For **sellable per-customer deployments**, read in this order (orthogonal to Pha
 3. **`docs/168_pro_two_day_go_live_checklist.md`** — go-live checklist.  
 4. **`docs/161`**, **`docs/162`**, **`docs/158`**, **`docs/155`** — notify, customer tokens, Docker smoke, agent equivalence.  
 5. **`docs/171_pro_vendor_release_checklist.md`** — internal release before shipping to customers. **`CHANGELOG.md`** — version notes.  
-6. **`docs/172_pro_https_reverse_proxy_caddy_nginx.md`** — TLS in front of Pro (`examples/reverse-proxy/`).
+6. **`docs/172_pro_https_reverse_proxy_caddy_nginx.md`** — TLS in front of Pro (`examples/reverse-proxy/`).  
+7. Repo root **`LICENSE`** (proprietary), **`SECURITY.md`** (disclosure process).

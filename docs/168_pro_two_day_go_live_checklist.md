@@ -22,11 +22,13 @@
 
 | # | 动作 | 说明 |
 |---|------|------|
-| 1 | 控制台 webhook URL | 与部署 **同源 HTTPS**，路径 `POST /webhooks/<channel>` |
-| 2 | `.env` 仅部署机持有 | **勿** commit、**勿**贴聊天；模板见 **`.env.example`** |
-| 3 | Smoke | `SMOKE_BASE_URL=https://… npm run smoke:webhooks`；跳过未接通道见 **`docs/160`** §4.6 |
-| 4 | Docker 一键 | `npm run staging:docker-smoke`（**`docs/158`**） |
-| 5 | Handoff 运行时 JSON（可选） | **`docs/166`**；autotune 写文件 **`docs/167`** |
+| 1 | 公网 **HTTPS** | **`docs/172`** + **`examples/reverse-proxy/`**（Caddy / Nginx） |
+| 2 | 控制台 webhook URL | 与部署 **同源 HTTPS**，路径 `POST /webhooks/<channel>` |
+| 3 | `.env` 仅部署机持有 | **勿** commit、**勿**贴聊天；模板见 **`.env.example`** |
+| 4 | Health | 服务起后：`npm run health:curl` 或 `HEALTH_CHECK_URL=https://…/health npm run health:curl` |
+| 5 | Smoke | `SMOKE_BASE_URL=https://… npm run smoke:webhooks`；跳过未接通道见 **`docs/160`** §4.6 |
+| 6 | Docker 一键 | `npm run staging:docker-smoke`（**`docs/158`**） |
+| 7 | Handoff 运行时 JSON（可选） | **`docs/166`**；autotune 写文件 **`docs/167`** |
 
 ---
 
