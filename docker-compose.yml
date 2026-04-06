@@ -2,6 +2,7 @@
 #   docker compose up --build
 #   SMOKE_BASE_URL=http://127.0.0.1:3030 npm run smoke:webhooks
 #
+# Per-customer production: one deployment per customer — docs/169, ops docs/170, backup: npm run backup:data
 # Optional secrets: `docker-compose.local-credentials.yml` or uncomment env_file below (never commit .env).
 
 services:

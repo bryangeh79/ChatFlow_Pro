@@ -14,6 +14,7 @@
     "check:staging-env": "node scripts/check-staging-env.mjs",
     "check:staging-env:debug": "node scripts/check-staging-env.mjs --debug-parse",
     "check:go-live": "npm run build && node scripts/check-staging-env.mjs",
+    "backup:data": "node scripts/backup-chatflow-data.mjs",
     "report:agent-git": "node scripts/agent-git-metadata.mjs",
     "report:github-ci": "node scripts/report-github-ci.mjs",
     "report:handoff-assignments": "node scripts/report-handoff-assignments.mjs",
