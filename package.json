@@ -16,6 +16,7 @@
     "check:go-live": "npm run build && node scripts/check-staging-env.mjs",
     "release:prepare": "node scripts/release-prepare.mjs",
     "delivery:manifest": "node scripts/build-delivery-manifest.mjs",
+    "delivery:bundle": "npm run delivery:manifest && node scripts/build-delivery-bundle.mjs",
     "backup:data": "node scripts/backup-chatflow-data.mjs",
     "health:curl": "node scripts/curl-health.mjs",
     "report:agent-git": "node scripts/agent-git-metadata.mjs",
