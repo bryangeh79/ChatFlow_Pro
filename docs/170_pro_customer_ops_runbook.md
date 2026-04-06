@@ -30,7 +30,7 @@ CHATFLOW_BACKUP_PARENT=/secure/path npm run backup:data
 docker compose -f docker-compose.customer.yml up -d --build
 ```
 
-模板：**`docker-compose.customer.yml`**（`restart: unless-stopped`）。TLS 放在反代（Caddy / Nginx / 云 LB）。
+模板：**`docker-compose.customer.yml`**（`restart: unless-stopped`）。TLS：**`docs/172`**（**`examples/reverse-proxy/`**）。
 
 ## 4. 升级
 

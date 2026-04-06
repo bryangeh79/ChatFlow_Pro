@@ -4,6 +4,7 @@ All notable changes to this repository are documented here. **Per-customer deplo
 
 ## Unreleased
 
+- **`docs/172`** — HTTPS reverse proxy (Caddy / Nginx); **`examples/reverse-proxy/`** templates.
 - **`docs/171`** — vendor release checklist.
 - **`docker-compose.customer.yml`** — long-running customer compose (`env_file: .env`, `restart: unless-stopped`).
 - **`CHANGELOG.md`** — this file.

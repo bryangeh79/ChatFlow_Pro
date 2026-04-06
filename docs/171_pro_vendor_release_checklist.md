@@ -17,7 +17,7 @@
 ## 客户机部署
 
 - [ ] **`docker compose -f docker-compose.customer.yml up -d --build`**（或等价编排）；**`.env` 已填**。
-- [ ] 公网 **HTTPS** 反代到容器端口（**`docs/170`**）。
+- [ ] 公网 **HTTPS** 反代到容器端口（**`docs/172`** + **`docs/170`**）。
 - [ ] **`GET /health`** 与至少一条 **`smoke:webhooks`**（**`docs/157`** / **`docs/158`**）。
 
 ## 数据

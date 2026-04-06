@@ -2,7 +2,7 @@
 #   docker compose -f docker-compose.customer.yml up -d --build
 #   curl -sf http://127.0.0.1:${STAGING_HOST_PORT:-3030}/health
 #
-# Put TLS at reverse proxy (Caddy / Nginx / LB); see docs/170.
+# Put TLS at reverse proxy — docs/172, examples/reverse-proxy/
 
 services:
   chatflow-pro:

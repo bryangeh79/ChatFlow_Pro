@@ -180,5 +180,5 @@
 - **Pro_v1.07.57** (package.json 1.7.57): **Phase 21.2** — autotune 合并写运行时 JSON；新增开关 CHATFLOW_OPS_AUTOTUNE_WRITE_RUNTIME（默认 0）；仅当 PATH 已设且开关为 1 时写入；合并策略：文件存在且为合法 JSON 对象 → 深合并/字段级覆盖，仅改 autotune 本次要动的白名单键；文件不存在 → 创建目录后写仅含本次键的最小 JSON；白名单键同 Phase 21 B；与 autotune 逻辑衔接：在 scripts/run-handoff-autotune.mjs 里，当 AUTOTUNE_ENABLED 且本轮决定应用变更时，除 STATE_PATH 外，若 WRITE_RUNTIME=1 且 RUNTIME_CONFIG_PATH 已设，把本轮实际采纳的变更以白名单键写入目标 JSON；文档：.env.example 添加新变量说明 +「Unix 写后需 kill -HUP 或重启方生效」
 - **Phase 21.2 已交付**：**`docs/167`**（autotune 可选合并写运行时 JSON）。
 - **商业形态**：**`docs/169`** — 一客户一部署；**`docs/170`** — 运维与 `backup:data`。
-- **厂商发版**：**`docs/171`** + **`CHANGELOG.md`** + **`docker-compose.customer.yml`**。
+- **厂商发版**：**`docs/171`** + **`CHANGELOG.md`** + **`docker-compose.customer.yml`**；HTTPS：**`docs/172`** + **`examples/reverse-proxy/`**。
 - Next Unique Priority Action: **`docs/171`** → **`docs/169`** → **`docs/170`** → **`docs/168`** → **`docs/161`** / **`docs/162`**；**`docs/157`**；**T0+T1** / **`docs/155`**。

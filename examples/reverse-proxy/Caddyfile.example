@@ -1,0 +1,9 @@
+# Copy to /etc/caddy/Caddyfile (or use `caddy run --config ./Caddyfile`) on the host.
+# Replace chatflow.example.com with your real DNS name pointing to this machine.
+#
+# Upstream: ChatFlow Pro listening on host port 3030 (docker-compose.customer.yml default).
+
+chatflow.example.com {
+	encode gzip
+	reverse_proxy 127.0.0.1:3030
+}
