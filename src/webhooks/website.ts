@@ -21,6 +21,9 @@ export async function handleWebsiteWebhook(rawRequestBody: unknown, opts?: Webho
       ...(opts?.tenantRuntimeSettings !== undefined
         ? { tenantRuntimeSettings: opts.tenantRuntimeSettings }
         : {}),
+      ...(opts?.tenantPostSignatureSaasControl !== undefined
+        ? { tenantPostSignatureSaasControl: opts.tenantPostSignatureSaasControl }
+        : {}),
     });
     
     // 提交 session 到进程内存储（使跨请求 lead 合并生效）

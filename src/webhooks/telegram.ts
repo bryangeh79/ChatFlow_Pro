@@ -28,6 +28,11 @@ export type WebhookHandlerOptions = {
   faqEntries?: UnifiedFaqSeedEntry[];
   /** Phase 22B: parsed tenant_settings (tenant webhooks only). */
   tenantRuntimeSettings?: TenantRuntimeSettings;
+  /** Phase 22D: tenant POST signature gate passed (WA / Messenger / Line / Website only). */
+  tenantPostSignatureSaasControl?: {
+    tenant_post_secret_present: boolean;
+    tenant_post_env_fallback_blocked: boolean;
+  };
 };
 
 export async function handleTelegramWebhook(rawRequestBody: unknown, opts?: WebhookHandlerOptions) {

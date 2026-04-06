@@ -30,6 +30,9 @@ export async function handleWhatsAppWebhook(rawRequestBody: unknown, opts?: Webh
       ...(opts?.tenantRuntimeSettings !== undefined
         ? { tenantRuntimeSettings: opts.tenantRuntimeSettings }
         : {}),
+      ...(opts?.tenantPostSignatureSaasControl !== undefined
+        ? { tenantPostSignatureSaasControl: opts.tenantPostSignatureSaasControl }
+        : {}),
     });
     commitSessionContext(result.session);
 

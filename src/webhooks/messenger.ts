@@ -78,6 +78,9 @@ export async function handleMessengerWebhook(rawRequestBody: unknown, opts?: Web
       ...(opts?.tenantRuntimeSettings !== undefined
         ? { tenantRuntimeSettings: opts.tenantRuntimeSettings }
         : {}),
+      ...(opts?.tenantPostSignatureSaasControl !== undefined
+        ? { tenantPostSignatureSaasControl: opts.tenantPostSignatureSaasControl }
+        : {}),
     });
     commitSessionContext(result.session);
 

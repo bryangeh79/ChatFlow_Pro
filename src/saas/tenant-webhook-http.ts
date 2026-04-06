@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { loadMetaWebhookConfig, verifyMetaSignature } from '../config/meta-webhook';
-import { getLineChannelSecret, verifyLineSignature } from '../config/line-webhook';
-import { getWebsiteSigningSecret, verifyWebsiteSignature } from '../config/website-webhook';
+import { verifyMetaSignature } from '../config/meta-webhook';
+import { verifyLineSignature } from '../config/line-webhook';
+import { verifyWebsiteSignature } from '../config/website-webhook';
 import {
   getLineWebhookVerifyToken,
   getMessengerWebhookVerifyToken,
@@ -29,6 +29,56 @@ import { handleMessengerWebhook } from '../webhooks/messenger';
 import { handleLineWebhook } from '../webhooks/line';
 import { handleZaloWebhook } from '../webhooks/zalo';
 import { webhookPhasesFromHandlerResult } from '../observability/http-access';
+
+const TENANT_POST_SIGNATURE_SAAS_OK = {
+  tenant_post_secret_present: true,
+  tenant_post_env_fallback_blocked: true,
+} as const;
+
+function saasControlTenantPostSignature(secretPresent: boolean): {
+  tenant_post_secret_present: boolean;
+  tenant_post_env_fallback_blocked: boolean;
+} {
+  return {
+    tenant_post_secret_present: secretPresent,
+    tenant_post_env_fallback_blocked: true,
+  };
+}
+
+function denyTenantPostSignature(args: {
+  res: ServerResponse;
+  tenantId: string;
+  tenantSlug: string;
+  channel: string;
+  error: 'tenant_secret_missing' | 'signature_invalid';
+  tenantPostSecretPresent: boolean;
+}): void {
+  const logEvent =
+    args.error === 'tenant_secret_missing'
+      ? 'tenant_secret_missing'
+      : 'tenant_signature_rejected_no_fallback';
+  // eslint-disable-next-line no-console
+  console.warn(
+    '[tenant-webhook]',
+    JSON.stringify({
+      event: logEvent,
+      channel: args.channel,
+      tenant_id: args.tenantId,
+      tenant_slug: args.tenantSlug,
+      error: args.error,
+    }),
+  );
+  args.res.writeHead(403, { 'content-type': 'application/json' });
+  args.res.end(
+    JSON.stringify({
+      ok: false,
+      error: args.error,
+      debug_metadata: {
+        saas_control: saasControlTenantPostSignature(args.tenantPostSecretPresent),
+      },
+    }),
+  );
+}
 
 async function verifyTokenWithTenantFallback(
   tenantId: string,
@@ -61,7 +111,6 @@ export async function tryHandleTenantWebhook(args: {
   }
 
   const faqEntries = await loadTenantFaqEntries(tenant.id);
-  const metaConfig = loadMetaWebhookConfig();
 
   if (args.method === 'GET' && m.channel === 'telegram') {
     sendWebhookGetVerifyResponse(
@@ -132,16 +181,35 @@ export async function tryHandleTenantWebhook(args: {
 
     if (m.channel === 'website') {
       const { raw, parsed } = await args.readRequestBody(args.req);
-      const tenantSecret =
-        (await getWebsiteSigningSecretForTenant(tenant.id)) ?? getWebsiteSigningSecret();
+      const tenantSecret = await getWebsiteSigningSecretForTenant(tenant.id);
+      if (!tenantSecret) {
+        denyTenantPostSignature({
+          res: args.res,
+          tenantId: tenant.id,
+          tenantSlug: tenant.slug,
+          channel: 'website',
+          error: 'tenant_secret_missing',
+          tenantPostSecretPresent: false,
+        });
+        return;
+      }
       const signatureHeader = args.req.headers['x-webhook-signature'] as string | undefined;
       const isValid = verifyWebsiteSignature(raw, signatureHeader, tenantSecret);
       if (!isValid) {
-        args.res.writeHead(403, { 'content-type': 'application/json' });
-        args.res.end(JSON.stringify({ ok: false, error: 'signature_invalid' }));
+        denyTenantPostSignature({
+          res: args.res,
+          tenantId: tenant.id,
+          tenantSlug: tenant.slug,
+          channel: 'website',
+          error: 'signature_invalid',
+          tenantPostSecretPresent: true,
+        });
         return;
       }
-      const result = await handleWebsiteWebhook(parsed, opts);
+      const result = await handleWebsiteWebhook(parsed, {
+        ...opts,
+        tenantPostSignatureSaasControl: TENANT_POST_SIGNATURE_SAAS_OK,
+      });
       args.setWebhookPhases(webhookPhasesFromHandlerResult(result));
       args.res.writeHead(result.ok ? 200 : 400, { 'content-type': 'application/json' });
       args.res.end(JSON.stringify(result, null, 2));
@@ -150,16 +218,35 @@ export async function tryHandleTenantWebhook(args: {
 
     if (m.channel === 'whatsapp') {
       const { raw, parsed } = await args.readRequestBody(args.req);
-      const secret =
-        (await getWhatsAppAppSecretForTenant(tenant.id)) || metaConfig.whatsappAppSecret;
+      const secret = await getWhatsAppAppSecretForTenant(tenant.id);
+      if (!secret) {
+        denyTenantPostSignature({
+          res: args.res,
+          tenantId: tenant.id,
+          tenantSlug: tenant.slug,
+          channel: 'whatsapp',
+          error: 'tenant_secret_missing',
+          tenantPostSecretPresent: false,
+        });
+        return;
+      }
       const signatureHeader = args.req.headers['x-hub-signature-256'] as string | undefined;
       const isValid = verifyMetaSignature(raw, signatureHeader, secret);
       if (!isValid) {
-        args.res.writeHead(403, { 'content-type': 'application/json' });
-        args.res.end(JSON.stringify({ ok: false, error: 'signature_invalid' }));
+        denyTenantPostSignature({
+          res: args.res,
+          tenantId: tenant.id,
+          tenantSlug: tenant.slug,
+          channel: 'whatsapp',
+          error: 'signature_invalid',
+          tenantPostSecretPresent: true,
+        });
         return;
       }
-      const result = await handleWhatsAppWebhook(parsed, opts);
+      const result = await handleWhatsAppWebhook(parsed, {
+        ...opts,
+        tenantPostSignatureSaasControl: TENANT_POST_SIGNATURE_SAAS_OK,
+      });
       args.setWebhookPhases(webhookPhasesFromHandlerResult(result));
       args.res.writeHead(result.ok ? 200 : 400, { 'content-type': 'application/json' });
       args.res.end(JSON.stringify(result, null, 2));
@@ -168,16 +255,35 @@ export async function tryHandleTenantWebhook(args: {
 
     if (m.channel === 'messenger') {
       const { raw, parsed } = await args.readRequestBody(args.req);
-      const secret =
-        (await getMessengerAppSecretForTenant(tenant.id)) || metaConfig.messengerAppSecret;
+      const secret = await getMessengerAppSecretForTenant(tenant.id);
+      if (!secret) {
+        denyTenantPostSignature({
+          res: args.res,
+          tenantId: tenant.id,
+          tenantSlug: tenant.slug,
+          channel: 'messenger',
+          error: 'tenant_secret_missing',
+          tenantPostSecretPresent: false,
+        });
+        return;
+      }
       const signatureHeader = args.req.headers['x-hub-signature-256'] as string | undefined;
       const isValid = verifyMetaSignature(raw, signatureHeader, secret);
       if (!isValid) {
-        args.res.writeHead(403, { 'content-type': 'application/json' });
-        args.res.end(JSON.stringify({ ok: false, error: 'signature_invalid' }));
+        denyTenantPostSignature({
+          res: args.res,
+          tenantId: tenant.id,
+          tenantSlug: tenant.slug,
+          channel: 'messenger',
+          error: 'signature_invalid',
+          tenantPostSecretPresent: true,
+        });
         return;
       }
-      const result = await handleMessengerWebhook(parsed, opts);
+      const result = await handleMessengerWebhook(parsed, {
+        ...opts,
+        tenantPostSignatureSaasControl: TENANT_POST_SIGNATURE_SAAS_OK,
+      });
       args.setWebhookPhases(webhookPhasesFromHandlerResult(result));
       args.res.writeHead(result.ok ? 200 : 400, { 'content-type': 'application/json' });
       args.res.end(JSON.stringify(result, null, 2));
@@ -186,15 +292,35 @@ export async function tryHandleTenantWebhook(args: {
 
     if (m.channel === 'line') {
       const { raw, parsed } = await args.readRequestBody(args.req);
-      const secret = (await getLineChannelSecretForTenant(tenant.id)) || getLineChannelSecret();
+      const secret = await getLineChannelSecretForTenant(tenant.id);
+      if (!secret) {
+        denyTenantPostSignature({
+          res: args.res,
+          tenantId: tenant.id,
+          tenantSlug: tenant.slug,
+          channel: 'line',
+          error: 'tenant_secret_missing',
+          tenantPostSecretPresent: false,
+        });
+        return;
+      }
       const signatureHeader = args.req.headers['x-line-signature'] as string | undefined;
       const isValid = verifyLineSignature(raw, signatureHeader, secret);
       if (!isValid) {
-        args.res.writeHead(403, { 'content-type': 'application/json' });
-        args.res.end(JSON.stringify({ ok: false, error: 'signature_invalid' }));
+        denyTenantPostSignature({
+          res: args.res,
+          tenantId: tenant.id,
+          tenantSlug: tenant.slug,
+          channel: 'line',
+          error: 'signature_invalid',
+          tenantPostSecretPresent: true,
+        });
         return;
       }
-      const result = await handleLineWebhook(parsed, opts);
+      const result = await handleLineWebhook(parsed, {
+        ...opts,
+        tenantPostSignatureSaasControl: TENANT_POST_SIGNATURE_SAAS_OK,
+      });
       args.setWebhookPhases(webhookPhasesFromHandlerResult(result));
       args.res.writeHead(result.ok ? 200 : 400, { 'content-type': 'application/json' });
       args.res.end(JSON.stringify(result, null, 2));

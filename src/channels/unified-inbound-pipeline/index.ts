@@ -30,6 +30,11 @@ export interface PipelineOptions {
   faqEntries?: UnifiedFaqSeedEntry[];
   /** Phase 22B: tenant_settings applied per request (tenant webhooks only). */
   tenantRuntimeSettings?: TenantRuntimeSettings;
+  /** Phase 22D: merged into saas_control when tenant path passed POST signature verification. */
+  tenantPostSignatureSaasControl?: {
+    tenant_post_secret_present: boolean;
+    tenant_post_env_fallback_blocked: boolean;
+  };
 }
 
 function buildFaqResolverOptions(options?: PipelineOptions): UnifiedFaqResolverOptions | undefined {
@@ -339,6 +344,13 @@ export function runUnifiedInboundPipeline(
               suppress_reply_suppressed: options.tenantRuntimeSettings.suppress_reply.enabled === false,
               faq_fallback_enabled: options.tenantRuntimeSettings.faq.fallback_enabled !== false,
               faq_fallback_suppressed: options.tenantRuntimeSettings.faq.fallback_enabled === false,
+              ...(options.tenantPostSignatureSaasControl !== undefined
+                ? {
+                    tenant_post_secret_present: options.tenantPostSignatureSaasControl.tenant_post_secret_present,
+                    tenant_post_env_fallback_blocked:
+                      options.tenantPostSignatureSaasControl.tenant_post_env_fallback_blocked,
+                  }
+                : {}),
             },
           }
         : {}),

@@ -77,6 +77,9 @@ export async function handleLineWebhook(rawRequestBody: unknown, opts?: WebhookH
       ...(opts?.tenantRuntimeSettings !== undefined
         ? { tenantRuntimeSettings: opts.tenantRuntimeSettings }
         : {}),
+      ...(opts?.tenantPostSignatureSaasControl !== undefined
+        ? { tenantPostSignatureSaasControl: opts.tenantPostSignatureSaasControl }
+        : {}),
     });
     commitSessionContext(result.session);
 
