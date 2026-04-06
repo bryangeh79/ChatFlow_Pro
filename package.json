@@ -1,6 +1,6 @@
 {
   "name": "chatflow-pro",
-  "version": "1.7.43",
+  "version": "1.7.44",
   "private": true,
   "type": "commonjs",
   "scripts": {
@@ -9,6 +9,7 @@
     "smoke:webhooks": "node scripts/smoke-webhooks.mjs",
     "verify:lead-capture-states": "node scripts/verify-lead-capture-states.mjs",
     "dev:website-outbound-echo": "node scripts/website-outbound-echo.mjs",
+    "dev:notify-echo": "node scripts/notify-echo-server.mjs",
     "check:agent-env": "node scripts/agent-env-check.mjs",
     "check:staging-env": "node scripts/check-staging-env.mjs",
     "check:staging-env:debug": "node scripts/check-staging-env.mjs --debug-parse",

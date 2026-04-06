@@ -163,4 +163,5 @@
 - **Pro_v1.07.41** (package.json 1.7.41): **`CHATFLOW_HANDOFF_NOTIFY_URL`** — 首次进入 handoff **pending** 时异步 POST；**`check:staging-env`** handoff notify 可选节
 - **Pro_v1.07.42** (package.json 1.7.42): **`CHATFLOW_SUPPRESS_REPLY_ON_HANDOFF`** — handoff 时可选抑制 bot 回复，七通道 webhook handlers 使用 `result.response.should_send`
 - **Pro_v1.07.43** (package.json 1.7.43): **`docs/161`** — lead + handoff notify **接收端契约**；**`check:staging-env`** 增补 **`CHATFLOW_SUPPRESS_REPLY_ON_HANDOFF`** 摘要
-- Next Unique Priority Action: 按 **`docs/161`** 对接接收端；按需 **notify / suppress**；**docs/157** 有 staging URL 再跑全量；下一产品块 **memory/32** 或坐席分配；门禁 **T0+T1**；**`docs/155`** *T1 equivalence* 适用于无 Docker 的代理环境。
+- **Pro_v1.07.44** (package.json 1.7.44): **`dev:notify-echo`** / **`notify-echo-server.mjs`** — 本地 echo；**`docs/161`** §4
+- Next Unique Priority Action: 生产按 **`docs/161`** 对接；可选 **`dev:notify-echo`** 本地验 POST；按需 **notify / suppress**；**docs/157** 有 staging URL 再跑全量；下一产品块 **notify 带 request_id 对齐 X-Request-Id**、**memory/32** 或坐席分配；门禁 **T0+T1**；**`docs/155`** *T1 equivalence* 适用于无 Docker 的代理环境。

@@ -89,7 +89,38 @@ ChatFlow Pro can **POST JSON** to customer-controlled HTTPS endpoints when optio
 
 ---
 
-## 4. Version reference
+## 4. Local development echo
+
+For quick integration tests on the same machine, use the built-in echo server (prints JSON body; **never** prints notify secret header values — only redacted length).
+
+```bash
+npm run dev:notify-echo
+```
+
+Default listen: **`http://127.0.0.1:3848/notify`** (POST). Health: **`GET http://127.0.0.1:3848/health`**.
+
+**Env:**
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `NOTIFY_ECHO_PORT` | `3848` | Listen port (avoid clash with `website-outbound-echo` on `3847`) |
+| `NOTIFY_ECHO_PATH_PREFIX` | `/notify` | Only paths under this prefix return `200` |
+| `NOTIFY_ECHO_BODY_LOG_MAX` | `8000` | Max raw body chars before truncation in logs |
+
+**Example `.env` (local):**
+
+```env
+CHATFLOW_LEAD_NOTIFY_URL=http://127.0.0.1:3848/notify
+CHATFLOW_HANDOFF_NOTIFY_URL=http://127.0.0.1:3848/notify
+# Optional: set secrets in ChatFlow and verify receiver logic separately
+```
+
+Restart ChatFlow Pro after changing env. Trigger a lead capture or handoff keyword; the echo terminal should show one POST per notify.
+
+---
+
+## 5. Version reference
 
 - Lead notify: **Pro_v1.07.39+**
 - Handoff notify + suppress reply: **Pro_v1.07.41+** / **Pro_v1.07.42+**
+- Notify echo dev server + this section: **Pro_v1.07.44+**
