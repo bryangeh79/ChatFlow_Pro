@@ -19,6 +19,7 @@
     "staging:docker-smoke": "node scripts/staging-docker-smoke.mjs",
     "staging:docker-smoke:t2": "node scripts/run-staging-t2.mjs",
     "docs:pdf:160": "node scripts/build-doc160-pdf.mjs",
+    "docs:pdf:162": "node scripts/build-doc162-pdf.mjs",
     "docker:up:local-env": "docker compose -f docker-compose.yml -f docker-compose.local-credentials.yml up --build"
   },
   "devDependencies": {

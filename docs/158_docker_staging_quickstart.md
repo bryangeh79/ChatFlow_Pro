@@ -99,5 +99,6 @@ To read the latest **`ci.yml`** run from any shell **without git** (e.g. read-on
 
 ## References
 
+- `docs/162_customer_seven_channel_access_token_guide.md` — **客户阅读**：七通道凭据/Token 去哪些官网申请（可 `npm run docs:pdf:162` 导出 PDF）。  
 - `docs/157_phase17_staging_validation_playbook.md`  
 - `docs/152_phase16_ops_token_rotation_runbook.md`

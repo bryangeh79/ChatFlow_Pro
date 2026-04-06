@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChatFlow Pro — 七通道凭据获取说明（客户版）</title>
+<style>
+body { font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.55; color: #111; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.95rem; }
+th, td { border: 1px solid #bbb; padding: 0.45rem 0.55rem; vertical-align: top; }
+code, pre { font-family: ui-monospace, Consolas, monospace; font-size: 0.88em; }
+h1 { font-size: 1.55rem; }
+h2 { font-size: 1.2rem; margin-top: 1.6rem; }
+h3 { font-size: 1.05rem; margin-top: 1.2rem; }
+blockquote { margin: 0.8rem 0; padding-left: 1rem; border-left: 4px solid #ccc; color: #333; }
+ul { padding-left: 1.25rem; }
+@media print {
+  body { margin: 0; max-width: none; }
+  h2, h3 { break-after: avoid; }
+  tr { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<h1>ChatFlow Pro — 七通道凭据与 Access Token 获取说明（客户版）</h1>
+<p><strong>文档用途</strong>：供新客户按通道准备接入 ChatFlow Pro 所需的密钥、Token 与 ID。<br><strong>安全提醒</strong>：所有密钥与 Token <strong>等同于密码</strong>。请勿在即时消息、邮件正文、工单或截图中明文发送；请通过安全渠道（如一次性加密链接、密码管理器共享）交给实施方。泄露后请立即在对应平台<strong>作废并重新生成</strong>。</p>
+<p><strong>与 ChatFlow 环境变量的对应关系</strong>：实施部署时，下列名称会写入服务器上的 <code>.env</code> 文件（名称可能随版本微调，以项目提供的 <strong><code>.env.example</code></strong> 为准）。</p>
+<hr>
+<h2>总览：七通道分别要准备什么</h2>
+<table>
+<thead>
+<tr>
+<th>通道</th>
+<th>您主要去哪个平台操作</th>
+<th>ChatFlow 侧常见变量（示例）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>网站 Website</td>
+<td>您自己的网站 / 后端</td>
+<td>自管 URL 与密钥（无「社交平台 Token」）</td>
+</tr>
+<tr>
+<td>Telegram</td>
+<td>Telegram BotFather</td>
+<td><code>TELEGRAM_BOT_TOKEN</code></td>
+</tr>
+<tr>
+<td>WhatsApp</td>
+<td>Meta（Facebook）开发者与商务套件</td>
+<td><code>WHATSAPP_ACCESS_TOKEN</code>、<code>WHATSAPP_PHONE_NUMBER_ID</code> 等</td>
+</tr>
+<tr>
+<td>Messenger</td>
+<td>Meta + Facebook 公共主页</td>
+<td><code>MESSENGER_PAGE_ACCESS_TOKEN</code>、<code>MESSENGER_PAGE_ID</code> 等</td>
+</tr>
+<tr>
+<td>LINE</td>
+<td>LINE Developers</td>
+<td><code>LINE_CHANNEL_ACCESS_TOKEN</code>、<code>LINE_CHANNEL_SECRET</code></td>
+</tr>
+<tr>
+<td>Zalo</td>
+<td>Zalo 开放平台 + OA 管理</td>
+<td><code>ZALO_ACCESS_TOKEN</code>、<code>ZALO_OA_ID</code> 等</td>
+</tr>
+</tbody></table>
+<p>以下按通道说明：<strong>去哪里、大致步骤、拿到什么、填到哪个变量</strong>。各平台界面会改版，若与截图不一致，请以平台当前菜单为准。</p>
+<hr>
+<h2>1. 网站（Website）通道</h2>
+<p>网站通道<strong>不是</strong>从某个社交网站「领取 Access Token」，而是由<strong>您自己的系统</strong>与 ChatFlow 约定 <strong>HTTPS 地址</strong> 与 <strong>共享密钥</strong>。</p>
+<h3>1.1 您需要提供给实施方的信息</h3>
+<table>
+<thead>
+<tr>
+<th>用途</th>
+<th>说明</th>
+<th>常见环境变量</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ChatFlow 接收您网站发来的访客消息</td>
+<td>由实施方提供 Webhook 地址；您在网站后端向该地址 POST</td>
+<td>（由实施方配置，您侧为调用方）</td>
+</tr>
+<tr>
+<td>可选：校验 POST 来自合法来源</td>
+<td>双方约定同一串密钥，用于签名头</td>
+<td><code>WEBSITE_WEBHOOK_SIGNING_SECRET</code>（由您生成随机强密钥后提供）</td>
+</tr>
+<tr>
+<td>可选：GET 验证（若网关使用 Meta 风格 challenge）</td>
+<td>双方约定 verify_token 字符串</td>
+<td><code>WEBSITE_WEBHOOK_VERIFY_TOKEN</code></td>
+</tr>
+<tr>
+<td>ChatFlow 将机器人回复推送到您的系统</td>
+<td>您提供一个 <strong>HTTPS</strong> 回调地址</td>
+<td><code>WEBSITE_OUTBOUND_URL</code></td>
+</tr>
+<tr>
+<td>可选：出站签名</td>
+<td>再约定一串密钥</td>
+<td><code>WEBSITE_OUTBOUND_SIGNING_SECRET</code></td>
+</tr>
+</tbody></table>
+<h3>1.2 建议操作</h3>
+<ol>
+<li>在您的后端或运维工具中<strong>生成</strong>足够长的随机密钥（勿使用弱密码或成语）。  </li>
+<li>准备一个<strong>公网 HTTPS</strong>、证书有效的回调 URL，用于接收 ChatFlow 的出站 JSON（路径、鉴权方式请与实施方确认）。  </li>
+<li>通过安全渠道把「密钥（如需）+ 出站 URL」交给实施方；<strong>不要</strong>发在微信群/普通邮件正文。</li>
+</ol>
+<hr>
+<h2>2. Telegram 通道</h2>
+<h3>2.1 官方入口</h3>
+<ul>
+<li>在 Telegram 内打开机器人：<strong><a href="https://t.me/BotFather">@BotFather</a></strong>  </li>
+<li>Telegram Bot API 说明：<a href="https://core.telegram.org/bots/api">https://core.telegram.org/bots/api</a></li>
+</ul>
+<h3>2.2 推荐步骤</h3>
+<ol>
+<li>在 Telegram 搜索并打开 <strong>@BotFather</strong>。  </li>
+<li>发送 <code>/newbot</code>，按提示设置机器人<strong>显示名称</strong>与 <strong>username</strong>（必须以 <code>bot</code> 结尾）。  </li>
+<li>创建成功后，BotFather 会返回一行 <strong>HTTP API token</strong>，格式类似 <code>123456789:AAHxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code>。  </li>
+<li>将该 Token 安全交给实施方，对应环境变量：<strong><code>TELEGRAM_BOT_TOKEN</code></strong>。  </li>
+<li>（可选）机器人的 <strong>username</strong> 可填入 <strong><code>TELEGRAM_BOT_USERNAME</code></strong>，便于文档与客户展示。</li>
+</ol>
+<h3>2.3 说明</h3>
+<ul>
+<li>Token <strong>只显示一次</strong>时请当场保存；若遗失，在 BotFather 对该 bot 使用 <code>/token</code> 重新生成（旧 Token 随即失效）。  </li>
+<li>若贵司网络访问 Telegram 需代理，请向实施方说明，以便配置 <code>TELEGRAM_PROXY_*</code>（见 <code>.env.example</code>）。</li>
+</ul>
+<hr>
+<h2>3. WhatsApp（WhatsApp Cloud API）通道</h2>
+<p>WhatsApp 商业消息由 <strong>Meta</strong> 提供，与 <strong>Facebook 开发者账号</strong>、<strong>Meta 商务套件</strong>绑定。</p>
+<h3>3.1 官方入口</h3>
+<ul>
+<li>Meta 开发者：<a href="https://developers.facebook.com/">https://developers.facebook.com/</a>  </li>
+<li>商务管理（Business Suite）：<a href="https://business.facebook.com/">https://business.facebook.com/</a>  </li>
+<li>WhatsApp 产品文档（英文）：在开发者后台选择应用 → <strong>WhatsApp</strong> → <strong>API Setup</strong> 查看当前指引</li>
+</ul>
+<h3>3.2 您需要准备的身份与资源</h3>
+<ol>
+<li>可用的 <strong>Facebook 账号</strong>，并创建或进入 <strong>Meta 商务账号（Business）</strong>。  </li>
+<li>在 <a href="https://developers.facebook.com/">developers.facebook.com</a> <strong>创建应用（App）</strong>，为应用添加 <strong>WhatsApp</strong> 产品。  </li>
+<li>在 WhatsApp 配置中查看：  <ul>
+<li><strong>Phone number ID</strong>（电话号码 ID，一串数字）→ 提供给实施方：<strong><code>WHATSAPP_PHONE_NUMBER_ID</code></strong>  </li>
+<li><strong>Temporary access token</strong> 或通过 <strong>系统用户（System User）</strong> 生成的长期 Token → <strong><code>WHATSAPP_ACCESS_TOKEN</code></strong>（具体类型由贵司合规与 Meta 控制台为准）</li>
+</ul>
+</li>
+</ol>
+<h3>3.3 Webhook 与安全（强烈建议配置）</h3>
+<ul>
+<li>在应用设置中找到 <strong>App Secret</strong>（应用密钥），用于校验 Meta 发来的签名 → 常对应 <strong><code>WHATSAPP_APP_SECRET</code></strong> 或统一的 <strong><code>META_APP_SECRET</code></strong>。  </li>
+<li>配置 Webhook 时会设置 <strong>Verify Token</strong>（自定义字符串，需与 ChatFlow 一致）→ <strong><code>WHATSAPP_WEBHOOK_VERIFY_TOKEN</code></strong>。  </li>
+<li>实际 Webhook URL 与验证流程由实施方在部署后提供。</li>
+</ul>
+<h3>3.4 说明</h3>
+<ul>
+<li>Meta 控制台界面与「测试号 / 正式号」流程会更新；若使用临时 Token，过期后需在开发者后台<strong>重新生成</strong>并通知实施方更新 <code>.env</code>。  </li>
+<li>轮换与运维可参考项目内 <strong><code>docs/152_phase16_ops_token_rotation_runbook.md</code></strong>（实施方使用）。</li>
+</ul>
+<hr>
+<h2>4. Facebook Messenger 通道</h2>
+<p>Messenger 与 WhatsApp 同属 <strong>Meta</strong>，通常共用同一个 <strong>Facebook 应用（App）</strong>，但 Token 与 ID 来自 <strong>Facebook 公共主页（Page）</strong>。</p>
+<h3>4.1 官方入口</h3>
+<ul>
+<li>Meta 开发者：<a href="https://developers.facebook.com/">https://developers.facebook.com/</a>  </li>
+<li>为应用添加 <strong>Messenger</strong> 产品，并绑定您的 <strong>Facebook 公共主页</strong></li>
+</ul>
+<h3>4.2 推荐步骤</h3>
+<ol>
+<li>在 <a href="https://developers.facebook.com/">developers.facebook.com</a> 打开您的应用。  </li>
+<li>添加 <strong>Messenger</strong> 产品，按向导关联 <strong>Facebook Page</strong>。  </li>
+<li>在 <strong>Messenger → Settings</strong>（或 <strong>API 设置</strong>）中生成或查看具有 <strong><code>pages_messaging</code></strong> 等权限的 <strong>Page Access Token</strong>。  </li>
+<li>将 <strong>Page Access Token</strong> 交给实施方 → <strong><code>MESSENGER_PAGE_ACCESS_TOKEN</code></strong>。  </li>
+<li>在 Facebook 公共主页 <strong>关于 / 设置</strong> 或开发者工具中查看 <strong>Page ID</strong>（数字）→ <strong><code>MESSENGER_PAGE_ID</code></strong>。</li>
+</ol>
+<h3>4.3 Webhook 与安全</h3>
+<ul>
+<li><strong>App Secret</strong> 用于签名校验 → <strong><code>MESSENGER_APP_SECRET</code></strong> 或 <strong><code>META_APP_SECRET</code></strong>。  </li>
+<li>Webhook 验证字符串 → <strong><code>MESSENGER_WEBHOOK_VERIFY_TOKEN</code></strong>。  </li>
+<li>Webhook 回调 URL 由实施方部署后提供。</li>
+</ul>
+<h3>4.4 说明</h3>
+<ul>
+<li>Page Token 可能因权限或密码变更失效；失效后需在 Meta 后台重新生成并更新服务器环境变量。</li>
+</ul>
+<hr>
+<h2>5. LINE 通道</h2>
+<p>LINE 的 Channel Access Token 与 Channel Secret 均在 <strong>LINE Developers Console</strong> 管理。</p>
+<h3>5.1 官方入口</h3>
+<ul>
+<li>LINE Developers 控制台：<a href="https://developers.line.biz/console/">https://developers.line.biz/console/</a>  </li>
+<li>文档入口：<a href="https://developers.line.biz/en/docs/">https://developers.line.biz/en/docs/</a></li>
+</ul>
+<h3>5.2 推荐步骤</h3>
+<ol>
+<li>使用 LINE 账号登录 <a href="https://developers.line.biz/console/">LINE Developers Console</a>。  </li>
+<li><strong>创建 Provider</strong>（若尚无），再 <strong>创建 Channel</strong>，类型请选择 <strong>Messaging API</strong>（与贵司机器人用途一致）。  </li>
+<li>进入该 Channel 页面，打开 <strong>Messaging API</strong> 相关标签页：  <ul>
+<li><strong>Channel secret</strong> → 交给实施方：<strong><code>LINE_CHANNEL_SECRET</code></strong>（用于校验 Webhook 签名）  </li>
+<li><strong>Channel access token</strong> → 点击 <strong>Issue</strong> 生成 → <strong><code>LINE_CHANNEL_ACCESS_TOKEN</code></strong>（用于代机器人发消息）</li>
+</ul>
+</li>
+<li>将 Webhook URL 填入 LINE 控制台（URL 由实施方提供）；如使用 Verify，按实施方给的 token 配置。</li>
+</ol>
+<h3>5.3 说明</h3>
+<ul>
+<li>Channel access token 可重新签发；重新签发后旧 token 失效，需同步更新 ChatFlow 服务器 <code>.env</code> 并重启服务。</li>
+</ul>
+<hr>
+<h2>6. Zalo 官方账号（OA）通道</h2>
+<p>Zalo 侧通常涉及 <strong>Zalo 开放平台应用</strong> 与 <strong>官方账号（OA）</strong> 的授权与密钥。</p>
+<h3>6.1 官方入口</h3>
+<ul>
+<li>Zalo 开放平台：<a href="https://developers.zalo.me/">https://developers.zalo.me/</a>  </li>
+<li>官方账号相关说明请以开放平台当前文档为准（应用管理、OA 授权、API 密钥等）。</li>
+</ul>
+<h3>6.2 您需要准备的内容（与常见变量对应）</h3>
+<table>
+<thead>
+<tr>
+<th>内容</th>
+<th>说明</th>
+<th>常见环境变量</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>OA 身份</td>
+<td>官方账号 ID（数字）</td>
+<td><strong><code>ZALO_OA_ID</code></strong></td>
+</tr>
+<tr>
+<td>访问令牌</td>
+<td>OA 或应用侧获取的 Access Token（随 Zalo 产品路径而定）</td>
+<td><strong><code>ZALO_ACCESS_TOKEN</code></strong></td>
+</tr>
+<tr>
+<td>（可选）长期刷新</td>
+<td>若启用刷新流程，需应用 ID/密钥与 refresh token</td>
+<td><strong><code>ZALO_APP_ID</code></strong>、<strong><code>ZALO_APP_SECRET</code></strong>、<strong><code>ZALO_REFRESH_TOKEN</code></strong> 等</td>
+</tr>
+</tbody></table>
+<p>具体点击路径（「应用」→「OA」→「密钥/Token」）以 Zalo 控制台当前版本为准。建议由贵司 <strong>拥有 OA 管理员权限</strong> 的同事登录后按开放平台向导操作，并将<strong>仅实施需要</strong>的字段通过安全渠道交出。</p>
+<h3>6.3 说明</h3>
+<ul>
+<li>Zalo 政策与接口会更新；若启用进程内刷新（<code>CHATFLOW_INPROCESS_TOKEN_REFRESH</code>），需额外应用凭证，由实施方按 <strong><code>docs/154</code></strong> 等内部文档配置。</li>
+</ul>
+<hr>
+<h2>7. 提交给实施方的核对清单（建议打印或保存 PDF）</h2>
+<p>在开通各通道前，可逐项确认：</p>
+<ul>
+<li><input disabled="" type="checkbox"> 已阅读本文 <strong>安全提醒</strong>，同意通过安全渠道传递密钥  </li>
+<li><input disabled="" type="checkbox"> <strong>Website</strong>：出站 HTTPS URL 已就绪；Webhook 签名/验证字符串已与实施方对齐  </li>
+<li><input disabled="" type="checkbox"> <strong>Telegram</strong>：已从 <strong>@BotFather</strong> 取得 <strong><code>TELEGRAM_BOT_TOKEN</code></strong>  </li>
+<li><input disabled="" type="checkbox"> <strong>WhatsApp</strong>：已创建 Meta 应用并开通 WhatsApp；已取得 <strong><code>WHATSAPP_PHONE_NUMBER_ID</code></strong> 与有效 <strong><code>WHATSAPP_ACCESS_TOKEN</code></strong>；已准备 App Secret / Verify Token（若启用签名校验）  </li>
+<li><input disabled="" type="checkbox"> <strong>Messenger</strong>：已绑定 Facebook Page；已取得 <strong><code>MESSENGER_PAGE_ACCESS_TOKEN</code></strong> 与 <strong><code>MESSENGER_PAGE_ID</code></strong>；已准备 App Secret / Verify Token（若启用）  </li>
+<li><input disabled="" type="checkbox"> <strong>LINE</strong>：已在 <a href="https://developers.line.biz/console/">developers.line.biz</a> 创建 Messaging API Channel；已复制 <strong><code>LINE_CHANNEL_SECRET</code></strong> 与 <strong><code>LINE_CHANNEL_ACCESS_TOKEN</code></strong>  </li>
+<li><input disabled="" type="checkbox"> <strong>Zalo</strong>：已在 <a href="https://developers.zalo.me/">developers.zalo.me</a> 完成应用/OA 侧配置；已提供 <strong><code>ZALO_OA_ID</code></strong> 与 <strong><code>ZALO_ACCESS_TOKEN</code></strong>（及刷新相关字段若需要）</li>
+</ul>
+<hr>
+<h2>附录：常用官方链接速查</h2>
+<table>
+<thead>
+<tr>
+<th>平台</th>
+<th>链接</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Telegram BotFather</td>
+<td><a href="https://t.me/BotFather">https://t.me/BotFather</a></td>
+</tr>
+<tr>
+<td>Meta 开发者</td>
+<td><a href="https://developers.facebook.com/">https://developers.facebook.com/</a></td>
+</tr>
+<tr>
+<td>Meta 商务套件</td>
+<td><a href="https://business.facebook.com/">https://business.facebook.com/</a></td>
+</tr>
+<tr>
+<td>LINE Developers</td>
+<td><a href="https://developers.line.biz/console/">https://developers.line.biz/console/</a></td>
+</tr>
+<tr>
+<td>Zalo 开放平台</td>
+<td><a href="https://developers.zalo.me/">https://developers.zalo.me/</a></td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>文档版本随 ChatFlow Pro 仓库更新；环境变量以仓库根目录 <strong><code>.env.example</code></strong> 为准。</em></p>
+
+</body>
+</html>
