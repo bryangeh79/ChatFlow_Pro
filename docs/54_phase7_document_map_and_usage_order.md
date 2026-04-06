@@ -281,4 +281,5 @@ For **sellable per-customer deployments**, read in this order (orthogonal to Pha
 1. **`docs/169_pro_commercial_one_customer_one_deploy.md`** — one customer = one deployment; secrets per instance.  
 2. **`docs/170_pro_customer_ops_runbook.md`** — backup (`npm run backup:data`), upgrade, rollback.  
 3. **`docs/168_pro_two_day_go_live_checklist.md`** — go-live checklist.  
-4. **`docs/161`**, **`docs/162`**, **`docs/158`**, **`docs/155`** — notify, customer tokens, Docker smoke, agent equivalence.
+4. **`docs/161`**, **`docs/162`**, **`docs/158`**, **`docs/155`** — notify, customer tokens, Docker smoke, agent equivalence.  
+5. **`docs/171_pro_vendor_release_checklist.md`** — internal release before shipping to customers. **`CHANGELOG.md`** — version notes.

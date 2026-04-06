@@ -1,0 +1,16 @@
+# Long-running customer instance (docs/169). Requires `.env` beside this file (never commit).
+#   docker compose -f docker-compose.customer.yml up -d --build
+#   curl -sf http://127.0.0.1:${STAGING_HOST_PORT:-3030}/health
+#
+# Put TLS at reverse proxy (Caddy / Nginx / LB); see docs/170.
+
+services:
+  chatflow-pro:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${STAGING_HOST_PORT:-3030}:3030"
+    env_file:
+      - .env
+    environment:
+      PORT: "3030"
