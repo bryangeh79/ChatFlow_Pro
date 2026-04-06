@@ -1,9 +1,30 @@
 # Handoff for New Chat
 
 - This is an existing project handoff, not a fresh project restart.
-- **Current Phase: Phase 17.x** — seven-channel real transports + Docker staging ladder + **`docs/157`** validation playbook; HTTP observability through **Phase 16.2** remains in tree.
-- Current Version: **Pro_v1.07.39** (package.json: **1.7.39**) — 以 **`memory/01_project_status.md`** 为准
+- **Current Phase / Version：** **以 `memory/01_project_status.md` 为唯一真源**（勿在本文件顶栏写死版本号，避免与 01 漂移）。撰写时复制 01 的 **Current Phase**、**Current Version**、**Current Completion Point** 各一行到当日 `memory/YYYY-MM-DD.md` 汇报即可。
 - **Pause Status: Not blocked** — CI **`docker-smoke`** (T1) green; local **T2** = **`npm run staging:docker-smoke:t2`**; next confidence layers = **`docs/157`** Phase 0 remote smoke → A → B/C when staging exists.
+
+## Phase / Version 更新规则（龙虾 — 每次代码交付必做）
+
+**真源顺序：** `memory/01_project_status.md`（当前阶段 + 版本 + 完成点）→ `memory/03_next_phase_plan.md`（版本链尾部 + Next）→ `package.json` `version`。
+
+1. **Version（package.json）**  
+   - 本仓库 **Pro_v1.07.x**：同一 **Phase 17.x** 下的增量能力、修复、文档与脚本，默认 **patch +1**（例 1.7.40 → 1.7.41）。  
+   - **minor**（1.7 → 1.8）：指挥官确认或 ADR 约定「新能力世代 / 对外契约不兼容风险」时再用。  
+   - 每次 bump：**同步** `memory/01` 的 **Current Version**、**Current Completion Point**（一句话交付摘要）；在 **`memory/03`** 版本链 **末尾追加一条** Pro_v1.07.x 说明；若触及风险面，**一行**更新 **`memory/04`**。
+
+2. **Phase（阶段号）**  
+   - **不要**在单个小功能交付时自行把「Phase 17.2」改成 17.3，除非 **`memory/03` 已立项**该阶段目标且 **指挥官确认晋级**（或 Cursor 在任务里写明「本包抬 Phase」）。  
+   - 若本包 **完成** 了当前 Phase 在 03 里写的里程碑：在汇报里用代码块 **建议**晋级（冷峻一句），格式示例：  
+     `[Phase] 17.2 目标已满足。建议晋级 Phase 17.3（或保持 17.2 仅 bump patch）。是否确认？`  
+   - **指挥官确认后** 才改：`memory/01` 的 **Current Phase**、`memory/03` 顶部 **Current Phase** 与下一里程碑条目。
+
+3. **给 Cursor / 指挥官的同步**  
+   - 交付汇报中 **必须**含：**package.json version**、**01 中 Pro_v1.07.x 一句**、**Phase 是否建议变更**（是则引用 03 缺口或已满足项）。  
+   - **Memory 指令 2** 仅在 **转换新聊天室** 时下令；但 **01 / 03 / 04 的版本与阶段行** 应在 **该次 push 前** 随代码一起更新，**不要**等指令 2 才改版本线。
+
+4. **检查命令**  
+   - 合并前：**`npm run build`**（T0）；有 Docker 时 **`npm run staging:docker-smoke`**（T1）。**`npm run check:staging-env`** 仅列 SET/MISSING，与版本无关。
 
 ## Completed Summary
 - Phase 1 blueprint work is complete.
@@ -184,7 +205,8 @@
 
 ## 龙虾下一包（OpenClaw — 粘贴执行）
 
-- **本轮 Cursor 已合入**: **`npm run verify:lead-capture-states`** + 已挂进 **`npm run staging:docker-smoke`**（CI **`docker-smoke`** job 自动跑）；**`package.json` → 1.7.27**。  
+- **版本与阶段**：以 **`memory/01`** 为准；每包交付按上节 **Phase / Version 更新规则** bump **`package.json`** 并同步 **01 / 03**（及必要时 **04**）。  
+- **基线能力**：**`npm run verify:lead-capture-states`** 已挂进 **`npm run staging:docker-smoke`**（CI **`docker-smoke`** job 自动跑）。  
 - **容器内无 `docker`**: **不要**把 **`npm run staging:docker-smoke` 失败标为阻塞**。按 **`docs/155`** *T1 equivalence*：**CI `docker-smoke` 绿** + **`npm run build`** + 本机服务已起时 **`smoke:webhooks`** + **`verify:lead-capture-states`**（同一 `SMOKE_BASE_URL`）。汇报里写「T1 由 CI + 本机 smoke/verify 覆盖」。**完整 compose 一键**由 **Cursor/宿主**代跑 `staging:docker-smoke`（已有机器验证记录可引用）。  
 - **无 `git` 或 workspace 滞后**: 必须跑 **`npm run report:github-ci`** 输出最新 **`ci.yml`** run（`conclusion` / `head_sha` / `html_url`），**禁止**以「workspace 未更新」为由跳过 CI 结论；私库带 **`GITHUB_TOKEN`**。  
 - **龙虾接手后必做**: `npm run build`；**有 Docker 的 shell** 才跑 **`staging:docker-smoke`** / **`staging:docker-smoke:t2`**；**禁止**在日志/聊天粘贴密钥。  

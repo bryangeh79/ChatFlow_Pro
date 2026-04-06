@@ -122,6 +122,14 @@ function sectionOptionalLeadNotify() {
   return { ok: true, lines };
 }
 
+function sectionOptionalHandoffNotify() {
+  const lines = [];
+  lines.push('[Optional — handoff notify] first transition to handoff pending → POST (see .env.example CHATFLOW_HANDOFF_NOTIFY_*)');
+  lines.push(`  CHATFLOW_HANDOFF_NOTIFY_URL             ${isNonEmpty('CHATFLOW_HANDOFF_NOTIFY_URL') ? 'SET' : 'MISSING'}`);
+  lines.push(`  CHATFLOW_HANDOFF_NOTIFY_SECRET          ${isNonEmpty('CHATFLOW_HANDOFF_NOTIFY_SECRET') ? 'SET' : 'MISSING'}`);
+  return { ok: true, lines };
+}
+
 function sectionPhaseB() {
   const lines = [];
   const rows = [
@@ -262,6 +270,8 @@ function main() {
         ...sectionPhaseCMessenger().lines,
         '',
         ...sectionOptionalLeadNotify().lines,
+        '',
+        ...sectionOptionalHandoffNotify().lines,
       ].join('\n'),
     );
     return;
@@ -291,6 +301,7 @@ function main() {
     lines: [...mc.lines, '', ...cwa.lines, '', ...cms.lines],
   };
   const leadN = sectionOptionalLeadNotify();
+  const handoffN = sectionOptionalHandoffNotify();
 
   sections.all = {
     ok: true,
@@ -306,6 +317,8 @@ function main() {
       ...cms.lines,
       '',
       ...leadN.lines,
+      '',
+      ...handoffN.lines,
     ],
   };
 
@@ -344,6 +357,10 @@ function main() {
       optional_lead_notify: {
         CHATFLOW_LEAD_NOTIFY_URL: isNonEmpty('CHATFLOW_LEAD_NOTIFY_URL'),
         CHATFLOW_LEAD_NOTIFY_SECRET: isNonEmpty('CHATFLOW_LEAD_NOTIFY_SECRET'),
+      },
+      optional_handoff_notify: {
+        CHATFLOW_HANDOFF_NOTIFY_URL: isNonEmpty('CHATFLOW_HANDOFF_NOTIFY_URL'),
+        CHATFLOW_HANDOFF_NOTIFY_SECRET: isNonEmpty('CHATFLOW_HANDOFF_NOTIFY_SECRET'),
       },
       combined: {
         'c-wa': sections['c-wa'].ok,

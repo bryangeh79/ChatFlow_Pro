@@ -97,7 +97,7 @@ export async function handleMessengerWebhook(rawRequestBody: unknown, opts?: Web
       kind: result.response.kind,
       reply_text: result.response.reply_text,
       attachments: [],
-      should_send: true,
+      should_send: result.response.should_send,
       debug_metadata: {
         trace_id: trace.trace_id,
         request_id: trace.request_id,

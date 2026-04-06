@@ -5,7 +5,7 @@
 - Do not expand into menu / command / state systems just because the webhook baselines are now alive.
 - Do not let channel-specific changes pollute shared core behavior without a hard reason.
 - Continue protecting the **seven-route baseline**: All 7 channels must remain independently verifiable and non-breaking.
-- The current version is **Pro_v1.07.40** (package.json **1.7.40**; **Handoff 最小接入包** + Phase **17.2** + **17.1** + Docker / **docs/155**; 可选 **lead notify** POST). Truth → **`memory/01_project_status.md`**.
+- The current version is **Pro_v1.07.42** (package.json **1.7.42**; **Handoff 回复抑制** + **Handoff notify** optional POST + **Handoff 最小接入包** + Phase **17.2** + Docker / **docs/155**; 可选 **lead notify** POST). Truth → **`memory/01_project_status.md`**.
 - The biggest recurring error to avoid is confusing stable minimal entrypoints with full platform completion.
 - Regression risk remains live whenever shared contracts or routing paths are touched.
 - **Pause Status**: **Not blocked** — default gate **T0 build + T1 `docker-smoke`** (incl. `smoke:webhooks` + `verify:lead-capture-states`); read-only agent env → **docs/155** *T1 equivalence* + **`npm run report:github-ci`**. No public staging URL does **not** block dev; **docs/157** Phase 0 waits on **HTTPS** staging.
@@ -58,6 +58,12 @@
 - **No external notification**: Handoff pending状态无外呼通知（仅进程内）
 - **Missing UI integration**: Handoff状态无坐席UI对接
 - **Testing coverage**: Handoff触发逻辑需要更多测试场景
+
+## New Risks from Handoff Reply Suppression (Pro_v1.07.42)
+- **Silent handoff**: 用户可能不知道已转人工（无bot回复确认）
+- **Configuration dependency**: 抑制行为依赖环境变量，部署时易遗漏
+- **Channel consistency**: 七通道都使用 `result.response.should_send`，但需确保无硬编码覆盖
+- **Default behavior**: 默认不抑制（保持现有行为），但用户可能期望抑制
 
 ## Pro_v1.06 Known Limitations
 - **Session store**: In-memory only, single-process, no TTL expiration

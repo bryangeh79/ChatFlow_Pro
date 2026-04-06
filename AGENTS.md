@@ -10,7 +10,8 @@ This folder is home. Treat it that way.
 - **Read-only `/workspace` OpenClaw image** (no `git`, no DinD): canonical duties table → **`docs/155`** section *Typical OpenClaw profile*; optional git/Docker-in-image → **`docs/159`**.  
 - Staging Phase B/C env self-check (no secret echo): **`npm run check:staging-env`** — **`docs/160`** §4.  
 - **No `docker` in your shell?** You **cannot** run **`npm run staging:docker-smoke`** there — that is **expected** for read-only OpenClaw. Use **T1 equivalence** in **`docs/155`** (*T1 equivalence when the agent has no Docker*): CI **`docker-smoke`** green on **`main`** + **`npm run build`** + against a running server **`smoke:webhooks`** and **`verify:lead-capture-states`** (seven-channel **none/partial/captured** unless **`SMOKE_SKIP_*`** / **`SMOKE_SKIP_CHANNELS`** — see **`docs/160`** §4.6). **Cursor or the human host** runs full **`staging:docker-smoke`** when Docker is available.  
-- **No `git` or stale mount?** Run **`npm run report:github-ci`** to fetch the latest CI run for **`ci.yml`** (see **`docs/155`**); optional **`GITHUB_TOKEN`** for private repos.
+- **No `git` or stale mount?** Run **`npm run report:github-ci`** to fetch the latest CI run for **`ci.yml`** (see **`docs/155`**); optional **`GITHUB_TOKEN`** for private repos.  
+- **Phase / Version（真源 + 何时 bump）**：**`memory/05_handoff_for_new_chat.md`** 节 *Phase / Version 更新规则（龙虾 — 每次代码交付必做）*；当前阶段与版本以 **`memory/01_project_status.md`** 为准。
 
 ## First Run
 

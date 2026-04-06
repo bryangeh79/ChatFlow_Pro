@@ -160,4 +160,6 @@
 - **Pro_v1.07.38** (package.json 1.7.38): **`docs/158`** — **单通道 Telegram 可交付收口**清单（健康检查、观测性、密钥与升级路径）
 - **Pro_v1.07.39** (package.json 1.7.39): **`CHATFLOW_LEAD_NOTIFY_URL`** — lead 首次持久化时异步 POST；**`check:staging-env`** 可选节
 - **Pro_v1.07.40** (package.json 1.7.40): **Handoff 最小接入包** — 关键词触发、session 状态更新、unified pipeline 集成
-- Next Unique Priority Action: **`docs/158`** 收口 + 按需 **lead notify**；下一产品块 **handoff 外呼通知**（可选）或第二通道；门禁 **T0+T1**；**`docs/155`** *T1 equivalence* 适用于无 Docker 的代理环境。
+- **Pro_v1.07.41** (package.json 1.7.41): **`CHATFLOW_HANDOFF_NOTIFY_URL`** — 首次进入 handoff **pending** 时异步 POST；**`check:staging-env`** handoff notify 可选节
+- **Pro_v1.07.42** (package.json 1.7.42): **`CHATFLOW_SUPPRESS_REPLY_ON_HANDOFF`** — handoff 时可选抑制 bot 回复，七通道 webhook handlers 使用 `result.response.should_send`
+- Next Unique Priority Action: 按需 **lead / handoff notify**；**docs/157** 有 staging URL 再跑全量；下一产品块 **坐席消费 handoff_pending** 或 **memory/32** 方向；门禁 **T0+T1**；**`docs/155`** *T1 equivalence* 适用于无 Docker 的代理环境。

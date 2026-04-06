@@ -11,6 +11,8 @@ import { runLeadCaptureHook } from '../lead-capture-hook';
 import { detectContactIntent } from '../lead-capture-hook/contact-intent-detector';
 import { getLeadCaptureI18n } from '../lead-capture-hook/i18n';
 import { shouldTriggerHandoff, updateHandoffStateIfTriggered } from '../handoff-trigger';
+import { shouldSuppressReplyOnHandoff } from '../../config/suppress-reply';
+import { scheduleHandoffNotify } from '../handoff-trigger/notify-outbound';
 
 export function runUnifiedInboundPipeline(
   message: UnifiedInboundMessage,
@@ -107,6 +109,21 @@ export function runUnifiedInboundPipeline(
 
   // 在 lead capture 之后处理 handoff 触发
   const sessionAfterHandoffCheck = updateHandoffStateIfTriggered(message, sessionAfterLeadCapture);
+  if (
+    sessionAfterLeadCapture.handoff_state.status !== 'pending' &&
+    sessionAfterHandoffCheck.handoff_state.status === 'pending'
+  ) {
+    const hs = sessionAfterHandoffCheck.handoff_state;
+    scheduleHandoffNotify({
+      event: 'handoff_pending',
+      session_id: sessionAfterHandoffCheck.session_id,
+      channel: sessionAfterHandoffCheck.channel,
+      external_user_id: sessionAfterHandoffCheck.external_user_id,
+      external_session_id: sessionAfterHandoffCheck.external_session_id,
+      reason: hs.reason ?? null,
+      triggered_at: hs.triggered_at ?? null,
+    });
+  }
   
   // 证据对齐：添加 leadCaptureResult
   const leadCaptureResult = {
@@ -148,13 +165,16 @@ export function runUnifiedInboundPipeline(
 
   // 确定是否需要 handoff
   const handoffRequired = shouldTriggerHandoff(message, sessionAfterHandoffCheck);
+  
+  // 确定是否发送回复：默认发送，handoff时根据配置决定是否抑制
+  const shouldSend = !(handoffRequired && shouldSuppressReplyOnHandoff());
 
   const response: UnifiedResponse = applyUnifiedDispatchPlaceholder({
     channel: message.channel,
     session_id: sessionAfterHandoffCheck.session_id,
     kind: faqResult.matched ? 'text' : 'text',
     reply_text: replyText,
-    should_send: true,
+    should_send: shouldSend,
     handoff_required: handoffRequired,
     lead_capture_prompt,
     debug_steps,
