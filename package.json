@@ -1,6 +1,6 @@
 {
   "name": "chatflow-pro",
-  "version": "1.7.67",
+  "version": "1.7.68",
   "private": true,
   "type": "commonjs",
   "scripts": {
@@ -16,6 +16,7 @@
     "verify:saas-faq-fallback-disabled": "node scripts/verify-saas-faq-fallback-disabled.mjs",
     "verify:tenant-post-signature-boundary": "node scripts/verify-tenant-post-signature-boundary.mjs",
     "verify:tenant-get-verify-boundary": "node scripts/verify-tenant-get-verify-boundary.mjs",
+    "verify:saas-admin-auth-break-glass": "node scripts/verify-saas-admin-auth-break-glass.mjs",
     "dev:website-outbound-echo": "node scripts/website-outbound-echo.mjs",
     "dev:notify-echo": "node scripts/notify-echo-server.mjs",
     "check:agent-env": "node scripts/agent-env-check.mjs",

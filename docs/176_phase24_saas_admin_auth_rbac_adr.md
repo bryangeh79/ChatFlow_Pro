@@ -1,8 +1,16 @@
 # ADR — Phase 24 / SaaS Admin Auth & RBAC（最小落地）
 
-> **状态**：Accepted（文档冻结，实现未开始）  
+> **状态**：Accepted；**包 1B** 已落地 auth 抽象桥接（仍仅 break-glass env token）  
 > **范围**：SaaS **控制面**（`/saas/*` Admin API + Admin UI），**非** MVP 功能补完  
-> **真源**：`package.json` **1.7.67**；SaaS MVP **sealed**（`docs/175`）；本 ADR 属于 **Phase 24 — SaaS v1 Hardening**
+> **真源**：`package.json` **1.7.68+**（Phase 24 小步）；SaaS MVP **sealed**（`docs/175`）；本 ADR 属于 **Phase 24 — SaaS v1 Hardening**
+
+---
+
+## Phase 24 — 包 1B（auth abstraction bridge，已落地）
+
+- **代码**：`src/saas/admin-auth.ts` — `breakGlassAdminToken`、`resolveSaasAdminAuth`、`requireSaasAdmin`；命中 env token 时 `SaasAdminAuthContext` 为 **`role: platform_admin`**、**`auth_source: break_glass_env`**。`src/saas/admin-routes.ts` 仅调用该模块，**不再内联** Bearer 字符串比较。
+- **未变**：`/saas/v1/health`、`GET /saas/admin` 仍**不**要求 Bearer；`/saas/v1/admin/*` 仍 401 / 放行规则与 1B 前一致；**无**用户表、**无** JWT、**无**租户级 RBAC；legacy 与租户 webhook 边界不动。
+- **验证**：`npm run verify:saas-admin-auth-break-glass`（需已 `npm run build`）。
 
 ---
 
@@ -16,9 +24,9 @@
 
 | 区域 | 行为 |
 |------|------|
-| **Token 读取** | `src/saas/admin-routes.ts`：`adminToken()` → `process.env.CHATFLOW_SAAS_ADMIN_TOKEN` |
-| **鉴权** | `requireAdmin(authHeader)`：`authHeader === 'Bearer ' + token`；不匹配或未配置 token → `/saas/v1/admin/*` **401** `unauthorized` |
-| **`/saas/v1/health`** | **不**校验 Bearer；返回 `admin_configured: Boolean(adminToken())` |
+| **Token 读取** | `src/saas/admin-auth.ts`：`breakGlassAdminToken()` → `process.env.CHATFLOW_SAAS_ADMIN_TOKEN` |
+| **鉴权** | `requireSaasAdmin(authHeader)`（内部 `resolveSaasAdminAuth`）：Bearer 精确匹配；失败 → `/saas/v1/admin/*` **401** `unauthorized`；成功返回 context（当前仅 `platform_admin` / `break_glass_env`） |
+| **`/saas/v1/health`** | **不**校验 Bearer；返回 `admin_configured: Boolean(breakGlassAdminToken())` |
 | **`GET /saas/admin`** | 静态返回 `public/saas-admin.html`，**无**服务端会话 gate |
 | **Admin UI** | `public/saas-admin.html`：用户粘贴 token，`fetch(..., { headers: { Authorization: 'Bearer ' + token } })` 调所有 admin REST |
 | **数据模型** | `src/saas/db.ts` schema：**仅** `tenants`、`tenant_credentials`、`tenant_faq_entries`、`tenant_settings` — **无** admin 用户 / 角色 / 成员关系表 |

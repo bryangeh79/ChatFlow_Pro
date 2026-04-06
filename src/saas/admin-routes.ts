@@ -10,20 +10,10 @@ import {
   replaceTenantFaqEntries,
 } from './repository';
 import { getSaaSDbPathForDisplay } from './db';
-
-function adminToken(): string | undefined {
-  return process.env.CHATFLOW_SAAS_ADMIN_TOKEN?.trim() || undefined;
-}
+import { breakGlassAdminToken, requireSaasAdmin } from './admin-auth';
 
 function unauthorized(): { status: number; body: unknown } {
   return { status: 401, body: { ok: false, error: 'unauthorized' } };
-}
-
-function requireAdmin(authHeader: string | undefined): boolean {
-  const t = adminToken();
-  if (!t) return false;
-  const expected = `Bearer ${t}`;
-  return authHeader === expected;
 }
 
 function parseJson(text: string): unknown {
@@ -60,12 +50,12 @@ export async function handleSaaSAdminRequest(
         ok: true,
         saas: true,
         db_path: getSaaSDbPathForDisplay(),
-        admin_configured: Boolean(adminToken()),
+        admin_configured: Boolean(breakGlassAdminToken()),
       },
     };
   }
 
-  if (pathname.startsWith('/saas/v1/admin/') && !requireAdmin(authHeader)) {
+  if (pathname.startsWith('/saas/v1/admin/') && !requireSaasAdmin(authHeader).ok) {
     return unauthorized();
   }
 
