@@ -93,7 +93,7 @@ Use this when **one** bot on **one** VPS is “good enough to operate” — no 
 
 ## CI note
 
-GitHub Actions **`build`** job runs **`npm run build`**, **`npm run check:staging-env`** (SET/MISSING summary only), and **`npm run report:agent-git`**; then **`docker-smoke`** (`npm run staging:docker-smoke`) includes **`smoke:webhooks`** and **`verify:lead-capture-states`** on the built image. Workflows use **`actions/checkout@v5`** and **`actions/setup-node@v5`**.
+GitHub Actions **`build`** job runs **`npm run build`**, **`npm run check:staging-env`** (SET/MISSING summary only), and **`npm run report:agent-git`**; then **`docker-smoke`** (`npm run staging:docker-smoke`) includes **`smoke:webhooks`** and **`verify:lead-capture-states`** on the built image. A separate **`tenant-boundary-verify`** job (after build) runs tenant POST/GET boundary scripts when repo secret **`CHATFLOW_SAAS_ADMIN_TOKEN`** is set; **if unset, that job is skipped** (CI still green). Workflows use **`actions/checkout@v5`** and **`actions/setup-node@v5`**.
 
 To read the latest **`ci.yml`** run from any shell **without git** (e.g. read-only agent): **`npm run report:github-ci`** — see **`docs/155`** (*Latest CI run without `git`*).
 

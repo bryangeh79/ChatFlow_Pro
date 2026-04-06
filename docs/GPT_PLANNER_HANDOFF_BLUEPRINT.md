@@ -107,8 +107,8 @@ memory/                     # 人类/龙虾/Cursor 维护的进度与风险（�
 2. **分支**：  
    - `/health`  
    - `/saas/*` → Admin API / Dashboard  
-   - `/webhooks/t/:slug/:channel` → 加载 tenant → `runWithTenantContext` → 对应 `handle*Webhook`（带 `faqEntries` 来自 DB）  
-   - `/webhooks/:channel` → **Legacy**：无租户上下文，FAQ 用 **内置 seed**（`faq-seed.ts`），凭证来自 **env**  
+  - `/webhooks/t/:slug/:channel` → 加载 tenant → `runWithTenantContext` → 对应 `handle*Webhook`（带 `faqEntries` 来自 DB）；**入站验签 / hub verify 仅读租户凭证，不回退 env**（通道差异与 GET 语义 → `docs/175` §「Tenant webhook verification」）  
+  - `/webhooks/:channel` → **Legacy**：无租户上下文，FAQ 用 **内置 seed**（`faq-seed.ts`），凭证来自 **env**
 3. **Pipeline**：`runUnifiedInboundPipeline`（`src/channels/unified-inbound-pipeline/index.ts`）  
    - 可选 `faqEntries`：有则 **不**走内置 seed，仅使用该列表（可为空数组）。  
 4. **出站**：`createChannelSender` → 各 `resolve*ForOutbound()`（`src/saas/tenant-channel-config.ts`）：有租户上下文则读 **tenant_credentials** 表，否则读 **process.env**。  
@@ -131,8 +131,16 @@ memory/                     # 人类/龙虾/Cursor 维护的进度与风险（�
 
 | 变量 | 作用 |
 |------|------|
-| `CHATFLOW_SAAS_ADMIN_TOKEN` | Admin API Bearer；**不提交仓库** |
+| `CHATFLOW_SAAS_ADMIN_TOKEN` | Admin API Bearer；**不提交仓库**；CI 中同名 **GitHub Actions secret** 用于 `tenant-boundary-verify`（未配置则该 job **跳过**，CI 仍可绿） |
 | `CHATFLOW_SAAS_DB_PATH` | 可选；覆盖默认 sqlite 路径 |
+
+**租户 Webhook 边界（运维必读，避免假设「env 能兜底」）**：
+
+- **POST**：WhatsApp / Messenger / Line / Website 在 `/webhooks/t/...` 上需租户级 **signing secret**；未配置则 **403**，**不回退**进程 `META_APP_SECRET` 等。
+- **GET**：上述通道 + Zalo 的 **hub challenge**（订阅校验）需租户级 **verify token**；**idle GET**（无 `hub.*`）仅为连通性说明，**不要求** token。
+- **Telegram**：租户路径 **无** POST 验签、**无** hub verify；**Zalo**：**无** POST 验签，GET hub 仍要租户 verify token。
+
+细则与键名表 → **`docs/175_pro_saas_multitenant_mvp.md`** §「Tenant webhook verification」。
 
 ### 6.3 租户凭证（存 DB，键名与 env 对齐）
 
@@ -176,6 +184,7 @@ memory/                     # 人类/龙虾/Cursor 维护的进度与风险（�
 ## 9. CI 与质量门禁
 
 - Workflow：`.github/workflows/ci.yml`（build、`docker-smoke` 等以仓库为准）。  
+- **租户边界回归**：`tenant-boundary-verify` job 依赖 GitHub secret **`CHATFLOW_SAAS_ADMIN_TOKEN`**；**未配置则跳过**（不失败）。Fork 发起的 PR 不跑该 job。  
 - 本地对齐：`npm run staging:docker-smoke`。  
 - 无 git 时看 CI：`npm run report:github-ci`（可选 `GITHUB_TOKEN` 私库）。
 
