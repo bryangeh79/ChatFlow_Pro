@@ -5,7 +5,7 @@
 - Do not expand into menu / command / state systems just because the webhook baselines are now alive.
 - Do not let channel-specific changes pollute shared core behavior without a hard reason.
 - Continue protecting the **seven-route baseline**: All 7 channels must remain independently verifiable and non-breaking.
-- The current version is **Pro_v1.07.67** (package.json **1.7.67**; **Phase 22D 主目标已完成**（租户 POST/GET 校验与 env 解耦）；22C/22B 控制项仍有效). Truth → **`memory/01_project_status.md`**.
+- The current version is **Pro_v1.07.67** (package.json **1.7.67**; **SaaS MVP sealed (Phase 23 closed)**；**Phase 24** = v1 hardening). Truth → **`memory/01_project_status.md`**.
 - The biggest recurring error to avoid is confusing stable minimal entrypoints with full platform completion.
 - Regression risk remains live whenever shared contracts or routing paths are touched.
 - **Pause Status**: **Not blocked** — default gate **T0 build + T1 `docker-smoke`** (incl. `smoke:webhooks` + `verify:lead-capture-states`); read-only agent env → **docs/155** *T1 equivalence* + **`npm run report:github-ci`**. No public staging URL does **not** block dev; **docs/157** Phase 0 waits on **HTTPS** staging.
@@ -216,3 +216,8 @@
 
 - **Tenant path slug exposure**：`GET /webhooks/t/<slug>/...` — 无效 slug → **404** `tenant_not_found`；有效 slug + idle GET → **200** JSON。存在**租户存在性**推断面；**MVP 接受**，后续若需可改路由/鉴权而非单独「收紧 idle」。
 - **Idle GET information surface**：响应含 **`channel`**、**`verification`** 说明串；**无密钥**；与 **legacy** `/webhooks/<channel>` idle 行为同类。**探活**应优先 **`GET /health`**（`src/server.ts`），避免将 webhook URL 当作正式健康契约。
+
+## Phase 23 closure / Phase 24 handoff (2026-04-07)
+
+- **Phase 23 closed**：**SaaS MVP Final Closure** sealed — 见 **`memory/01`**、**`memory/02`**、**`docs/175`**（MVP status 段）。
+- **叙事切换**：后续 SaaS 工作为 **Phase 24 — SaaS v1 Hardening**（认证/RBAC、Postgres、多实例 store、凭证安全），**不再**把 MVP 当作未完成功能主线。

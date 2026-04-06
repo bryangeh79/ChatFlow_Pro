@@ -1,15 +1,15 @@
 # Next Phase Plan
 
-- Current Phase: **Phase 23 — SaaS MVP Final Closure（✅ 收官审计完成，可封板）**；authoritative status → **`memory/01_project_status.md`**
+- Current Phase: **Phase 24 — SaaS v1 Hardening**（**非** MVP 功能扩面，是托管与安全强化线）。**Phase 23 — SaaS MVP Final Closure** ✅ **已关闭**。authoritative status → **`memory/01_project_status.md`**
 - Phase 22 子阶段（**整段已收口**，SaaS 为 Phase 主线的一部分，非外挂）：
   - **Phase 22A** — SaaS 基础接入（已完成）
   - **Phase 22B** — SaaS 控制权接管（已完成）
   - **Phase 22C** — SaaS 行为全面接管（已完成，**Pro_v1.07.65**）
   - **Phase 22D** — SaaS / Legacy 收口（主目标已完成，**Pro_v1.07.67**）
   - **Phase 22E** — CI / 文档 / 边界说明收尾（**✅ 已收口**，见下节）
-- **当前版本（package.json）**：**1.7.67**（**Pro_v1.07.67**）；22E 以 CI + 文档交付为主，**未单独升 patch**；Phase 23 首个可验收交付可发 **1.7.68**。
-- **任务归属（Phase 23）**：~~idle GET~~ **✅ A**；~~`tenant_settings` 总表~~ **✅**；~~非主链路 send/suppress~~ **✅ 收官只读审计**（无第二路 channel send；suppress 仅 policy handoff 路径）；验收 **✅** 以 **`docs/175`** §「Phase 23 — SaaS MVP acceptance notes」+ T0/T1 +（可选）租户边界 CI 为准。
-- **提交标注约定**（历史）：22D/22E 前缀仍见于已合并提交；**Phase 23** 见下节「提交标注约定（23）」。
+- **当前版本（package.json）**：**1.7.67**（**Pro_v1.07.67**）— **SaaS MVP 封板版本**；Phase 24 里程碑可另发 **1.7.68+**。
+- **任务归属（Phase 24）**：**租户认证 / RBAC**；**Postgres + migration**；**多实例下 session / store 收口**；**凭证安全**（加密、轮换、审计）。拆包顺序由规划与风险决定，**不**在本文件预写死交付日。
+- **提交标注约定**（历史）：22D/22E/23 前缀仍见于已合并提交；**Phase 24**：`feat(phase-24):` · `chore(phase-24):` · `docs(phase-24):`。
 - Previous major milestone in this log: **Phase 16.2** - HTTP access observability enhanced (`X-Request-Id`, optional `CHATFLOW_HTTP_ACCESS_LOG`, webhook `phases_ms`, verification type narrowing)
 - Before that: Phase 16 - HTTP access observability first slice
 - Completed in Phase 15.0:
@@ -228,7 +228,7 @@
 
 ---
 
-## Phase 23 — SaaS MVP Final Closure（✅ 收官）
+## Phase 23 — SaaS MVP Final Closure（✅ 已关闭）
 
 **目标**：总验收 + 剩余尾项裁决，**不再大面积扩功能** — **已达成**。
 
@@ -236,12 +236,25 @@
 1. ~~**idle GET**~~ **✅ 选项 A**：`docs/175` + 蓝图冻结；**`/health`** 为推荐探活。
 2. ~~**非主链路 send / suppress**~~ **✅ 审计**：channel 回复单一路径；handoff env suppress 仅 `policy.ts`；notify HTTP 单独 `notify.enabled`。
 3. ~~**`tenant_settings` 矩阵**~~ **✅** — `docs/175`；`faq.fallback_enabled` **partial** 按 MVP 边界冻结、不扩代码。
-4. **验收清单** — `docs/175` §「Phase 23 — SaaS MVP acceptance notes」；可选后续补「手工抽检一行表」非阻塞。
+4. **验收清单** — `docs/175` §「Phase 23 — SaaS MVP acceptance notes」；**SaaS MVP 主线完结**，后续不算 MVP 扩面。
 
-**提交标注约定（23）**：`feat(phase-23):` · `chore(phase-23):` · `docs(phase-23):`。
+**结论**：**多租户 SaaS MVP 已完成并封板**；工程叙事切换为 **Phase 24 — SaaS v1 Hardening**。
+
+---
+
+## Phase 24 — SaaS v1 Hardening（当前）
+
+**定位**：在 **MVP 已交付** 前提下，面向 **托管生产** 的强化线（**非**「把 MVP 当未完主线」）。
+
+**建议方向（立项时拆包）**：
+1. **Tenant 用户认证 / RBAC**（替代或补充单一 `CHATFLOW_SAAS_ADMIN_TOKEN`）。
+2. **Postgres + migration**（替换或并存 sql.js 文件库）。
+3. **多实例 / session / store 收口**（sticky、外置 session、JSONL 单写者假设等）。
+4. **凭证安全**：加密-at-rest、轮换策略、审计日志（`docs/175` non-goals 已有提示）。
 
 ## Next (执行优先级)
 
-1. **Phase 23 封板后**：以 **`docs/175`** + **T0/T1** 为 SaaS MVP 回归口径；新版本标签可按需 **1.7.68**。
-2. 默认外发动作（非 onboarding）：`npm run delivery:ship:final`。
-3. Onboarding / 托管演进：下一 phase 在 **`memory/03`** 单独立项（Postgres、租户 JWT 等），**不**在本节展开。
+1. **Phase 24**：按上节四项 **分别 ADR + 验收**；默认仍保持 **T0 + T1** 不降级。
+2. **MVP 回归**：合并前仍以 **`docs/175`** + **T0/T1** 为 SaaS 基线。
+3. 默认外发动作（非 onboarding）：`npm run delivery:ship:final`。
+4. 客户 **onboarding / 一客户一部署**：继续走 **`docs/171`** 等交付链，与 Phase 24 **并行规划**时需标明资源优先级。

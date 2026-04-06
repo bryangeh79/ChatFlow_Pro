@@ -1,8 +1,8 @@
 # Project Status
 
 - Project Name: ChatFlow Pro
-- Current Phase: **Phase 23 — SaaS MVP Final Closure**（总验收 + 尾项裁决）；Phase **22 全线收口**：**22A–22E** ✅（**22E**：租户边界 **CI** + **文档** 已落地）
-- Current Version: **Pro_v1.07.67** (package.json: **1.7.67**；22D 租户路径验签/verify 与 22B–22C 运行时控制项仍有效；**22E 未单独升 patch**，Phase 23 首个可标签交付可发 **1.7.68**)
+- Current Phase: **Phase 24 — SaaS v1 Hardening**（**非** MVP 扩功能主线，而是托管/安全/规模强化）。**Phase 23 — SaaS MVP Final Closure** ✅ **已关闭**；Phase **22（22A–22E）** ✅。
+- Current Version: **Pro_v1.07.67** (package.json: **1.7.67**；**SaaS MVP 口径已完成**；v1 强化线可按里程碑另发 **1.7.68+**)
 - Execution Root: C:\AI_WORKSPACE\Chatflow\ChatFlow_Pro
 - Current Project State: 
   - ✅ **Seven-route webhook baseline**: Website, Telegram, WhatsApp, Messenger, Line, Zalo (`POST /webhooks/*` + **`GET /webhooks/*`** verification per docs/141)
@@ -31,11 +31,12 @@
   - ✅ **SaaS MVP（Phase 22A）**：sql.js SQLite、租户 webhook `GET|POST /webhooks/t/<slug>/<channel>`、Admin API + `public/saas-admin.html`、进程内租户 context + session 隔离 + 每租户 FAQ/凭据；`tenant_settings` 已落库与 Admin 读写，**运行时由 `tenant_settings` 驱动归 Phase 22B**（见 `memory/03`、`docs/175`、`src/saas/*`）
   - ✅ **Phase 22D（主目标）**：租户路径 **POST**（WA/Messenger/Line/Website）验签 **仅用租户 secret**，缺失即 403；租户路径 **GET** hub 校验 **仅用租户 verify token**，缺失即 `tenant_verify_token_missing`；**legacy `/webhooks/*` 不变**。脚本：`verify:tenant-post-signature-boundary`、`verify:tenant-get-verify-boundary`。
   - ✅ **Phase 22E（收口）**：**CI** `tenant-boundary-verify`（依赖 Actions secret `CHATFLOW_SAAS_ADMIN_TOKEN`，未设跳过；fork PR 不跑）；**文档** `docs/175` / `GPT_PLANNER_HANDOFF_BLUEPRINT` / `docs/158` 补齐运维边界与 idle vs hub 语义。
-- Current Completion Point: **Pro_v1.07.67** — **Phase 22（含 22E）已收口**；**Phase 23（SaaS MVP Final Closure）收官审计已完成**（idle GET 选项 **A** 文档冻结、`tenant_settings` 矩阵见 **`docs/175`**、非主链路 channel **send / handoff suppress** 经代码审计无第二入口 — 见 **`memory/03`** / **`memory/04`**）。
+  - ✅ **Phase 23（SaaS MVP Final Closure）— 已关闭**：**多租户 SaaS MVP 交付口径完成** — idle GET **选项 A** 冻结、`tenant_settings` 主控制链 + 矩阵（`docs/175`）、非主链路 send/suppress **covered**、docs/蓝图/memory **aligned**、`faq.fallback_enabled` **partial** 按已知边界冻结。
+- Current Completion Point: **Pro_v1.07.67** — **SaaS MVP sealed**；**Phase 24** 聚焦 v1 **认证/RBAC、Postgres、多实例 session/store、凭证加密与审计**（见 **`memory/03`**）。
 - Pro Target Channels (product scope, Bryan-locked): **Telegram**, **WhatsApp**, **Facebook Messenger**, **Line**, **Zalo**; architecture must keep an **extension slot** for additional messaging platforms later. **Website live chat** remains part of Pro (already implemented alongside messaging channels).
 - Current Channel Boundary (runtime today): **All seven channels live** — unified pipeline; **Telegram** real outbound when token + not sandbox (**optional proxy**); **WhatsApp** real outbound when token + phone number ID + not sandbox; **Messenger** real outbound when token + page ID + not sandbox; **Line** real outbound when token + not sandbox; **Zalo** real outbound when token + OA ID + not sandbox; **Website** real outbound when `WEBSITE_OUTBOUND_URL` configured + not sandbox/disabled; **WhatsApp/Messenger/Line/Website** POST signature validation when secret configured; **Zalo** inbound relies on IP whitelisting (per official docs).
 - **Pause Status**: **Not blocked on staging** — 默认门槛：**T0 build + T1 `staging:docker-smoke`**（**`docs/158`** *Default staging ladder*）；公网/T3、Zalo OA、157 B/C 为**可选增强**，不挡合并与后续功能开发
-- Next Unique Priority Action: **Phase 23 已收口** — 后续以 **`docs/175`** 验收节 + **T0/T1** 为准；若升版可发 **1.7.68** 标签。下一工程阶段由 **`memory/03`** 另起（非本文件强写）。
+- Next Unique Priority Action: **Phase 24 — SaaS v1 Hardening** — 在 **`memory/03`** 拆包立项（建议方向：租户用户认证/RBAC；Postgres + migration；多实例 session/store；凭证 KMS/轮换/审计）。**MVP 回归**仍：**T0 + T1** + `docs/175`。提交前缀：`feat(phase-24):` · `chore(phase-24):` · `docs(phase-24):`。
 
 - ⚠️ **Phase 22C 后遗留风险**（收口承认，非阻塞）：
   - **历史 session 状态不主动清空**：租户开关变更后，进程内既有 session 不回收，仅影响后续轮次行为边界。

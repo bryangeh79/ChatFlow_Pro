@@ -46,8 +46,8 @@
    - 编排：`docker-compose.customer.yml`、发版脚本 `release:*`、`delivery:*`。  
    - 配置主要来源：**环境变量 / `.env`（不入库）**。
 
-2. **多租户 SaaS（MVP 已落地代码）**  
-   - 见 **`docs/175_pro_saas_multitenant_mvp.md`**（范围与非目标写得很清楚）。  
+2. **多租户 SaaS** — **MVP 已封板（Phase 23）**；当前工程主线为 **Phase 24 — SaaS v1 Hardening**（见 **`memory/03_next_phase_plan.md`**）。  
+   - 见 **`docs/175_pro_saas_multitenant_mvp.md`**（范围、验收、**MVP sealed** 状态）。  
    - 租户 Webhook：`/webhooks/t/<slug>/<channel>`。  
    - 数据：**sql.js（WASM SQLite）** 文件库，默认 `data/chatflow-saas.sqlite`。  
    - 管理：`GET /saas/admin`（静态页）、`/saas/v1/admin/*` + `CHATFLOW_SAAS_ADMIN_TOKEN`。  
@@ -202,9 +202,9 @@ memory/                     # 人类/龙虾/Cursor 维护的进度与风险（�
 - **Phase 18–21**：Handoff 分配、JSONL 审计、报表、ops 告警、autotune、runtime JSON + SIGHUP（`docs/165–167`）。  
 - **交付自动化**：`release:*`、`delivery:*`、`docs/168–172`、`delivery:ship:final` 等。  
 - **Phase 22（memory 命名）**：发包文案自动化、memory 收口。  
-- **SaaS MVP（代码）**：`src/saas/*`、`docs/175`、版本进 **1.7.59** 前后。
+- **SaaS MVP（22–23）**：`src/saas/*`、`docs/175`；**Phase 23 已封板**（MVP 完成）；**Phase 24** = v1 Hardening（见 `memory/03`）。
 
-**memory/01 可能未写 SaaS**：以本文件 + `package.json` + `docs/175` 为准。
+**memory/01**：应已写当前 phase；若不一致以 **`docs/175`** MVP status + **`memory/03`** 为准。
 
 ---
 
@@ -212,13 +212,13 @@ memory/                     # 人类/龙虾/Cursor 维护的进度与风险（�
 
 以下 **未声称已完成** 或 **仅部分完成**，规划时应显式立项：
 
-1. **`tenant_settings` → 运行时策略**：已存 JSON，**未**全面驱动 handoff / lead / 话术 / notify。  
+1. **`tenant_settings` 残余边界**：核心键已驱动 runtime（见 **`docs/175`** 矩阵）；**`faq.fallback_enabled`** 不覆盖 `post_capture` / `capture` i18n 引导 — MVP 已知，**Phase 24** 可再立项扩面。  
 2. **OpenAI / LLM**：无统一生产调用链；租户可存 `OPENAI_API_KEY`，需接 pipeline 与计费/限流设计。  
-3. **SaaS 安全**：凭证库内 **明文**；需 KMS/加密、审计日志、轮换策略。  
+3. **SaaS 安全**：凭证库内 **明文**；需 KMS/加密、审计日志、轮换策略 — **Phase 24 主项**。  
 4. **Legacy vs SaaS 统一叙事**：是否 deprecate `/webhooks/:channel` 或加全局开关 `CHATFLOW_DEFAULT_MODE`。  
-5. **多实例**：Session 内存、JSONL 单写者假设；SaaS 需 sticky 或外置 session/store。  
-6. **Admin 产品化**：从单页 HTML → 认证、多用户、审计、RBAC。  
-7. **Postgres + 迁移**：替代 sql.js 用于托管环境。
+5. **多实例**：Session 内存、JSONL 单写者假设；SaaS 需 sticky 或外置 session/store — **Phase 24 主项**。  
+6. **Admin 产品化**：从单页 HTML → 认证、多用户、审计、RBAC — **Phase 24 主项**。  
+7. **Postgres + 迁移**：替代 sql.js 用于托管环境 — **Phase 24 主项**。
 
 ---
 

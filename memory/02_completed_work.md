@@ -207,4 +207,11 @@
 - Version: **未升 patch**，仍 **Pro_v1.07.67** / `package.json` **1.7.67**（与 22D 对齐）。
 - **CI**：`.github/workflows/ci.yml` 增加 **`tenant-boundary-verify`**（`needs: build`），跑 `verify:tenant-post-signature-boundary` + `verify:tenant-get-verify-boundary`；需 **`CHATFLOW_SAAS_ADMIN_TOKEN`**（Actions secret），未设则 job 跳过；fork PR 不跑。
 - **文档**：`docs/175_pro_saas_multitenant_mvp.md`、`docs/GPT_PLANNER_HANDOFF_BLUEPRINT.md`、`docs/158_docker_staging_quickstart.md` — 租户必配、通道差异、idle GET vs hub challenge、CI 前提。
-- **未关项（移交 Phase 23）**：idle GET 是否在无 verify token 时收紧为 403 — 产品裁决。
+- **idle GET（→ Phase 23）**：选项 **A** 冻结（保留 200；`/health` 探活）。
+
+## Phase 23 Completed — SaaS MVP Final Closure（已封板）
+- **SaaS MVP 交付口径完成**：`tenant_settings` 主控制链成立；非主链路 **channel send** / **handoff env suppress** 收官审计 **covered**；`docs/175`、蓝图、`memory` **aligned**。
+- **idle GET**：产品裁决 **A**（文档冻结，不改代码）。
+- **`faq.fallback_enabled`**：**partial** 按 MVP 已知边界冻结（不扩 `post_capture` / `capture` 文案开关）。
+- **版本**：仍 **Pro_v1.07.67** / `package.json` **1.7.67**（MVP 封板未强制升 patch）。
+- **后续主线**：**Phase 24 — SaaS v1 Hardening**（见 **`memory/03`**）。

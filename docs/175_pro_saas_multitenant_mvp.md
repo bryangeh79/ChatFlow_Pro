@@ -4,6 +4,8 @@
 
 Move from single-tenant env-injection toward **multi-tenant SaaS**: per-customer credentials, FAQ, and settings in a database, with a minimal admin UI and tenant-scoped webhooks.
 
+**SaaS MVP status**: **Sealed (Phase 23 closed, 2026-04-07).** Feature scope described in this document is **complete for MVP**; further SaaS work is **Phase 24 — SaaS v1 Hardening** (tenant auth/RBAC, Postgres, multi-instance session store, credential encryption/rotation/audit) — see **`memory/03_next_phase_plan.md`**.
+
 ## What shipped (MVP)
 
 - **SQLite (sql.js)** file DB, default path `data/chatflow-saas.sqlite` (override `CHATFLOW_SAAS_DB_PATH`).
