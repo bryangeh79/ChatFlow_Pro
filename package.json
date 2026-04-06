@@ -17,6 +17,7 @@
     "release:verify": "node scripts/release-verify.mjs",
     "release:prepare": "node scripts/release-prepare.mjs",
     "release:ship": "node scripts/release-ship.mjs",
+    "delivery:ship:final": "node scripts/release-ship-final.mjs",
     "delivery:manifest": "node scripts/build-delivery-manifest.mjs",
     "delivery:bundle": "npm run delivery:manifest && node scripts/build-delivery-bundle.mjs",
     "delivery:zip": "npm run delivery:bundle && node scripts/build-delivery-zip.mjs",
