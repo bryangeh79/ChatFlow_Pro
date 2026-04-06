@@ -1,0 +1,108 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ChatFlow Pro 客户填写单</title><style>body{font-family:"Segoe UI","Microsoft YaHei",sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem;line-height:1.55;color:#111}table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid #bbb;padding:.45rem .55rem;vertical-align:top}h1{font-size:1.5rem}h2{font-size:1.2rem;margin-top:1.5rem}h3{font-size:1.05rem;margin-top:1.1rem}code,pre{font-family:Consolas,monospace;font-size:.88em}@media print{body{margin:0;max-width:none}}</style></head><body><h1>ChatFlow Pro - ä¸ƒé€šé“ Token è¯´æ˜Ž + å®¢æˆ·å¡«å†™è¡¨ï¼ˆå•æ–‡ä»¶ï¼‰</h1>
+<p>æœ¬æ–‡æ¡£ç»™å®¢æˆ·ç›´æŽ¥ä½¿ç”¨ï¼šå…ˆçœ‹ã€Œæ€Žä¹ˆæ‹¿ã€ï¼Œå†åœ¨ä¸‹æ–¹ã€Œå¡«å†™è¡¨ã€å¡«å€¼å›žä¼ ã€‚</p>
+<hr>
+<h2>A. å¿«é€ŸèŽ·å–å…¥å£ï¼ˆå®¢æˆ·æŸ¥çœ‹ï¼‰</h2>
+<h3>1) Websiteï¼ˆç½‘ç«™é€šé“ï¼‰</h3>
+<ul>
+<li>éžç¬¬ä¸‰æ–¹å¹³å°é¢† tokenï¼Œå±žäºŽä¼ä¸šè‡ªæœ‰ç³»ç»Ÿå¯¹æŽ¥ã€‚</li>
+<li>éœ€è¦æä¾›ï¼š<code>Outbound Callback URL</code>ã€ï¼ˆå¯é€‰ï¼‰<code>Webhook Signing Secret</code>ã€ï¼ˆå¯é€‰ï¼‰<code>Webhook Verify Token</code>ã€‚</li>
+</ul>
+<h3>2) Telegram</h3>
+<ul>
+<li>å®˜æ–¹å…¥å£ï¼š<a href="https://t.me/BotFather">https://t.me/BotFather</a></li>
+<li>èŽ·å–ï¼šåˆ›å»º Bot åŽæ‹¿ <code>TELEGRAM_BOT_TOKEN</code>ï¼ˆå¯é€‰ <code>Bot Username</code>ï¼‰ã€‚</li>
+</ul>
+<h3>3) Meta - WhatsApp</h3>
+<ul>
+<li>å®˜æ–¹å…¥å£ï¼š<a href="https://developers.facebook.com/">https://developers.facebook.com/</a></li>
+<li>èŽ·å–ï¼š<code>WHATSAPP_ACCESS_TOKEN</code>ã€<code>WHATSAPP_PHONE_NUMBER_ID</code>ã€<code>WHATSAPP_APP_SECRET</code>ï¼ˆæˆ– <code>META_APP_SECRET</code>ï¼‰ã€<code>WHATSAPP_WEBHOOK_VERIFY_TOKEN</code>ã€‚</li>
+</ul>
+<h3>4) Meta - Messenger</h3>
+<ul>
+<li>å®˜æ–¹å…¥å£ï¼š<a href="https://developers.facebook.com/">https://developers.facebook.com/</a></li>
+<li>èŽ·å–ï¼š<code>MESSENGER_PAGE_ACCESS_TOKEN</code>ã€<code>MESSENGER_PAGE_ID</code>ã€<code>MESSENGER_APP_SECRET</code>ï¼ˆæˆ– <code>META_APP_SECRET</code>ï¼‰ã€<code>MESSENGER_WEBHOOK_VERIFY_TOKEN</code>ã€‚</li>
+</ul>
+<h3>5) LINE</h3>
+<ul>
+<li>å®˜æ–¹å…¥å£ï¼š<a href="https://developers.line.biz/console/">https://developers.line.biz/console/</a></li>
+<li>èŽ·å–ï¼š<code>LINE_CHANNEL_ACCESS_TOKEN</code>ã€<code>LINE_CHANNEL_SECRET</code>ã€ï¼ˆå¯é€‰ï¼‰<code>LINE_WEBHOOK_VERIFY_TOKEN</code>ã€‚</li>
+</ul>
+<h3>6) Zalo OA</h3>
+<ul>
+<li>å®˜æ–¹å…¥å£ï¼š<a href="https://developers.zalo.me/">https://developers.zalo.me/</a></li>
+<li>èŽ·å–ï¼š<code>ZALO_ACCESS_TOKEN</code>ã€<code>ZALO_OA_ID</code>ã€ï¼ˆå¯é€‰åˆ·æ–°ï¼‰<code>ZALO_APP_ID</code>ã€<code>ZALO_APP_SECRET</code>ã€<code>ZALO_REFRESH_TOKEN</code>ã€ï¼ˆå¯é€‰ï¼‰<code>ZALO_WEBHOOK_VERIFY_TOKEN</code>ã€‚</li>
+</ul>
+<blockquote>
+<p>å®‰å…¨æç¤ºï¼šæ‰€æœ‰å¯†é’¥/Token è¯·å‹¿å‘ç¾¤èŠï¼Œä½¿ç”¨å®‰å…¨æ¸ é“ä¼ é€’ã€‚</p>
+</blockquote>
+<hr>
+<h2>B. å®¢æˆ·å¡«å†™è¡¨ï¼ˆç›´æŽ¥å¡«ï¼‰</h2>
+<h3>1) Websiteï¼ˆç½‘ç«™é€šé“ï¼‰</h3>
+<ul>
+<li>Outbound Callback URL (HTTPS):</li>
+<li>Webhook Signing Secretï¼ˆå¯é€‰ï¼‰:</li>
+<li>Webhook Verify Tokenï¼ˆå¯é€‰ï¼‰:</li>
+<li>å¤‡æ³¨:</li>
+</ul>
+<h3>2) Telegram</h3>
+<ul>
+<li>Bot Usernameï¼ˆä¾‹å¦‚ @your_botï¼‰:</li>
+<li>TELEGRAM_BOT_TOKEN:</li>
+<li>æ˜¯å¦éœ€è¦ä»£ç†ï¼ˆY/Nï¼‰:</li>
+<li>ä»£ç†åœ°å€ï¼ˆå¦‚éœ€è¦ï¼‰:</li>
+<li>å¤‡æ³¨:</li>
+</ul>
+<h3>3) Meta - WhatsApp</h3>
+<ul>
+<li>WHATSAPP_ACCESS_TOKEN:</li>
+<li>WHATSAPP_PHONE_NUMBER_ID:</li>
+<li>WHATSAPP_APP_SECRETï¼ˆæˆ– META_APP_SECRETï¼‰:</li>
+<li>WHATSAPP_WEBHOOK_VERIFY_TOKEN:</li>
+<li>å…³è” Business åç§°:</li>
+<li>å¤‡æ³¨:</li>
+</ul>
+<h3>4) Meta - Messenger</h3>
+<ul>
+<li>MESSENGER_PAGE_ACCESS_TOKEN:</li>
+<li>MESSENGER_PAGE_ID:</li>
+<li>MESSENGER_APP_SECRETï¼ˆæˆ– META_APP_SECRETï¼‰:</li>
+<li>MESSENGER_WEBHOOK_VERIFY_TOKEN:</li>
+<li>Facebook Page åç§°:</li>
+<li>å¤‡æ³¨:</li>
+</ul>
+<h3>5) LINE</h3>
+<ul>
+<li>LINE_CHANNEL_ACCESS_TOKEN:</li>
+<li>LINE_CHANNEL_SECRET:</li>
+<li>LINE_WEBHOOK_VERIFY_TOKENï¼ˆå¯é€‰ï¼‰:</li>
+<li>Provider / Channel åç§°:</li>
+<li>å¤‡æ³¨:</li>
+</ul>
+<h3>6) Zalo OA</h3>
+<ul>
+<li>ZALO_ACCESS_TOKEN:</li>
+<li>ZALO_OA_ID:</li>
+<li>ZALO_APP_IDï¼ˆå¯é€‰ï¼Œåˆ·æ–°ç”¨ï¼‰:</li>
+<li>ZALO_APP_SECRETï¼ˆå¯é€‰ï¼Œåˆ·æ–°ç”¨ï¼‰:</li>
+<li>ZALO_REFRESH_TOKENï¼ˆå¯é€‰ï¼Œåˆ·æ–°ç”¨ï¼‰:</li>
+<li>ZALO_WEBHOOK_VERIFY_TOKENï¼ˆå¯é€‰ï¼‰:</li>
+<li>å¤‡æ³¨:</li>
+</ul>
+<h3>7) å…¨å±€è¿ç»´ä¿¡æ¯ï¼ˆå»ºè®®å¡«å†™ï¼‰</h3>
+<ul>
+<li>æœåŠ¡å™¨å…¬ç½‘åŸŸåï¼ˆä¾‹å¦‚ chatflowpro01.xxx.comï¼‰:</li>
+<li>Caddy / åå‘ä»£ç†ç®¡ç†äºº:</li>
+<li>å®¢æˆ·æŠ€æœ¯è”ç³»äººï¼ˆå§“å / ç”µè¯ / é‚®ç®±ï¼‰:</li>
+<li>ç´§æ€¥é€šçŸ¥æ–¹å¼:</li>
+<li>è®¡åˆ’ä¸Šçº¿æ—¥æœŸ:</li>
+</ul>
+<hr>
+<h2>å®¢æˆ·ç¡®è®¤</h2>
+<ul>
+<li>æˆ‘ç¡®è®¤ä»¥ä¸Šä¿¡æ¯å¯ç”¨äºŽ ChatFlow Pro éƒ¨ç½²ä¸Žè”è°ƒã€‚</li>
+<li>å…¬å¸/å›¢é˜Ÿåç§°:</li>
+<li>å¡«å†™äºº:</li>
+<li>æ—¥æœŸ:</li>
+</ul>
+</body></html>
