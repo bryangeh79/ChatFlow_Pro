@@ -25,6 +25,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Staging env summary (SET/MISSING only, no secret values)
+        run: npm run check:staging-env
+
       - name: Git metadata (sanity)
         run: npm run report:agent-git
 
