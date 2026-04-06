@@ -162,4 +162,5 @@
 - **Pro_v1.07.40** (package.json 1.7.40): **Handoff 最小接入包** — 关键词触发、session 状态更新、unified pipeline 集成
 - **Pro_v1.07.41** (package.json 1.7.41): **`CHATFLOW_HANDOFF_NOTIFY_URL`** — 首次进入 handoff **pending** 时异步 POST；**`check:staging-env`** handoff notify 可选节
 - **Pro_v1.07.42** (package.json 1.7.42): **`CHATFLOW_SUPPRESS_REPLY_ON_HANDOFF`** — handoff 时可选抑制 bot 回复，七通道 webhook handlers 使用 `result.response.should_send`
-- Next Unique Priority Action: 按需 **lead / handoff notify**；**docs/157** 有 staging URL 再跑全量；下一产品块 **坐席消费 handoff_pending** 或 **memory/32** 方向；门禁 **T0+T1**；**`docs/155`** *T1 equivalence* 适用于无 Docker 的代理环境。
+- **Pro_v1.07.43** (package.json 1.7.43): **`docs/161`** — lead + handoff notify **接收端契约**；**`check:staging-env`** 增补 **`CHATFLOW_SUPPRESS_REPLY_ON_HANDOFF`** 摘要
+- Next Unique Priority Action: 按 **`docs/161`** 对接接收端；按需 **notify / suppress**；**docs/157** 有 staging URL 再跑全量；下一产品块 **memory/32** 或坐席分配；门禁 **T0+T1**；**`docs/155`** *T1 equivalence* 适用于无 Docker 的代理环境。

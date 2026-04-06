@@ -5,7 +5,7 @@
 - Do not expand into menu / command / state systems just because the webhook baselines are now alive.
 - Do not let channel-specific changes pollute shared core behavior without a hard reason.
 - Continue protecting the **seven-route baseline**: All 7 channels must remain independently verifiable and non-breaking.
-- The current version is **Pro_v1.07.42** (package.json **1.7.42**; **Handoff 回复抑制** + **Handoff notify** optional POST + **Handoff 最小接入包** + Phase **17.2** + Docker / **docs/155**; 可选 **lead notify** POST). Truth → **`memory/01_project_status.md`**.
+- The current version is **Pro_v1.07.43** (package.json **1.7.43**; **`docs/161`** notify 契约 + **check:staging-env** suppress 行 + **Handoff 回复抑制** + optional **handoff/lead notify** POST + Phase **17.2** + **docs/155**). Truth → **`memory/01_project_status.md`**.
 - The biggest recurring error to avoid is confusing stable minimal entrypoints with full platform completion.
 - Regression risk remains live whenever shared contracts or routing paths are touched.
 - **Pause Status**: **Not blocked** — default gate **T0 build + T1 `docker-smoke`** (incl. `smoke:webhooks` + `verify:lead-capture-states`); read-only agent env → **docs/155** *T1 equivalence* + **`npm run report:github-ci`**. No public staging URL does **not** block dev; **docs/157** Phase 0 waits on **HTTPS** staging.

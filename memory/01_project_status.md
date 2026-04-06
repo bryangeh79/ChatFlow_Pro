@@ -2,7 +2,7 @@
 
 - Project Name: ChatFlow Pro
 - Current Phase: **Phase 17.2** (Meta WA + Messenger **fb_exchange_token** on 401 / Graph **190**) — MVP 已落地；**云 staging / 157 B·C** 为上线前增强验证，**不挡**日常开发与合并（见 **158** 阶梯）
-- Current Version: **Pro_v1.07.42** (package.json: 1.7.42)
+- Current Version: **Pro_v1.07.43** (package.json: 1.7.43)
 - Execution Root: C:\AI_WORKSPACE\Chatflow\ChatFlow_Pro
 - Current Project State: 
   - ✅ **Seven-route webhook baseline**: Website, Telegram, WhatsApp, Messenger, Line, Zalo (`POST /webhooks/*` + **`GET /webhooks/*`** verification per docs/141)
@@ -28,8 +28,8 @@
   - ✅ **Zalo Open API real outbound**: When `ZALO_ACCESS_TOKEN` + `ZALO_OA_ID` valid and not sandbox, outbound uses Open API (`docs/149`, `src/channels/outbound-sender/index.ts`)
   - ✅ **HTTP observability (Phase 16)**: All responses include `X-Request-Id`; optional one-line JSON access log when `CHATFLOW_HTTP_ACCESS_LOG` set (`docs/150`, `src/observability/http-access.ts`, `server.ts`); **HTTP `request_id` = `debug_metadata.request_id`** on all seven `POST /webhooks/*` paths via `createMinimalTraceContext({ httpRequestId })`; access log may include **`phases_ms`** (`prepare_ms`, optional `outbound_send_ms`) from webhook handlers
   - ✅ Optional **handoff notify**: `CHATFLOW_HANDOFF_NOTIFY_URL` (+ optional secret header) → async POST on first transition to `handoff_state` **pending** (**Pro_v1.07.41**)
-- Current Completion Point: **Pro_v1.07.42** — **Handoff 回复抑制**：`CHATFLOW_SUPPRESS_REPLY_ON_HANDOFF` 门控，handoff 时可选择不发送 bot 回复；**Pro_v1.07.41**：可选 **`CHATFLOW_HANDOFF_NOTIFY_URL`**：session 首次进入 handoff **pending** 时异步 **POST**（`src/config/handoff-notify.ts`、`handoff-trigger/notify-outbound.ts`）；**`check:staging-env`** 列出 handoff notify 变量；**Pro_v1.07.40**：**Handoff 最小接入包**（关键词、`CHATFLOW_HANDOFF_KEYWORDS`、pipeline 集成）；**Pro_v1.07.39**：可选 **lead notify**；**Pro_v1.07.38**：**`docs/158`** 单通道 Telegram 交付收口
+- Current Completion Point: **Pro_v1.07.43** — **`docs/161`** lead + handoff notify **契约**（字段、请求头、幂等与隐私）；**`check:staging-env`** 增补 **`CHATFLOW_SUPPRESS_REPLY_ON_HANDOFF`** ON/OFF 摘要；**Pro_v1.07.42**：**Handoff 回复抑制**（`CHATFLOW_SUPPRESS_REPLY_ON_HANDOFF`，七通道 `result.response.should_send`）；**Pro_v1.07.41**：可选 **`CHATFLOW_HANDOFF_NOTIFY_URL`**；**Pro_v1.07.40**：**Handoff 最小接入包**；**Pro_v1.07.39**：可选 **lead notify**；**Pro_v1.07.38**：**`docs/158`** 单通道 Telegram 交付收口
 - Pro Target Channels (product scope, Bryan-locked): **Telegram**, **WhatsApp**, **Facebook Messenger**, **Line**, **Zalo**; architecture must keep an **extension slot** for additional messaging platforms later. **Website live chat** remains part of Pro (already implemented alongside messaging channels).
 - Current Channel Boundary (runtime today): **All seven channels live** — unified pipeline; **Telegram** real outbound when token + not sandbox (**optional proxy**); **WhatsApp** real outbound when token + phone number ID + not sandbox; **Messenger** real outbound when token + page ID + not sandbox; **Line** real outbound when token + not sandbox; **Zalo** real outbound when token + OA ID + not sandbox; **Website** real outbound when `WEBSITE_OUTBOUND_URL` configured + not sandbox/disabled; **WhatsApp/Messenger/Line/Website** POST signature validation when secret configured; **Zalo** inbound relies on IP whitelisting (per official docs).
 - **Pause Status**: **Not blocked on staging** — 默认门槛：**T0 build + T1 `staging:docker-smoke`**（**`docs/158`** *Default staging ladder*）；公网/T3、Zalo OA、157 B/C 为**可选增强**，不挡合并与后续功能开发
-- Next Unique Priority Action: 按需配置 **Lead / Handoff notify**（`.env.example`）；日常 **T0+T1**；**docs/157** 有 staging URL 再跑完整验证；下一产品大块：**坐席侧消费 handoff_pending**、或 **memory/32** 方向的新能力（改共享管道时对照 **04/06/07**）
+- Next Unique Priority Action: 按 **`docs/161`** 对接接收端（幂等 + 验 secret）；按需配置 **Lead / Handoff notify** 与 **suppress**；日常 **T0+T1**；**docs/157** 有 staging URL 再跑完整验证；下一产品大块：**memory/32** 或坐席分配（改共享管道时对照 **04/06/07**）

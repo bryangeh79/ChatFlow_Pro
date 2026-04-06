@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Lists staging-related env vars as SET / MISSING / ANY_OK without printing values.
- * Aligns with docs/157, docs/160, docs/154, docs/156.
+ * Aligns with docs/157, docs/160, docs/154, docs/156, docs/161 (optional notify / suppress).
  *
  * If project root `.env` exists, KEY=VALUE lines are merged into `process.env` when the
  * key is missing **or set to an empty string** (Windows User env vars are often empty).
@@ -127,6 +127,20 @@ function sectionOptionalHandoffNotify() {
   lines.push('[Optional — handoff notify] first transition to handoff pending → POST (see .env.example CHATFLOW_HANDOFF_NOTIFY_*)');
   lines.push(`  CHATFLOW_HANDOFF_NOTIFY_URL             ${isNonEmpty('CHATFLOW_HANDOFF_NOTIFY_URL') ? 'SET' : 'MISSING'}`);
   lines.push(`  CHATFLOW_HANDOFF_NOTIFY_SECRET          ${isNonEmpty('CHATFLOW_HANDOFF_NOTIFY_SECRET') ? 'SET' : 'MISSING'}`);
+  return { ok: true, lines };
+}
+
+function suppressReplyOnHandoffEnabled() {
+  const v = process.env.CHATFLOW_SUPPRESS_REPLY_ON_HANDOFF?.trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+}
+
+function sectionOptionalHandoffBehavior() {
+  const lines = [];
+  lines.push('[Optional — handoff behavior] docs/161');
+  lines.push(
+    `  CHATFLOW_SUPPRESS_REPLY_ON_HANDOFF      ${suppressReplyOnHandoffEnabled() ? 'ON (1/true/yes)' : 'OFF or unset'}`,
+  );
   return { ok: true, lines };
 }
 
@@ -272,6 +286,8 @@ function main() {
         ...sectionOptionalLeadNotify().lines,
         '',
         ...sectionOptionalHandoffNotify().lines,
+        '',
+        ...sectionOptionalHandoffBehavior().lines,
       ].join('\n'),
     );
     return;
@@ -302,6 +318,7 @@ function main() {
   };
   const leadN = sectionOptionalLeadNotify();
   const handoffN = sectionOptionalHandoffNotify();
+  const handoffBehave = sectionOptionalHandoffBehavior();
 
   sections.all = {
     ok: true,
@@ -319,6 +336,8 @@ function main() {
       ...leadN.lines,
       '',
       ...handoffN.lines,
+      '',
+      ...handoffBehave.lines,
     ],
   };
 
@@ -361,6 +380,9 @@ function main() {
       optional_handoff_notify: {
         CHATFLOW_HANDOFF_NOTIFY_URL: isNonEmpty('CHATFLOW_HANDOFF_NOTIFY_URL'),
         CHATFLOW_HANDOFF_NOTIFY_SECRET: isNonEmpty('CHATFLOW_HANDOFF_NOTIFY_SECRET'),
+      },
+      optional_handoff_behavior: {
+        CHATFLOW_SUPPRESS_REPLY_ON_HANDOFF: suppressReplyOnHandoffEnabled(),
       },
       combined: {
         'c-wa': sections['c-wa'].ok,
