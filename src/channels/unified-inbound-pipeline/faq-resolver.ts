@@ -12,6 +12,14 @@ export interface UnifiedFaqResolverResult {
   confidence: number;
 }
 
+export interface UnifiedFaqResolverOptions {
+  entries?: UnifiedFaqSeedEntry[];
+  /**
+   * Legacy / default: true. When false (tenant `faq.fallback_enabled === false`), skip English and cross-language FAQ tiers after the primary language pass.
+   */
+  fallbackEnabled?: boolean;
+}
+
 function normalizeFaqText(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, ' ');
 }
@@ -33,7 +41,7 @@ export function resolveUnifiedFaqSkeleton(
   session: UnifiedSessionContext,
   intent: UnifiedIntentPreparationResult,
   dispatch: UnifiedDispatchPlaceholderResult,
-  resolverOpts?: { entries?: UnifiedFaqSeedEntry[] },
+  resolverOpts?: UnifiedFaqResolverOptions,
 ): UnifiedFaqResolverResult {
   void intent;
 
@@ -78,6 +86,15 @@ export function resolveUnifiedFaqSkeleton(
         confidence: exactMatch || normalizedExactMatch ? 0.9 : 0.6,
       };
     }
+  }
+
+  if (resolverOpts?.fallbackEnabled === false) {
+    return {
+      matched: false,
+      answer: null,
+      matched_topic: null,
+      confidence: 0,
+    };
   }
 
   // 策略2：如果用户语言没有匹配，回落到英语（en）条目

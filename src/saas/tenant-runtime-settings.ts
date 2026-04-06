@@ -29,6 +29,13 @@ export interface TenantRuntimeSettings {
   suppress_reply: {
     enabled: boolean;
   };
+  /**
+   * Default true when omitted. false = no FAQ language/cross-language fallback tiers or default-phase text echo when FAQ misses (tenant path only).
+   * Does not disable FAQ hits in the tenant’s primary language tier.
+   */
+  faq: {
+    fallback_enabled: boolean;
+  };
 }
 
 const DEFAULT_RUNTIME: TenantRuntimeSettings = {
@@ -37,6 +44,7 @@ const DEFAULT_RUNTIME: TenantRuntimeSettings = {
   lead_capture: { enabled: true },
   bot: { enabled: true },
   suppress_reply: { enabled: true },
+  faq: { fallback_enabled: true },
 };
 
 function parseHandoffBlock(raw: unknown): TenantRuntimeSettings['handoff'] {
@@ -89,6 +97,16 @@ function parseSuppressReplyBlock(raw: unknown): TenantRuntimeSettings['suppress_
   return { ...DEFAULT_RUNTIME.suppress_reply };
 }
 
+function parseFaqBlock(raw: unknown): TenantRuntimeSettings['faq'] {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const f = raw as Record<string, unknown>;
+    if (typeof f.fallback_enabled === 'boolean') {
+      return { fallback_enabled: f.fallback_enabled };
+    }
+  }
+  return { ...DEFAULT_RUNTIME.faq };
+}
+
 /**
  * Parse DB JSON into runtime settings. Unknown keys ignored; invalid shapes fall back to defaults.
  */
@@ -99,6 +117,7 @@ export function parseTenantRuntimeSettings(raw: Record<string, unknown>): Tenant
     lead_capture: parseLeadCaptureBlock(raw.lead_capture),
     bot: parseBotBlock(raw.bot),
     suppress_reply: parseSuppressReplyBlock(raw.suppress_reply),
+    faq: parseFaqBlock(raw.faq),
   };
 }
 
@@ -112,6 +131,7 @@ export function logSaasControlPipelineDebug(args: {
   const leadCapOff = args.parsed.lead_capture.enabled === false;
   const botOff = args.parsed.bot.enabled === false;
   const suppressReplyOff = args.parsed.suppress_reply.enabled === false;
+  const faqFallbackOff = args.parsed.faq.fallback_enabled === false;
   console.debug(
     '[saas-control]',
     JSON.stringify({
@@ -129,6 +149,8 @@ export function logSaasControlPipelineDebug(args: {
       bot_reply_suppressed: botOff,
       suppress_reply_enabled: args.parsed.suppress_reply.enabled,
       suppress_reply_suppressed: suppressReplyOff,
+      faq_fallback_enabled: args.parsed.faq.fallback_enabled,
+      faq_fallback_suppressed: faqFallbackOff,
     }),
   );
 }

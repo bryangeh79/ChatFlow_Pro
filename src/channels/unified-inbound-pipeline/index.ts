@@ -7,7 +7,7 @@ import {
   prepareUnifiedInboundIntent,
 } from './intent-dispatch';
 import type { UnifiedFaqSeedEntry } from './faq-seed';
-import { resolveUnifiedFaqSkeleton } from './faq-resolver';
+import { resolveUnifiedFaqSkeleton, type UnifiedFaqResolverOptions } from './faq-resolver';
 import { namespacedSessionIdForMessage } from '../session-context';
 import { runLeadCaptureHook } from '../lead-capture-hook';
 import { detectContactIntent } from '../lead-capture-hook/contact-intent-detector';
@@ -32,13 +32,21 @@ export interface PipelineOptions {
   tenantRuntimeSettings?: TenantRuntimeSettings;
 }
 
+function buildFaqResolverOptions(options?: PipelineOptions): UnifiedFaqResolverOptions | undefined {
+  if (options?.faqEntries === undefined) return undefined;
+  const out: UnifiedFaqResolverOptions = { entries: options.faqEntries };
+  if (options.tenantRuntimeSettings !== undefined) {
+    out.fallbackEnabled = options.tenantRuntimeSettings.faq.fallback_enabled !== false;
+  }
+  return out;
+}
+
 export function runUnifiedInboundPipeline(
   message: UnifiedInboundMessage,
   session?: UnifiedSessionContext,
   options?: PipelineOptions,
 ): { session: UnifiedSessionContext; response: UnifiedResponse } {
-  const faqResolverOpts =
-    options?.faqEntries !== undefined ? { entries: options.faqEntries } : undefined;
+  const faqResolverOpts = buildFaqResolverOptions(options);
 
   let nextSession: UnifiedSessionContext =
     session ?? {
@@ -247,7 +255,10 @@ export function runUnifiedInboundPipeline(
     faqAnswer: faqResult.answer,
     faqMatched: faqResult.matched,
     ...(options?.tenantRuntimeSettings !== undefined
-      ? { suppress_reply_tenant_enabled: options.tenantRuntimeSettings.suppress_reply.enabled }
+      ? {
+          suppress_reply_tenant_enabled: options.tenantRuntimeSettings.suppress_reply.enabled,
+          faq_fallback_enabled: options.tenantRuntimeSettings.faq.fallback_enabled,
+        }
       : {}),
   };
   
@@ -326,6 +337,8 @@ export function runUnifiedInboundPipeline(
               bot_reply_suppressed: options.tenantRuntimeSettings.bot.enabled === false,
               suppress_reply_enabled: options.tenantRuntimeSettings.suppress_reply.enabled !== false,
               suppress_reply_suppressed: options.tenantRuntimeSettings.suppress_reply.enabled === false,
+              faq_fallback_enabled: options.tenantRuntimeSettings.faq.fallback_enabled !== false,
+              faq_fallback_suppressed: options.tenantRuntimeSettings.faq.fallback_enabled === false,
             },
           }
         : {}),

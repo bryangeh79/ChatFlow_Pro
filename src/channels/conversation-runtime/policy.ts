@@ -23,6 +23,11 @@ export interface PolicyContext {
    * Omitted on legacy path (= allow env behavior).
    */
   suppress_reply_tenant_enabled?: boolean;
+  /**
+   * Tenant-only: `tenant_settings.faq.fallback_enabled`. When false, default-phase text echo after FAQ miss is disabled.
+   * Omitted on legacy path (= allow echo fallback).
+   */
+  faq_fallback_enabled?: boolean;
 }
 
 /**
@@ -156,17 +161,26 @@ function planFaqFirstTurn(ctx: PolicyContext): TurnPlan {
 
 function planDefaultTurn(ctx: PolicyContext): TurnPlan {
   const { faqAnswer, faqMatched, message } = ctx;
-  
-  // 默认：FAQ命中则使用，否则使用原始消息文本
-  const replyText = faqMatched ? (faqAnswer || null) : (message.text || null);
-  
+  const allowTextEcho = ctx.faq_fallback_enabled !== false;
+
+  let replyText: string | null;
+  if (faqMatched) {
+    replyText = faqAnswer || null;
+  } else if (allowTextEcho) {
+    replyText = message.text || null;
+  } else {
+    replyText = null;
+  }
+
+  const should_send = faqMatched ? true : allowTextEcho;
+
   return {
     reply_text: replyText,
-    should_send: true,
+    should_send,
     lead_capture_prompt: null,
     debug_metadata_patch: {
-      default_fallback: !faqMatched
+      default_fallback: !faqMatched && allowTextEcho,
     },
-    policy_path: 'default'
+    policy_path: 'default',
   };
 }
