@@ -1,6 +1,6 @@
 /**
- * Phase 22B — tenant_settings JSON shape consumed at runtime (minimal).
- * Stored in DB as tenant_settings.settings_json; merged via Admin PUT .../settings.
+ * tenant_settings JSON consumed at runtime (Phase 22B/22C).
+ * Stored in tenant_settings.settings_json; merged via Admin PUT .../settings.
  */
 
 import { getTenantSettingsJson } from './repository';
@@ -18,12 +18,17 @@ export interface TenantRuntimeSettings {
   lead_capture: {
     enabled: boolean;
   };
+  /** Default true when omitted. false = no auto outbound reply (tenant path only). */
+  bot: {
+    enabled: boolean;
+  };
 }
 
 const DEFAULT_RUNTIME: TenantRuntimeSettings = {
   handoff: { enabled: true },
   notify: { enabled: true },
   lead_capture: { enabled: true },
+  bot: { enabled: true },
 };
 
 function parseHandoffBlock(raw: unknown): TenantRuntimeSettings['handoff'] {
@@ -56,6 +61,16 @@ function parseLeadCaptureBlock(raw: unknown): TenantRuntimeSettings['lead_captur
   return { ...DEFAULT_RUNTIME.lead_capture };
 }
 
+function parseBotBlock(raw: unknown): TenantRuntimeSettings['bot'] {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const b = raw as Record<string, unknown>;
+    if (typeof b.enabled === 'boolean') {
+      return { enabled: b.enabled };
+    }
+  }
+  return { ...DEFAULT_RUNTIME.bot };
+}
+
 /**
  * Parse DB JSON into runtime settings. Unknown keys ignored; invalid shapes fall back to defaults.
  */
@@ -64,6 +79,7 @@ export function parseTenantRuntimeSettings(raw: Record<string, unknown>): Tenant
     handoff: parseHandoffBlock(raw.handoff),
     notify: parseNotifyBlock(raw.notify),
     lead_capture: parseLeadCaptureBlock(raw.lead_capture),
+    bot: parseBotBlock(raw.bot),
   };
 }
 
@@ -75,10 +91,11 @@ export function logSaasControlPipelineDebug(args: {
   const handoffOff = args.parsed.handoff.enabled === false;
   const notifyOff = args.parsed.notify.enabled === false;
   const leadCapOff = args.parsed.lead_capture.enabled === false;
+  const botOff = args.parsed.bot.enabled === false;
   console.debug(
     '[saas-control]',
     JSON.stringify({
-      phase: '22b',
+      phase: '22c',
       tenant_id: args.tenantId,
       tenant_settings_resolved: true,
       settings_key_count: args.settingsKeyCount,
@@ -88,6 +105,8 @@ export function logSaasControlPipelineDebug(args: {
       notify_http_blocked: notifyOff,
       lead_capture_enabled: args.parsed.lead_capture.enabled,
       lead_capture_hook_suppressed: leadCapOff,
+      bot_enabled: args.parsed.bot.enabled,
+      bot_reply_suppressed: botOff,
     }),
   );
 }

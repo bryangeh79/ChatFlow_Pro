@@ -1,6 +1,6 @@
 {
   "name": "chatflow-pro",
-  "version": "1.7.62",
+  "version": "1.7.63",
   "private": true,
   "type": "commonjs",
   "scripts": {
@@ -11,6 +11,7 @@
     "verify:saas-handoff-disabled": "node scripts/verify-saas-handoff-disabled.mjs",
     "verify:saas-notify-disabled": "node scripts/verify-saas-notify-disabled.mjs",
     "verify:saas-lead-capture-disabled": "node scripts/verify-saas-lead-capture-disabled.mjs",
+    "verify:saas-bot-disabled": "node scripts/verify-saas-bot-disabled.mjs",
     "dev:website-outbound-echo": "node scripts/website-outbound-echo.mjs",
     "dev:notify-echo": "node scripts/notify-echo-server.mjs",
     "check:agent-env": "node scripts/agent-env-check.mjs",

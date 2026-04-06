@@ -71,6 +71,23 @@ function createTelegramRealChannelSender(): ChannelSender {
       const traceId = response.debug_metadata?.trace_id as string | undefined ?? null;
       const requestId = response.debug_metadata?.request_id as string | undefined ?? null;
 
+      if (response.should_send === false) {
+        return {
+          result: createSendFallbackResult({
+            channel: 'telegram',
+            session_id: response.session_id,
+            message_trace_id: messageTraceId,
+            provider_message_id: null,
+            retryable: false,
+            error: null,
+            sent_at: null,
+            debug_steps: ['mapped', 'telegram_real_skipped_should_send_false'],
+            trace_id: traceId,
+            request_id: requestId,
+          }),
+        };
+      }
+
       const config = await resolveTelegramConfigForOutbound();
       if (!config) {
         return createSyntheticChannelSender('telegram').send(response);
@@ -79,23 +96,6 @@ function createTelegramRealChannelSender(): ChannelSender {
       try {
         const outbound = mapUnifiedResponseToOutboundPayload({ ...response, channel: 'telegram' });
         void outbound;
-
-        if (response.should_send === false) {
-          return {
-            result: createSendFallbackResult({
-              channel: 'telegram',
-              session_id: response.session_id,
-              message_trace_id: messageTraceId,
-              provider_message_id: null,
-              retryable: false,
-              error: null,
-              sent_at: null,
-              debug_steps: ['mapped', 'telegram_real_skipped_should_send_false'],
-              trace_id: traceId,
-              request_id: requestId,
-            }),
-          };
-        }
 
         const sendResult = await sendTelegramTextMessage(config, response.session_id, response.reply_text);
 
@@ -175,6 +175,23 @@ function createWhatsAppRealChannelSender(): ChannelSender {
       const traceId = response.debug_metadata?.trace_id as string | undefined ?? null;
       const requestId = response.debug_metadata?.request_id as string | undefined ?? null;
 
+      if (response.should_send === false) {
+        return {
+          result: createSendFallbackResult({
+            channel: 'whatsapp',
+            session_id: response.session_id,
+            message_trace_id: messageTraceId,
+            provider_message_id: null,
+            retryable: false,
+            error: null,
+            sent_at: null,
+            debug_steps: ['mapped', 'whatsapp_real_skipped_should_send_false'],
+            trace_id: traceId,
+            request_id: requestId,
+          }),
+        };
+      }
+
       const config = await resolveWhatsAppCloudConfigForOutbound();
       if (!config) {
         return createSyntheticChannelSender('whatsapp').send(response);
@@ -183,23 +200,6 @@ function createWhatsAppRealChannelSender(): ChannelSender {
       try {
         const outbound = mapUnifiedResponseToOutboundPayload({ ...response, channel: 'whatsapp' });
         void outbound;
-
-        if (response.should_send === false) {
-          return {
-            result: createSendFallbackResult({
-              channel: 'whatsapp',
-              session_id: response.session_id,
-              message_trace_id: messageTraceId,
-              provider_message_id: null,
-              retryable: false,
-              error: null,
-              sent_at: null,
-              debug_steps: ['mapped', 'whatsapp_real_skipped_should_send_false'],
-              trace_id: traceId,
-              request_id: requestId,
-            }),
-          };
-        }
 
         const sendResult = await sendWhatsAppTextMessage(config, response.session_id, response.reply_text);
 
@@ -279,6 +279,23 @@ function createMessengerRealChannelSender(): ChannelSender {
       const traceId = response.debug_metadata?.trace_id as string | undefined ?? null;
       const requestId = response.debug_metadata?.request_id as string | undefined ?? null;
 
+      if (response.should_send === false) {
+        return {
+          result: createSendFallbackResult({
+            channel: 'messenger',
+            session_id: response.session_id,
+            message_trace_id: messageTraceId,
+            provider_message_id: null,
+            retryable: false,
+            error: null,
+            sent_at: null,
+            debug_steps: ['mapped', 'messenger_real_skipped_should_send_false'],
+            trace_id: traceId,
+            request_id: requestId,
+          }),
+        };
+      }
+
       const config = await resolveMessengerGraphConfigForOutbound();
       if (!config) {
         return createSyntheticChannelSender('messenger').send(response);
@@ -287,23 +304,6 @@ function createMessengerRealChannelSender(): ChannelSender {
       try {
         const outbound = mapUnifiedResponseToOutboundPayload({ ...response, channel: 'messenger' });
         void outbound;
-
-        if (response.should_send === false) {
-          return {
-            result: createSendFallbackResult({
-              channel: 'messenger',
-              session_id: response.session_id,
-              message_trace_id: messageTraceId,
-              provider_message_id: null,
-              retryable: false,
-              error: null,
-              sent_at: null,
-              debug_steps: ['mapped', 'messenger_real_skipped_should_send_false'],
-              trace_id: traceId,
-              request_id: requestId,
-            }),
-          };
-        }
 
         const sendResult = await sendMessengerTextMessage(config, response.session_id, response.reply_text);
 
@@ -383,6 +383,23 @@ function createLineRealChannelSender(): ChannelSender {
       const traceId = response.debug_metadata?.trace_id as string | undefined ?? null;
       const requestId = response.debug_metadata?.request_id as string | undefined ?? null;
 
+      if (response.should_send === false) {
+        return {
+          result: createSendFallbackResult({
+            channel: 'line',
+            session_id: response.session_id,
+            message_trace_id: messageTraceId,
+            provider_message_id: null,
+            retryable: false,
+            error: null,
+            sent_at: null,
+            debug_steps: ['mapped', 'line_real_skipped_should_send_false'],
+            trace_id: traceId,
+            request_id: requestId,
+          }),
+        };
+      }
+
       const config = await resolveLineMessagingConfigForOutbound();
       if (!config) {
         return createSyntheticChannelSender('line').send(response);
@@ -391,23 +408,6 @@ function createLineRealChannelSender(): ChannelSender {
       try {
         const outbound = mapUnifiedResponseToOutboundPayload({ ...response, channel: 'line' });
         void outbound;
-
-        if (response.should_send === false) {
-          return {
-            result: createSendFallbackResult({
-              channel: 'line',
-              session_id: response.session_id,
-              message_trace_id: messageTraceId,
-              provider_message_id: null,
-              retryable: false,
-              error: null,
-              sent_at: null,
-              debug_steps: ['mapped', 'line_real_skipped_should_send_false'],
-              trace_id: traceId,
-              request_id: requestId,
-            }),
-          };
-        }
 
         const sendResult = await sendLineTextMessage(config, response.session_id, response.reply_text);
 
@@ -487,6 +487,23 @@ function createZaloRealChannelSender(): ChannelSender {
       const traceId = response.debug_metadata?.trace_id as string | undefined ?? null;
       const requestId = response.debug_metadata?.request_id as string | undefined ?? null;
 
+      if (response.should_send === false) {
+        return {
+          result: createSendFallbackResult({
+            channel: 'zalo',
+            session_id: response.session_id,
+            message_trace_id: messageTraceId,
+            provider_message_id: null,
+            retryable: false,
+            error: null,
+            sent_at: null,
+            debug_steps: ['mapped', 'zalo_real_skipped_should_send_false'],
+            trace_id: traceId,
+            request_id: requestId,
+          }),
+        };
+      }
+
       const config = await resolveZaloOpenApiConfigForOutbound();
       if (!config) {
         return createSyntheticChannelSender('zalo').send(response);
@@ -495,23 +512,6 @@ function createZaloRealChannelSender(): ChannelSender {
       try {
         const outbound = mapUnifiedResponseToOutboundPayload({ ...response, channel: 'zalo' });
         void outbound;
-
-        if (response.should_send === false) {
-          return {
-            result: createSendFallbackResult({
-              channel: 'zalo',
-              session_id: response.session_id,
-              message_trace_id: messageTraceId,
-              provider_message_id: null,
-              retryable: false,
-              error: null,
-              sent_at: null,
-              debug_steps: ['mapped', 'zalo_real_skipped_should_send_false'],
-              trace_id: traceId,
-              request_id: requestId,
-            }),
-          };
-        }
 
         const sendResult = await sendZaloTextMessage(config, response.session_id, response.reply_text);
 
@@ -589,6 +589,23 @@ function createWebsiteRealChannelSender(): ChannelSender {
       const messageTraceId = response.debug_metadata?.message_trace_id as string | undefined ?? `msg-${Date.now().toString(36)}`;
       const traceId = response.debug_metadata?.trace_id as string | undefined ?? null;
       const requestId = response.debug_metadata?.request_id as string | undefined ?? null;
+
+      if (response.should_send === false) {
+        return {
+          result: createSendFallbackResult({
+            channel: 'website',
+            session_id: response.session_id,
+            message_trace_id: messageTraceId,
+            provider_message_id: null,
+            retryable: false,
+            error: null,
+            sent_at: null,
+            debug_steps: ['mapped', 'website_real_skipped_should_send_false'],
+            trace_id: traceId,
+            request_id: requestId,
+          }),
+        };
+      }
 
       const config = await resolveWebsiteOutboundConfigForOutbound();
       const shouldSend = config && !config.disabled && !config.sandbox;

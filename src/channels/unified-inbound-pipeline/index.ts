@@ -251,6 +251,11 @@ export function runUnifiedInboundPipeline(
   
   const turnPlan = planTurn(policyContext);
 
+  const botReplyAllowed =
+    options?.tenantRuntimeSettings === undefined ||
+    options.tenantRuntimeSettings.bot.enabled !== false;
+  const effectiveShouldSend = botReplyAllowed && turnPlan.should_send;
+
   // 确定是否需要 handoff
   const handoffRequired = shouldTriggerHandoff(message, sessionAfterHandoffCheck);
   
@@ -287,7 +292,7 @@ export function runUnifiedInboundPipeline(
     session_id: sessionAfterHandoffCheck.session_id,
     kind: faqResult.matched ? 'text' : 'text',
     reply_text: turnPlan.reply_text,
-    should_send: turnPlan.should_send,
+    should_send: effectiveShouldSend,
     handoff_required: handoffRequired,
     lead_capture_prompt: turnPlan.lead_capture_prompt,
     debug_steps: [...debug_steps, `phase:${phaseContext.phase}`, `policy:${turnPlan.policy_path}`],
@@ -315,6 +320,8 @@ export function runUnifiedInboundPipeline(
               notify_http_suppressed: options.tenantRuntimeSettings.notify.enabled === false,
               lead_capture_enabled: options.tenantRuntimeSettings.lead_capture.enabled !== false,
               lead_capture_suppressed: options.tenantRuntimeSettings.lead_capture.enabled === false,
+              bot_enabled: options.tenantRuntimeSettings.bot.enabled !== false,
+              bot_reply_suppressed: options.tenantRuntimeSettings.bot.enabled === false,
             },
           }
         : {}),
