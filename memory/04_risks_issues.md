@@ -165,6 +165,11 @@
 - **Local environment dependence**: `docs:pdf:162` 依赖本机浏览器打印能力，跨环境可重复性有限。
 - **Cleanup misuse**: `delivery:clean` 的 `--keep` 设置过小可能误删需要留档的旧包。
 
+## New Risks from Delivery Message Automation (2026-04-06 late)
+- **Stale CI snapshot**: `delivery:message` 读取“最新 ci.yml run”，若刚 push 可能短暂显示 queued/上一条结果（mitigation: 发包前复跑一次该命令确认 completed/success）。
+- **Path disclosure risk**: 默认输出本机绝对路径，若对外渠道不适合可改为制品下载链接。
+- **Operator copy error**: 人工二次编辑文本可能引入版本/哈希错配（mitigation: 尽量原样复制 `delivery:message` 输出）。
+
 ## Pro_v1.06 Known Limitations
 - **Session store**: In-memory only, single-process, no TTL expiration
 - **JSONL persistence**: Backup accumulation, no automatic cleanup

@@ -8,7 +8,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -91,7 +91,7 @@ async function getLatestCi() {
   }
 }
 
-function printMessage({ version, zipPath, sha256, ci }) {
+function buildMessage({ version, zipPath, sha256, ci }) {
   const lines = [
     '各位好，以下为本次 ChatFlow Pro 交付包信息（请按 SHA 校验后再解压部署）：',
     '',
@@ -115,7 +115,15 @@ function printMessage({ version, zipPath, sha256, ci }) {
     '2) 请勿在邮件/IM 中直接发送完整密钥；统一使用安全通道。',
     '3) 默认交付模型为一客户一部署，不共享生产密钥与数据卷。',
   ];
-  console.log(lines.join('\n'));
+  return lines.join('\n');
+}
+
+function parseOutPathArg() {
+  const outArg = process.argv.find((arg) => arg.startsWith('--out='));
+  if (!outArg) return null;
+  const raw = outArg.slice('--out='.length).trim();
+  if (!raw) return null;
+  return path.isAbsolute(raw) ? raw : path.join(root, raw);
 }
 
 async function main() {
@@ -123,7 +131,13 @@ async function main() {
     const version = readVersion();
     const { latest, sha256 } = getLatestZipAndSha();
     const ci = await getLatestCi();
-    printMessage({ version, zipPath: latest, sha256, ci });
+    const message = buildMessage({ version, zipPath: latest, sha256, ci });
+    const outPath = parseOutPathArg();
+    if (outPath) {
+      writeFileSync(outPath, `${message}\n`, 'utf8');
+      console.log(`delivery:message file written: ${outPath}`);
+    }
+    console.log(message);
   } catch (err) {
     console.error(
       `delivery:message: ${err instanceof Error ? err.message : String(err)}`,

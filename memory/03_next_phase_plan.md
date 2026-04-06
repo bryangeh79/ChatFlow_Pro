@@ -1,6 +1,6 @@
 # Next Phase Plan
 
-- Current Phase: **Phase 17.2** - Meta WA + Messenger **`fb_exchange_token`** on 401 / Graph **190** (MVP landed); authoritative status → **`memory/01_project_status.md`**
+- Current Phase: **Phase 22** - 交付执行加速（自动生成并落盘对外发包文本，降低人工转发漏项）；authoritative status → **`memory/01_project_status.md`**
 - Previous major milestone in this log: **Phase 16.2** - HTTP access observability enhanced (`X-Request-Id`, optional `CHATFLOW_HTTP_ACCESS_LOG`, webhook `phases_ms`, verification type narrowing)
 - Before that: Phase 16 - HTTP access observability first slice
 - Completed in Phase 15.0:
@@ -182,3 +182,16 @@
 - **商业形态**：**`docs/169`** — 一客户一部署；**`docs/170`** — 运维与 `backup:data`。
 - **厂商发版**：**`docs/171`** + **`CHANGELOG.md`** + **`docker-compose.customer.yml`**；HTTPS：**`docs/172`** + **`examples/reverse-proxy/`**。
 - Next Unique Priority Action: **产品冻结与交付阶段**：`release:verify` → `release:ship -- --with-pdf` → `delivery:latest`（zip+sha256）→ 文档包 `docs/168/169/170/171/172 + 161/162`；客户 token/部署后置到 onboarding。**T0+T1** / **`docs/155`**。
+
+## 2026-04-06 收口补充（已完成）
+
+- ✅ P0：工作区残留已处置（`docs/162` 单独提交；`MEMORY.md` 保持未提交）。
+- ✅ P0：`release:verify` 与 `release:ship -- --with-pdf` 已通过，产物三元组已回收。
+- ✅ P1：新增 `docs/173`（对外发包模板）与 `docs/174`（实施接入极短模板）。
+- ✅ P1：新增 `delivery:message` 自动化，减少手工拼接版本/zip/sha/CI 的漏项风险。
+
+## Next (执行优先级)
+
+1. 默认外发动作：`npm run delivery:message`，直接复制输出给实施/客户。
+2. 仅当明确触发 onboarding：进入 `docs/171` 的部署/联调段，实配 token/webhook。
+3. 未触发 onboarding 前：维持范围冻结，不扩展坐席 UI 或多租户控制面。

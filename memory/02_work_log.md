@@ -119,3 +119,43 @@
   - 更新 06/07 的同步版本到 Pro_v1.07.57
   - 在 04 新增发版自动化扩展风险与止损点
 - **状态**：memory 真源已刷新，下一聊天室可直接按 01/03/05 接手。
+
+---
+
+## 追加记录（2026-04-06 深夜）— P0/P1 收口与发包文本自动化
+
+### 已完成（并已 push）
+1. **P0 落地**
+   - `docs/162_customer_seven_channel_access_token_guide.pdf` 再生成并单文件提交（避免夹带 `MEMORY.md`）。
+   - 执行 `npm run release:verify`（只读门禁）通过。
+   - 执行 `npm run release:ship -- --with-pdf` 通过并产出 zip。
+   - 回收交付三元组（zip/sha256/CI）用于对外交付。
+2. **P1 落地**
+   - 新增 `docs/173_pro_external_delivery_message_template.md`（对外发包文本模板）。
+   - 新增 `docs/174_pro_implementation_onboarding_quick_template.md`（实施接入极短模板）。
+   - 校验 `docs/171` 与 `release:verify` / `release:ship` / `delivery:*` 脚本一致。
+3. **减少人工步骤（新增自动化）**
+   - 新增 `scripts/build-delivery-message.mjs`。
+   - 新增命令 `npm run delivery:message`，自动输出可直接外发文本（版本 + zip + sha + CI + 固定注意事项）。
+   - `docs/171` 增加 `delivery:message` 检查项，`docs/173` 用法改为优先自动生成。
+
+### 本轮关键提交
+- `aaf4b96` chore(docs): regenerate 162 pdf
+- `cc891cc` chore(docs): regenerate 162 pdf
+- `c40bfdc` docs(delivery): add external package and onboarding templates
+- `342c7a2` feat(delivery): auto-generate external package message
+
+### 当前交付快照（冻结态）
+- 版本：`1.7.57`（未变更）。
+- 最新 zip：`dist/delivery-bundle-2026-04-06T14-45-42-826Z.zip`
+- SHA256：`ae8f995f232075c91420df1c6a3a9ca19c1504e893b6aa1125911def93a1df0f`
+- CI：`https://github.com/bryangeh79/ChatFlow_Pro/actions/runs/24036660176`（`completed/success`）
+
+### 工作区约束状态
+- `MEMORY.md` 仍保持未跟踪，未提交。
+- 未触发 onboarding，不进入真实 token/webhook 配置。
+
+### 追加加速动作（Phase 22 起步）
+- 版本提升：`package.json` `1.7.57 -> 1.7.58`（Phase 22 执行起点）。
+- 发包文本新增落盘能力：`npm run delivery:message:file` 生成 `dist/delivery-message-latest.txt`。
+- `delivery:message` 支持 `--out=<path>` 参数；可同时写文件并在终端打印，减少复制差错。

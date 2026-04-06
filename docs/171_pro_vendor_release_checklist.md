@@ -19,6 +19,7 @@
 - [ ] **`npm run delivery:zip`** 生成 `dist/delivery-bundle-<timestamp>.zip`（直接发实施/客户）。
 - [ ] **`npm run delivery:latest`** 输出最新 zip 路径与 SHA256（便于发包校验）。
 - [ ] **`npm run delivery:message`** 输出可直接外发文本（自动带版本、zip、sha、CI）。
+- [ ] **`npm run delivery:message:file`** 生成 `dist/delivery-message-latest.txt`（归档/转发可直接附文本）。
 - [ ] 可选：**`npm run delivery:clean -- --keep=5`** 清理旧 zip（只保留最近 N 个）。
 - [ ] **`.env.example`**；客户现场从模板复制为 **`.env`**（不入库）。
 

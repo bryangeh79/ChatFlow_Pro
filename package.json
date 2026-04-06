@@ -1,6 +1,6 @@
 {
   "name": "chatflow-pro",
-  "version": "1.7.57",
+  "version": "1.7.58",
   "private": true,
   "type": "commonjs",
   "scripts": {
@@ -22,6 +22,7 @@
     "delivery:zip": "npm run delivery:bundle && node scripts/build-delivery-zip.mjs",
     "delivery:latest": "node scripts/report-delivery-latest.mjs",
     "delivery:message": "node scripts/build-delivery-message.mjs",
+    "delivery:message:file": "node scripts/build-delivery-message.mjs --out=dist/delivery-message-latest.txt",
     "delivery:clean": "node scripts/clean-delivery-artifacts.mjs",
     "backup:data": "node scripts/backup-chatflow-data.mjs",
     "health:curl": "node scripts/curl-health.mjs",
