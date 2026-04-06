@@ -1,5 +1,22 @@
 # Risks and Issues
 
+## 战报顶栏（2026-04-07）
+
+- **版本 / Phase**：**1.7.67**；**Phase 24** 当前，**Phase 23 / SaaS MVP 主线已关闭**。  
+- **本轮 git**：`bb5d17e`（及 `8cae7d4`、`c2a08cc`）已 **push success**。  
+- **新发现风险（本轮）**：无新的代码缺陷级条目；**Phase 24 预期风险**见下节。  
+- **已知边界**：**冻结（MVP）** — `docs/175` + `memory/04` §「Known SaaS MVP boundaries」；**待后续（v1）** — 凭证加密、多实例、Postgres、Admin RBAC。  
+- **勿再当 backlog**：非主链路 channel send / handoff suppress（Phase 23 已审计 **covered**）。
+
+## Phase 24 — 预期风险域（立项时展开）
+
+- **认证与授权**：单一 `CHATFLOW_SAAS_ADMIN_TOKEN` 不适多用户托管；误配可导致越权或锁死运维。  
+- **数据层迁移**：sql.js → Postgres 需双写/迁移策略，避免租户数据丢失。  
+- **多实例**：内存 session、JSONL 追加、notify 幂等 — 需 sticky 或外置 store。  
+- **凭证**：DB 明文 → KMS/信封加密、轮换与审计面。
+
+---
+
 ## Existing Risks
 - Do not mistake the current minimal real webhook entrypoints for a fully completed product.
 - Do not expand into menu / command / state systems just because the webhook baselines are now alive.

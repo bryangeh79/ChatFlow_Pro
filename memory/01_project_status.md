@@ -1,5 +1,20 @@
 # Project Status
 
+## 战报固化（2026-04-07 — 下一聊天室）
+
+| 项 | 值 |
+|----|-----|
+| **package.json / Pro** | **1.7.67** / **Pro_v1.07.67** |
+| **当前 Phase** | **Phase 24 — SaaS v1 Hardening**（当前主线） |
+| **已关闭主线** | **Phase 23 — SaaS MVP Final Closure** ✅；**SaaS MVP 交付口径 = 完成**（非「未完 MVP」） |
+| **本轮 git（已 push `main`）** | `c2a08cc` docs(phase-23): idle GET freeze · `8cae7d4` chore: Phase23 收官审计 memory · `bb5d17e` chore(phase-24): open v1 hardening + seal MVP |
+| **push** | **success**（远端与本地一致以 `git log` 为准） |
+| **下一阶段建议** | Phase 24 四向：**租户认证/RBAC**、**Postgres+migration**、**多实例 session/store**、**凭证加密/轮换/审计** — 逐项 ADR + 验收，勿一口吞 |
+| **新发现风险（本轮）** | 无新的 P0；v1 强化将暴露 **托管规模**与**合规**类风险，需在 24 各包单独立项 |
+| **已知边界** | **冻结**：idle GET 200（选项 A）、`faq.fallback_enabled` partial、slug/idle 信息面（MVP 接受）。**待 Phase 24**：明文凭证、单实例 session、sql.js 文件库 |
+
+---
+
 - Project Name: ChatFlow Pro
 - Current Phase: **Phase 24 — SaaS v1 Hardening**（**非** MVP 扩功能主线，而是托管/安全/规模强化）。**Phase 23 — SaaS MVP Final Closure** ✅ **已关闭**；Phase **22（22A–22E）** ✅。
 - Current Version: **Pro_v1.07.67** (package.json: **1.7.67**；**SaaS MVP 口径已完成**；v1 强化线可按里程碑另发 **1.7.68+**)

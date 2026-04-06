@@ -1,226 +1,82 @@
-# Handoff for New Chat
+# Handoff for New Chat（下一聊天室可直接接手）
 
-- This is an existing project handoff, not a fresh project restart.
-- **Current Phase / Version：** **以 `memory/01_project_status.md` 为唯一真源**（勿在本文件顶栏写死版本号，避免与 01 漂移）。撰写时复制 01 的 **Current Phase**、**Current Version**、**Current Completion Point** 各一行到当日 `memory/YYYY-MM-DD.md` 汇报即可。
-- **Pause Status: Not blocked** — CI **`docker-smoke`** (T1) green; local **T2** = **`npm run staging:docker-smoke:t2`**; next confidence layers = **`docs/157`** Phase 0 remote smoke → A → B/C when staging exists.
-- **当前发版节奏**：优先 `npm run release:verify`（只读校验）或 `npm run release:ship`（一键预检+出包+CI摘要）；客户 token/部署后置到接入阶段执行。
+> **先读**：`memory/01_project_status.md`（真源）→ 本文件 → `memory/03_next_phase_plan.md`（Phase 24 节）→ **`docs/175_pro_saas_multitenant_mvp.md`**（SaaS 契约 + MVP sealed）。
 
-## Phase / Version 更新规则（龙虾 — 每次代码交付必做）
+---
 
-**真源顺序：** `memory/01_project_status.md`（当前阶段 + 版本 + 完成点）→ `memory/03_next_phase_plan.md`（版本链尾部 + Next）→ `package.json` `version`。
+## 1. 当前项目一句话状态
 
-1. **Version（package.json）**  
-   - 本仓库 **Pro_v1.07.x**：同一 **Phase 17.x** 下的增量能力、修复、文档与脚本，默认 **patch +1**（例 1.7.40 → 1.7.41）。  
-   - **minor**（1.7 → 1.8）：指挥官确认或 ADR 约定「新能力世代 / 对外契约不兼容风险」时再用。  
-   - 每次 bump：**同步** `memory/01` 的 **Current Version**、**Current Completion Point**（一句话交付摘要）；在 **`memory/03`** 版本链 **末尾追加一条** Pro_v1.07.x 说明；若触及风险面，**一行**更新 **`memory/04`**。
+**ChatFlow Pro**：七通道统一入站 + 出站、Legacy `/webhooks/:channel` 与 **多租户** `/webhooks/t/:slug/:channel` 并存；**多租户 SaaS MVP 已封板**（Phase 23 关闭），`package.json` **1.7.67**。当前工程叙事主线为 **Phase 24 — SaaS v1 Hardening**（托管/安全/规模，**非**「把 MVP 当未完」）。
 
-2. **Phase（阶段号）**  
-   - **不要**在单个小功能交付时自行把「Phase 17.2」改成 17.3，除非 **`memory/03` 已立项**该阶段目标且 **指挥官确认晋级**（或 Cursor 在任务里写明「本包抬 Phase」）。  
-   - 若本包 **完成** 了当前 Phase 在 03 里写的里程碑：在汇报里用代码块 **建议**晋级（冷峻一句），格式示例：  
-     `[Phase] 17.2 目标已满足。建议晋级 Phase 17.3（或保持 17.2 仅 bump patch）。是否确认？`  
-   - **指挥官确认后** 才改：`memory/01` 的 **Current Phase**、`memory/03` 顶部 **Current Phase** 与下一里程碑条目。
+---
 
-3. **给 Cursor / 指挥官的同步**  
-   - 交付汇报中 **必须**含：**package.json version**、**01 中 Pro_v1.07.x 一句**、**Phase 是否建议变更**（是则引用 03 缺口或已满足项）。  
-   - **Memory 指令 2** 仅在 **转换新聊天室** 时下令；但 **01 / 03 / 04 的版本与阶段行** 应在 **该次 push 前** 随代码一起更新，**不要**等指令 2 才改版本线。
+## 2. 当前阶段
 
-4. **检查命令**  
-   - 合并前：**`npm run build`**（T0）；有 Docker 时 **`npm run staging:docker-smoke`**（T1）。**`npm run check:staging-env`** 仅列 SET/MISSING，与版本无关。
+| 项 | 状态 |
+|----|------|
+| **当前 Phase** | **24 — SaaS v1 Hardening** |
+| **刚关闭** | **23 — SaaS MVP Final Closure** ✅ |
+| **SaaS MVP 主线** | **closed / sealed**（见 `docs/175` **SaaS MVP status**） |
 
-## Completed Summary
-- Phase 1 blueprint work is complete.
-- Phase 2 architecture and project skeleton work is complete.
-- Phase 3 minimal runtime and FAQ / KB MVP work is complete.
-- Phase 4 minimal collaboration and human handoff work is complete.
-- Phase 5 backend/admin management layer work is complete.
-- Phase 6 structural multi-channel closure is complete.
-- Phase 6.1 unified inbound baseline is complete.
-- Phase 6.2 six-channel aligned mock closure is complete.
-- Phase 6.3 unified outbound baseline is complete.
-- Phase 6.3 send result, fallback, and observability scaffolding is complete.
-- Phase 6 final consistency review has been recorded.
-- Phase 7 has started and the first real Website minimal closed loop is established.
-- Website is now acceptance-ready, reproducible, and a stable sample template.
-- Four-language structure is locked: zh, en, vi, and ms-MY.
-- The runtime now has a reply resolution path plus collaboration handoff support, and the backend has a minimal management/view layer.
-- Thin adapter skeletons now exist for Website, Telegram, WhatsApp, Facebook Messenger, Line, and Zalo.
-- Website has moved from mock/template to the first real Phase 7 milestone.
-- Telegram remains the second-channel candidate for later planning, not real development.
-- Phase 7.1 / 7.2 / 7.3 documentation has been completed and the Telegram readiness gate has been formally locked.
-- Phase 7.4–7.12 documentation completed the protection, blocker, minimal-change, isolation, regression priority, change gate, document map, and final hold-position chain.
-- The Website stable sample is the protected reference point for future channel work.
-- The current conclusion is to hold Telegram and not start real development.
-- Phase 10.4 added the minimal runtime entry.
-- Phase 10.5 closed the minimal compilation loop.
-- Phase 10.6 made the minimal host runnable.
-- Phase 10.7 restored minimal evidence validation.
-- Phase 10.8 recorded host recovery plus minimal evidence closure.
-- Phase 10.9 restored a minimal real HTTP server with `/verification`.
-- Phase 11.0 aligned the minimal real Telegram webhook route.
-- Phase 11.1 confirmed live Telegram webhook verification.
-- Phase 11.2 aligned the minimal real Website webhook route.
-- Phase 11.8 confirmed dual-entry minimal real webhook regression for Telegram and Website.
-- **Phase 11.40–11.48: Pro_v1.06 Milestone - Lead capture + FAQ chain complete**:
-  - Lead detection with name/phone/email extraction
-  - Cross-turn merging with in-memory session store (1000 cap)
-  - File-based persistence with JSONL rotation (5MB/10k lines)
-  - Four-language i18n prompts (zh/en/vi/ms-MY) + empty-reply fallback
-  - FAQ matching restored with gate fix + interaction with lead flows
-  - Unified pipeline with proper prioritization (FAQ > captured > partial)
-- **Phase 12.1–12.3: Pro Channel Suite Complete**:
-  - Messenger webhook (flat + Graph API formats)
-  - Line webhook (flat + Line webhook formats)
-  - Zalo webhook (flat + Zalo OA webhook formats)
-  - Type system expanded for all 7 channels
-  - Seven-route verification baseline established
-- **Phase 13.0: Acceptance Checklist**:
-  - Comprehensive test documentation: docs/129_phase13_0_pro_seven_channel_acceptance_checklist.md
-  - Curl commands for all 7 channels (Website, Telegram, WhatsApp, Messenger, Line, Zalo)
-  - Both flat test format and platform webhook formats
-  - Expected responses and pipeline evidence fields
-  - Current limitations documented (synthetic sender, no production credentials)
-- **Phase 13.1: Version bump to Pro_v1.07**:
-  - Updated package.json to 1.7.0
-  - Milestone documentation created
-- **Phase 13.2–13.6: Technical debt reduction**:
-  - JSONL backup cleanup (max 5 files, 50MB total)
-  - Session TTL expiration (24 hours) with lazy cleanup
-  - Lead field minimal validation (email/phone format checks)
-  - FAQ multilingual seed expansion (20 entries, 5 topics, 4 languages)
-  - FAQ language priority matching (three-tier: user language > English > cross-language)
-- **Phase 14.0–14.2: Intent dispatch system**:
-  - 4 intent types: `faq_candidate`, `lead_candidate`, `chitchat_fallback`, `unknown`
-  - 4 dispatch stages: `prioritize_faq`, `prioritize_lead`, `run_both`, `pass_through`
-  - Confidence scoring (0.0-1.0) with signal tracking
-  - Regression matrix documentation (20+ test cases)
-  - Partial session boundary fix (allows FAQ when no new lead signals)
-- **Phase 15.0: Real transport design (ADR)**:
-  - Architecture decision record: docs/138_phase15_0_real_transport_design.md
-  - Selected Telegram as first real transport
-  - Environment configuration design (BOT_TOKEN, optional PROXY)
-  - Transport interface boundary (outbound/sender only)
-  - Failure strategy (retry once, degraded logging, still 200 OK)
-  - Security requirements (no token logging, env vars only)
-- **Phase 15.1: Telegram real sender (Pro_v1.07.1)**:
-  - Implementation note: docs/139_phase15_1_telegram_real_transport_implementation.md
-  - Code: `src/config/telegram.ts`, `src/channels/adapters/telegram/real-send.ts`, `src/channels/outbound-sender/index.ts` (Telegram branch)
-  - Real send when `TELEGRAM_BOT_TOKEN` valid and `TELEGRAM_SANDBOX` not forcing synthetic; other channels unchanged (synthetic)
-  - `.env.example` documents env vars
-- **Phase 15.2: Telegram proxy (Pro_v1.07.2)**:
-  - docs/140_phase15_2_telegram_proxy_implementation.md
-  - `TELEGRAM_PROXY_URL` (+ optional USERNAME/PASSWORD) → undici `ProxyAgent` on Bot API `fetch`
-  - Runtime dependency: `undici`
-- **Phase 15.3: Webhook GET verification (Pro_v1.07.3)**:
-  - docs/141_phase15_3_webhook_get_verification.md
-  - Meta‑style hub challenge on WA/Messenger/Website (+ optional Line/Zalo)
-  - Telegram GET informational (no URL challenge)
-  - All seven `/webhooks/*` GET routes
-- **Phase 15.4a: Meta POST signature (Pro_v1.07.4)**:
-  - docs/142_phase15_4a_meta_post_signature_verification.md
-  - WhatsApp + Messenger validate `X‑Hub‑Signature‑256` when app secret configured
-  - `src/config/meta‑webhook.ts` — constant‑time HMAC‑SHA256 verification
-  - No secret → backward compatibility (existing dev setups unchanged)
-  - **安全修订**：配置 secret 时强制要求有效签名头（缺失/空/格式错误 → 403）
-- **Phase 15.4b: Line POST signature (Pro_v1.07.5)**:
-  - docs/143_phase15_4b_line_post_signature_verification.md
-  - Line validates `X‑Line‑Signature` when channel secret configured
-  - `src/config/line‑webhook.ts` — constant‑time HMAC‑SHA256 (base64) verification
-  - No secret → backward compatibility (existing dev setups unchanged)
-- **Phase 15.4c: Zalo POST signature research (Pro_v1.07.6)**:
-  - docs/144_phase15_4c_zalo_post_signature_research.md
-  - **研究结论**: Zalo 无标准 POST body 签名头，主要依赖 IP 白名单 + OAuth 2.0
-  - **决策**: 不实现伪签名（避免虚假安全预期），待官方机制再立项
-  - **无代码变更**: 保持现有 `POST /webhooks/zalo` 行为
-- **Phase 15.4d: Website POST signature (Pro_v1.07.7)**:
-  - docs/145_phase15_4d_website_post_signature_design.md
-  - Header: `X‑Webhook‑Signature` (sha256=<hex> 格式，与 Meta 对齐)
-  - `src/config/website‑webhook.ts` — 复用 Meta 验证逻辑
-  - Env: `WEBSITE_WEBHOOK_SIGNING_SECRET` (可选)
-  - 未配置 secret → 保持现有行为；已配置 → 缺头/坏格式/错签 → 403
-- **Phase 15.5: WhatsApp Cloud API real outbound implementation**:
-  - docs/146_phase15_5_whatsapp_cloud_real_outbound_adr.md — 架构设计文档
-  - `src/config/whatsapp‑cloud.ts` — `isWhatsAppSandboxOrDisabled`, `loadWhatsAppCloudConfigForRealSend`, `redactWhatsAppTokenInMessage`
-  - `src/channels/adapters/whatsapp/real‑send.ts` — `parseWhatsAppRecipientFromSessionId`, `sendWhatsAppTextMessage` (undici、10s、5xx/429/网络重试 1 次)
-  - `src/channels/outbound‑sender/index.ts` — WhatsApp 分支与 Telegram 对称 (real/synthetic、`should_send`、fallback/failure)
-  - **环境变量**: `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_API_VERSION`, `WHATSAPP_SANDBOX`
-  - **API 端点**: `POST https://graph.facebook.com/v{version}/{phone-number-id}/messages`
-  - **Session 映射**: `whatsapp:{user_id}:{session_id}` → `{user_id}` 作为 recipient
-  - **超时重试**: 10 秒超时 + 单次重试 (5xx/429)
-  - **安全**: token 不入日志，与 Telegram 对称实现
-  - **状态**: 代码已交付，第二真实频道完成
-- **Phase 15.6: Messenger real outbound implementation**:
-  - docs/147_phase15_6_messenger_real_outbound_adr.md — 架构设计文档 (已更新 `messaging_type` 字段)
-  - `src/config/messenger‑graph.ts` — `isMessengerSandboxOrDisabled`, `loadMessengerGraphConfigForRealSend`, `redactMessengerTokenInMessage`
-  - `src/channels/adapters/messenger/real‑send.ts` — `parseMessengerRecipientFromSessionId`, `sendMessengerTextMessage` (undici、10s、5xx/429/网络重试 1 次)
-  - `src/channels/outbound‑sender/index.ts` — Messenger 分支与 WhatsApp/Telegram 对称 (real/synthetic、`should_send`、fallback/failure)
-  - **环境变量**: `MESSENGER_PAGE_ACCESS_TOKEN`, `MESSENGER_PAGE_ID`, `MESSENGER_API_VERSION`, `MESSENGER_SANDBOX`
-  - **API 端点**: `POST https://graph.facebook.com/v{version}/{page-id}/messages`
-  - **Session 映射**: `messenger:{psid}:{session}` → `{psid}` 作为 recipient
-  - **超时重试**: 10 秒超时 + 单次重试 (5xx/429/网络)
-  - **命名冲突**: 与 WhatsApp 无冲突 (不同 env 命名)
-  - **状态**: 代码已交付，第三真实频道完成
+---
 
-- **Phase 15.7: Line real outbound implementation**:
-  - docs/148_phase15_7_line_real_outbound_adr.md — 架构设计文档 (已更新 push API)
-  - `src/config/line‑messaging.ts` — `isLineSandboxOrDisabled`, `loadLineMessagingConfigForRealSend`, `redactLineTokenInMessage`
-  - `src/channels/adapters/line/real‑send.ts` — `parseLineRecipientFromSessionId`, `sendLineTextMessage` (undici、10s、5xx/429/网络重试 1 次、push API)
-  - `src/channels/outbound‑sender/index.ts` — Line 分支与 WhatsApp/Messenger/Telegram 对称 (real/synthetic、`should_send`、fallback/failure)
-  - **决策**: 使用 push API (`/v2/bot/message/push`) 而非 reply API (reply token 过期问题)
-  - **Session 映射**: `line:{userId}:{session}` → `{userId}` 作为 recipient
-  - **环境变量**: `LINE_CHANNEL_ACCESS_TOKEN`, `LINE_SANDBOX`, `LINE_MESSAGING_DISABLED`
-  - **状态**: 代码已交付，第四真实频道完成 (含 15.7.1 稳定性修订)
+## 3. 已完成的最近 3 个关键 checkpoint（git）
 
-- **Phase 15.8: Zalo real outbound implementation**:
-  - docs/149_phase15_8_zalo_real_outbound_adr.md — 架构设计文档 (已创建)
-  - `src/config/zalo‑openapi.ts` — `isZaloSandboxOrDisabled`, `loadZaloOpenApiConfigForRealSend`, `redactZaloTokenInMessage`
-  - `src/channels/adapters/zalo/real‑send.ts` — `parseZaloRecipientFromSessionId`, `sendZaloTextMessage` (undici、10s、5xx/429/网络重试 1 次、`access_token` header)
-  - `src/channels/outbound‑sender/index.ts` — Zalo 分支与其他 transports 对称 (real/synthetic、`should_send`、fallback/failure)
-  - **引用 docs/144**: 入站无官方签名，依赖 IP 白名单
-  - **Session 映射**: `zalo:{user_id}:{session}` → `{user_id}` 作为 recipient (第二段)
-  - **环境变量**: `ZALO_ACCESS_TOKEN`, `ZALO_OA_ID`, `ZALO_SANDBOX`, `ZALO_MESSAGING_DISABLED`
-  - **API 端点**: `POST https://openapi.zalo.me/v2.0/oa/message` (使用 `access_token` header)
-  - **状态**: 代码已交付，第五真实频道完成
+1. **`bb5d17e`** — `chore(phase-24): open SaaS v1 hardening; seal MVP (Phase 23 closed)`：`memory/01`·`03`·`02`·`04`、`docs/175`、`GPT_PLANNER_HANDOFF_BLUEPRINT` 切换 v1 叙事。  
+2. **`8cae7d4`** — `chore(phase-23): close SaaS MVP final audit; sync memory`：非主链路 **send / suppress** 审计结论写入 memory。  
+3. **`c2a08cc`** — `docs(phase-23): freeze idle GET behavior for SaaS MVP`：idle GET **选项 A**、`/health` 探活、`tenant_settings` 矩阵入 `docs/175`。
 
-- **Phase 16.2: HTTP observability enhanced (webhook phases_ms + verification type narrowing)**:
-  - docs/150_phase16_http_access_observability.md — 更新文档包含 `phases_ms` 字段
-  - `src/observability/http-access.ts` — `webhookPhasesFromHandlerResult` 提取 timing 数据
-  - `src/webhooks/webhook-timing.ts` — `webhookObservabilityPhases`, `WebhookHandlerObservability` 接口
-  - 所有六路 webhook handlers (`telegram.ts`, `whatsapp.ts`, `messenger.ts`, `line.ts`, `zalo.ts`, `website.ts`) — 集成 `phases_ms` timing
-  - `src/server.ts` — 传递 `httpRequestId` 到 handlers，复制 `phases_ms` 到访问日志
-  - `src/webhooks/verification.ts` — verification 类型收窄
-  - **功能**: 访问日志包含 `phases_ms` (prepare vs outbound send)，verification 响应类型更精确
-  - **状态**: 代码已交付，HTTP 可观测性增强完成
+**Push**：以上均在 **`main`**，**已成功 push**（以本地 `git log origin/main` 为准）。
 
-## Unfinished Summary (Pro_v1.07.27 + current limitations)
-- Session store: in-memory only, single-process, **with 24h TTL expiration**
-- JSONL persistence: **backup accumulation controlled** (max 5 files, 50MB total)
-- Field extraction: regex-based, **with minimal format validation**
-- FAQ content: **multilingual with language-priority matching** (4 languages, 5 topics, 20 entries)
-- Intent dispatch: **implemented with partial session boundary fix**
-- Real transports: **Telegram real** when configured (**optional 138 proxy wired**); **WhatsApp Cloud real** when configured (token + phone number ID + not sandbox); **Messenger Graph real** when configured (token + page ID + not sandbox); **Line real** when configured (token + not sandbox); **Zalo real** when configured (token + OA ID + not sandbox)
-- **POST 签名债务收口**: WhatsApp/Messenger/Line/Website 已实现；Zalo 无官方机制（依赖 IP 白名单）
+---
 
-## Next Unique Priority Action
-1. **龙虾 / 指挥官（环境就绪后）**: **`docs/157`** Phase **0** 远程 `SMOKE_BASE_URL` smoke → Phase **A**（`docs/152`）→ **B/C**（in-process refresh，仅隔离 staging）。  
-2. **产品向**: **`memory/31`** — lead capture 已有一切片实现；下一能力段可按 **`memory/32`–`37`** 扩展信号/运营面（需另立项时由龙虾主笔代码）。
+## 4. 下一步唯一优先动作
 
-## 龙虾下一包（OpenClaw — 粘贴执行）
+**在 Phase 24 中任选一条竖切立项**：写 **短 ADR（或 docs 节）+ 最小可验收 PR**，建议顺序由你方定，常见首包为 **租户 Admin 认证 / RBAC** 或 **Postgres 并存与 migration 骨架**。  
 
-- **版本与阶段**：以 **`memory/01`** 为准；每包交付按上节 **Phase / Version 更新规则** bump **`package.json`** 并同步 **01 / 03**（及必要时 **04**）。  
-- **基线能力**：**`npm run verify:lead-capture-states`** 已挂进 **`npm run staging:docker-smoke`**（CI **`docker-smoke`** job 自动跑）。  
-- **容器内无 `docker`**: **不要**把 **`npm run staging:docker-smoke` 失败标为阻塞**。按 **`docs/155`** *T1 equivalence*：**CI `docker-smoke` 绿** + **`npm run build`** + 本机服务已起时 **`smoke:webhooks`** + **`verify:lead-capture-states`**（同一 `SMOKE_BASE_URL`）。汇报里写「T1 由 CI + 本机 smoke/verify 覆盖」。**完整 compose 一键**由 **Cursor/宿主**代跑 `staging:docker-smoke`（已有机器验证记录可引用）。  
-- **无 `git` 或 workspace 滞后**: 必须跑 **`npm run report:github-ci`** 输出最新 **`ci.yml`** run（`conclusion` / `head_sha` / `html_url`），**禁止**以「workspace 未更新」为由跳过 CI 结论；私库带 **`GITHUB_TOKEN`**。  
-- **龙虾接手后必做**: `npm run build`；**有 Docker 的 shell** 才跑 **`staging:docker-smoke`** / **`staging:docker-smoke:t2`**；**禁止**在日志/聊天粘贴密钥。  
-- **有公网 staging URL 时**: `SMOKE_BASE_URL=https://… npm run smoke:webhooks`，并按 **`docs/152`** 处理签名校验；把每通道 pass/fail + 一条 **`X-Request-Id`** 写进当日 `memory/YYYY-MM-DD.md`（脱敏）。  
-- **指挥官发「转换新聊天室指令 2」时**: 全量回写 **`./memory/`** 七文件（协议见用户技能 *memory-physical-sync*）。
+**原因**：MVP 已封板，继续堆「MVP 功能」会偏离真源；v1 需从 **安全/托管** 底座开刀，且每项独立可测。
+
+**合并门禁（不变）**：**T0** `npm run build` + **T1** `npm run staging:docker-smoke`（或 CI `docker-smoke` 绿）。
+
+---
+
+## 5. 禁止重复做的事
+
+- **不要把 SaaS MVP 当「未完成主线」** — 已 sealed，见 `docs/175` 与 `memory/01`。  
+- **不要未读 `docs/175` § Tenant webhook verification 就假设租户路径会回退 env** — 22D 已断回退。  
+- **不要用 webhook idle GET 当正式健康探针** — 用 **`GET /health`**。  
+- **不要无 ADR 扩大 `faq.fallback_enabled` 到 post_capture/capture** — **MVP 已知 partial，冻结**。  
+- **不要重复 Phase 23 已关闭议题**：非主链路 send/suppress 二次审计（结论已 **covered**）、idle GET 收紧（已裁决 **A**）。
+
+---
+
+## 6. 当前风险（接手后默认牢记）
+
+1. **租户凭证 DB 明文**、**单进程内存 session**、**sql.js 文件库**、**JSONL 单写者假设** — Phase 24 主攻克，见 `memory/04` § Phase 24 预期风险。  
+2. **历史 session 不随租户开关清空** — 租户改 `tenant_settings` 后，旧内存 session 可能短期叠加行为（已知，非阻塞）。  
+3. **slug 可枚举 + idle JSON 信息面** — MVP **已接受边界**，见 `memory/04` § Known SaaS MVP boundaries。  
+4. **HTTP notify**（lead/handoff）走 **`notify.enabled`**，**不是** `bot.enabled` 子集 — 设计如此，勿当 bug。
+
+---
+
+## 7. 真源与协作（精简保留）
+
+- **Phase / Version**：以 **`memory/01`** 为准；改版本时同步 **`package.json`**、`memory/03` 版本链（若仍维护长日志）、必要时 **`memory/04`** 一行。  
+- **SaaS 契约**：**`docs/175`** + **`docs/GPT_PLANNER_HANDOFF_BLUEPRINT.md`**。  
+- **实现分工（指挥官锁定惯例）**：默认 **龙虾** 主改 `src/`；**Cursor** 出指令与验收；极小改动可例外 — 见历史 `memory/05` 旧文或团队约定。  
+- **无 git / 看 CI**：`npm run report:github-ci`（**`docs/155`**）。  
+- **容器内无 Docker**：勿将本地 `staging:docker-smoke` 失败等同阻塞 — 以 CI T1 + **`docs/155`** *T1 equivalence* 为准。
+
+---
+
+## 8. 历史完成摘要（防失忆）
+
+细粒度 Phase 1–22 交付链见 **`memory/02_completed_work.md`** 正文；**不必**在新聊天室首轮全文复读，只需知：**七通道 real-send、验签、Handoff、SaaS 22A–22E、23 MVP 封板** 已在栈上。
+
+---
 
 ## New Chat Rule
-- Read the memory files first, then continue from the current state without reopening product definition or architecture.
-- New chats must read docs `81_phase9_5_telegram_minimal_interaction_result.md`, `82_phase9_6_telegram_minimal_observability_enhancement_closure.md`, `83_phase10_8_host_and_minimal_evidence_closure.md`, and `84_phase11_8_dual_webhook_minimal_regression_closure.md` before changing anything.
-- New chats must first restate the current boundary: **All seven channels live** (Website, Telegram, WhatsApp, Messenger, Line, Zalo) with unified pipeline, acceptance checklist ready at docs/129.
-- **Current pause status**: **Not blocked** — 与 **`memory/03`** 一致；默认门禁 **T0+T1**；**T3/T4** 与 **157** 按需。
-- **Commander preference**: After a phase is delivered, **continue** to the next planned phase without waiting for a separate「继续」unless blocked or scope is unclear.
-- **Implementation split (commander-locked)**:
-  - **龙虾 (local agent)**: Default owner of **all implementation** — code changes, builds, fixes, and **Memory 指令 2** physical write-back to `./memory/`.
-  - **Cursor**: Default role is **instructions + acceptance criteria** only (what to build, how to verify, paste-ready blocks for 龙虾). **No full-phase implementation in Cursor** unless commander explicitly overrides.
-  - **Exception**: Cursor may apply **trivially small edits** directly (e.g. one-line typo, single env comment) when the Cursor agent judges risk negligible; anything non-trivial → 龙虾.
+
+- 新开聊天室：**先读本文件 + `memory/01` + `docs/175`（MVP status）**，再改代码或排期。  
+- 当前边界：**七通道 live**；租户路径验签/hub verify **仅 DB**，不回退 env（见 `docs/175`）。  
+- **指挥官偏好**：未阻塞时按 **`memory/03` Next** 继续推进；Phase 24 拆包自行与指挥官确认优先级。

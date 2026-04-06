@@ -1,5 +1,17 @@
 # Next Phase Plan
 
+## 战报顶栏（2026-04-07 — 下一聊天室）
+
+- **版本**：`package.json` **1.7.67**（**Pro_v1.07.67**）— SaaS MVP **封板版本**。  
+- **当前 Phase**：**24 — SaaS v1 Hardening**（**当前主线**）。  
+- **已关闭**：**Phase 23**（SaaS MVP Final Closure）— **主线 closed**，后续 **不算 MVP 扩功能**。  
+- **本轮 git / push**：`c2a08cc` → `8cae7d4` → `bb5d17e` 已上 **`main`**，**push success**。  
+- **下一阶段建议**（24 拆包）：① 租户认证/RBAC ② Postgres+migration ③ 多实例 session/store ④ 凭证 KMS/轮换/审计。  
+- **新发现风险**：本轮无新增 P0；24 将引入 **规模/合规/运维复杂度**，需按包写风险条目入 **`memory/04`**。  
+- **已知边界**：**冻结** — idle GET 200（A）、hub verify 租户 token、`faq.fallback_enabled` partial、slug/idle 信息面。**待 24** — 明文凭证、内存 session、sql.js。
+
+---
+
 - Current Phase: **Phase 24 — SaaS v1 Hardening**（**非** MVP 功能扩面，是托管与安全强化线）。**Phase 23 — SaaS MVP Final Closure** ✅ **已关闭**。authoritative status → **`memory/01_project_status.md`**
 - Phase 22 子阶段（**整段已收口**，SaaS 为 Phase 主线的一部分，非外挂）：
   - **Phase 22A** — SaaS 基础接入（已完成）
