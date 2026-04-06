@@ -5,7 +5,7 @@
 ## 制品
 
 - [ ] **`main`**（或发版 tag）**CI 绿**（build + `check:staging-env` + `docker-smoke`）。
-- [ ] 或者直接跑 **`npm run release:ship`**（一键 `release:prepare` + `delivery:zip` + `report:github-ci`）。
+- [ ] 或者直接跑 **`npm run release:ship`**（一键 `release:prepare` + `delivery:zip` + `report:github-ci` + `delivery:latest`；可附 `-- --with-pdf --with-health`）。
 - [ ] **`npm run release:prepare`**（默认含 `check:go-live` + `report:agent-git`；可选 `--with-pdf` / `--with-health`）。
 - [ ] 镜像：`docker build -t chatflow-pro:<version> .` 或 registry tag 与 **CHANGELOG** 一致。
 
@@ -16,6 +16,7 @@
 - [ ] **`npm run delivery:manifest`** 生成 `data/delivery-manifest.json`（版本、SHA、交付文档存在性）。
 - [ ] **`npm run delivery:bundle`** 生成 `dist/delivery-bundle/`（含 `SHA256SUMS.txt`，用于对外打包发放）。
 - [ ] **`npm run delivery:zip`** 生成 `dist/delivery-bundle-<timestamp>.zip`（直接发实施/客户）。
+- [ ] **`npm run delivery:latest`** 输出最新 zip 路径与 SHA256（便于发包校验）。
 - [ ] **`.env.example`**；客户现场从模板复制为 **`.env`**（不入库）。
 
 ## 客户机部署
