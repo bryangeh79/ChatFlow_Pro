@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Lists staging-related env vars as SET / MISSING / ANY_OK without printing values.
- * Aligns with docs/157, docs/160, docs/154, docs/156, docs/161 (optional notify / suppress).
+ * Aligns with docs/157, docs/160, docs/154, docs/156, docs/161 (optional notify / suppress),
+ * docs/166–167 (optional handoff runtime JSON + autotune write).
  *
  * If project root `.env` exists, KEY=VALUE lines are merged into `process.env` when the
  * key is missing **or set to an empty string** (Windows User env vars are often empty).
@@ -141,6 +142,31 @@ function sectionOptionalHandoffBehavior() {
   lines.push(
     `  CHATFLOW_SUPPRESS_REPLY_ON_HANDOFF      ${suppressReplyOnHandoffEnabled() ? 'ON (1/true/yes)' : 'OFF or unset'}`,
   );
+  return { ok: true, lines };
+}
+
+function autotuneEnabled() {
+  return process.env.CHATFLOW_OPS_AUTOTUNE?.trim() === '1';
+}
+
+function autotuneWriteRuntimeEnabled() {
+  return process.env.CHATFLOW_OPS_AUTOTUNE_WRITE_RUNTIME?.trim() === '1';
+}
+
+function sectionOptionalHandoffRuntime() {
+  const lines = [];
+  lines.push('[Optional — handoff runtime JSON overlay] docs/166 (Phase 21 B)');
+  lines.push(
+    `  CHATFLOW_HANDOFF_RUNTIME_CONFIG_PATH    ${isNonEmpty('CHATFLOW_HANDOFF_RUNTIME_CONFIG_PATH') ? 'SET' : 'MISSING'}`,
+  );
+  lines.push('[Optional — autotune merge-write to runtime JSON] docs/167 (Phase 21.2)');
+  lines.push(`  CHATFLOW_OPS_AUTOTUNE                   ${autotuneEnabled() ? 'ON (1)' : 'OFF or unset'}`);
+  lines.push(
+    `  CHATFLOW_OPS_AUTOTUNE_WRITE_RUNTIME       ${autotuneWriteRuntimeEnabled() ? 'ON (1)' : 'OFF or unset'}`,
+  );
+  if (autotuneWriteRuntimeEnabled() && !isNonEmpty('CHATFLOW_HANDOFF_RUNTIME_CONFIG_PATH')) {
+    lines.push('  WARN: WRITE_RUNTIME=1 but CHATFLOW_HANDOFF_RUNTIME_CONFIG_PATH missing (no runtime file target)');
+  }
   return { ok: true, lines };
 }
 
@@ -288,6 +314,8 @@ function main() {
         ...sectionOptionalHandoffNotify().lines,
         '',
         ...sectionOptionalHandoffBehavior().lines,
+        '',
+        ...sectionOptionalHandoffRuntime().lines,
       ].join('\n'),
     );
     return;
@@ -319,6 +347,7 @@ function main() {
   const leadN = sectionOptionalLeadNotify();
   const handoffN = sectionOptionalHandoffNotify();
   const handoffBehave = sectionOptionalHandoffBehavior();
+  const handoffRt = sectionOptionalHandoffRuntime();
 
   sections.all = {
     ok: true,
@@ -338,6 +367,8 @@ function main() {
       ...handoffN.lines,
       '',
       ...handoffBehave.lines,
+      '',
+      ...handoffRt.lines,
     ],
   };
 
@@ -383,6 +414,13 @@ function main() {
       },
       optional_handoff_behavior: {
         CHATFLOW_SUPPRESS_REPLY_ON_HANDOFF: suppressReplyOnHandoffEnabled(),
+      },
+      optional_handoff_runtime: {
+        CHATFLOW_HANDOFF_RUNTIME_CONFIG_PATH: isNonEmpty('CHATFLOW_HANDOFF_RUNTIME_CONFIG_PATH'),
+        CHATFLOW_OPS_AUTOTUNE: autotuneEnabled(),
+        CHATFLOW_OPS_AUTOTUNE_WRITE_RUNTIME: autotuneWriteRuntimeEnabled(),
+        warn_write_runtime_without_path:
+          autotuneWriteRuntimeEnabled() && !isNonEmpty('CHATFLOW_HANDOFF_RUNTIME_CONFIG_PATH'),
       },
       combined: {
         'c-wa': sections['c-wa'].ok,

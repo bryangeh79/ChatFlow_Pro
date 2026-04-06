@@ -35,6 +35,8 @@ ChatFlow Pro can **POST JSON** to customer-controlled HTTPS endpoints when optio
 | `completed_at` | string | ISO timestamp |
 | `message_id` | string? | Optional |
 | `captured_at` | string | ISO timestamp |
+| `request_id` | string? | Aligns with HTTP **`X-Request-Id`** for this webhook turn (Pro_v1.07.47+) |
+| `message_trace_id` | string? | Optional trace correlate |
 
 **Timeout:** 10s client-side; receiver should respond quickly (e.g. enqueue and return `202`).
 
@@ -69,6 +71,12 @@ ChatFlow Pro can **POST JSON** to customer-controlled HTTPS endpoints when optio
 | `external_session_id` | string | |
 | `reason` | string \| null | e.g. `keyword` when triggered by keywords |
 | `triggered_at` | string \| null | ISO timestamp when pending was set |
+| `request_id` | string? | Aligns with HTTP **`X-Request-Id`** (Pro_v1.07.47+) |
+| `message_trace_id` | string? | Optional |
+| `assigned_owner_id` | string? | When auto-assign produced an owner |
+| `assign_reason` | string? | Why that owner was chosen |
+| `online_agents_count` | number? | Snapshot for ops |
+| `assignment_log_id` | string? | JSONL audit id when assignment was logged |
 
 **Timeout:** 10s client-side.
 
@@ -124,3 +132,15 @@ Restart ChatFlow Pro after changing env. Trigger a lead capture or handoff keywo
 - Lead notify: **Pro_v1.07.39+**
 - Handoff notify + suppress reply: **Pro_v1.07.41+** / **Pro_v1.07.42+**
 - Notify echo dev server + this section: **Pro_v1.07.44+**
+- `request_id` / handoff assign fields on notify bodies: **Pro_v1.07.47+**
+
+---
+
+## 6. 生产上线前核对清单（Go-live）
+
+1. **URL**：`CHATFLOW_*_NOTIFY_URL` 使用 **HTTPS**（生产）；内网/演练可用 HTTP。  
+2. **幂等与关联**：接收端按 §3 做去重；用 **`request_id`**（及 `message_trace_id`）与自有日志/`X-Request-Id` 对齐。  
+3. **密钥**：若配置 `*_SECRET`，接收端用**常量时间**比对对应 header，**勿**把密钥打进应用日志。  
+4. **本地冒烟**：先 **`npm run dev:notify-echo`** + §4 示例 env，再触发一条 lead 与一次 handoff，确认 POST 体与字段。  
+5. **环境可见性（不打印密钥）**：`npm run check:staging-env` 查看 notify / suppress / handoff runtime 相关项为 SET 或 MISSING。  
+6. **全通道**：有公网 staging 后按 **`docs/157`** / **`docs/158`** 跑 smoke；无 Docker 见 **`docs/155`** *T1 equivalence*。
