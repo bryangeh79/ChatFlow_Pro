@@ -14,6 +14,7 @@
     "check:staging-env": "node scripts/check-staging-env.mjs",
     "check:staging-env:debug": "node scripts/check-staging-env.mjs --debug-parse",
     "check:go-live": "npm run build && node scripts/check-staging-env.mjs",
+    "release:verify": "node scripts/release-verify.mjs",
     "release:prepare": "node scripts/release-prepare.mjs",
     "release:ship": "node scripts/release-ship.mjs",
     "delivery:manifest": "node scripts/build-delivery-manifest.mjs",
