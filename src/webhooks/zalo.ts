@@ -83,6 +83,7 @@ export async function handleZaloWebhook(rawRequestBody: unknown, opts?: WebhookH
       traceContext: {
         request_id: opts?.httpRequestId,
       },
+      ...(opts?.faqEntries !== undefined ? { faqEntries: opts.faqEntries } : {}),
     });
     commitSessionContext(result.session);
 

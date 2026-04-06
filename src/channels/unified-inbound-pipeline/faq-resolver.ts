@@ -2,6 +2,7 @@ import type { UnifiedInboundMessage } from '../../../shared/types/unified-inboun
 import type { UnifiedSessionContext } from '../../../shared/types/unified-session-context';
 import type { UnifiedDispatchPlaceholderResult } from './intent-dispatch';
 import type { UnifiedIntentPreparationResult } from './intent-dispatch';
+import type { UnifiedFaqSeedEntry } from './faq-seed';
 import { unifiedFaqSeedRegistry } from './faq-seed';
 
 export interface UnifiedFaqResolverResult {
@@ -32,8 +33,12 @@ export function resolveUnifiedFaqSkeleton(
   session: UnifiedSessionContext,
   intent: UnifiedIntentPreparationResult,
   dispatch: UnifiedDispatchPlaceholderResult,
+  resolverOpts?: { entries?: UnifiedFaqSeedEntry[] },
 ): UnifiedFaqResolverResult {
   void intent;
+
+  const pool =
+    resolverOpts?.entries !== undefined ? resolverOpts.entries : unifiedFaqSeedRegistry.entries;
 
   const candidateText = message.text ?? '';
   const normalizedCandidate = normalizeFaqText(candidateText);
@@ -53,7 +58,7 @@ export function resolveUnifiedFaqSkeleton(
   const userLanguage = session.current_language ?? message.language ?? null;
 
   // 策略1：先匹配用户当前语言的条目
-  const languageSpecificEntries = unifiedFaqSeedRegistry.entries.filter(
+  const languageSpecificEntries = pool.filter(
     entry => entry.language === userLanguage
   );
 
@@ -77,7 +82,7 @@ export function resolveUnifiedFaqSkeleton(
 
   // 策略2：如果用户语言没有匹配，回落到英语（en）条目
   if (userLanguage !== 'en') {
-    const englishEntries = unifiedFaqSeedRegistry.entries.filter(
+    const englishEntries = pool.filter(
       entry => entry.language === 'en'
     );
 
@@ -102,7 +107,7 @@ export function resolveUnifiedFaqSkeleton(
 
   // 策略3：如果英语也没有匹配，回落到所有条目（包括其他语言）
   // 这可以捕捉跨语言的关键词匹配
-  const allEntries = unifiedFaqSeedRegistry.entries;
+  const allEntries = pool;
   for (const entry of allEntries) {
     // 跳过已经检查过的语言特定和英语条目
     if (entry.language === userLanguage || (userLanguage !== 'en' && entry.language === 'en')) {

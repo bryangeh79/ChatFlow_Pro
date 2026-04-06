@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ChatFlow Pro — Tenant admin (SaaS MVP)</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; }
+    label { display: block; margin-top: 0.75rem; font-weight: 600; }
+    input, textarea, button { width: 100%; box-sizing: border-box; margin-top: 0.25rem; }
+    textarea { min-height: 120px; font-family: ui-monospace, monospace; font-size: 12px; }
+    button { margin-top: 1rem; padding: 0.5rem; cursor: pointer; }
+    pre { background: #f4f4f5; padding: 0.75rem; overflow: auto; font-size: 12px; }
+    .hint { color: #52525b; font-size: 0.85rem; margin-top: 0.25rem; }
+  </style>
+</head>
+<body>
+  <h1>ChatFlow Pro — 多租户后台（MVP）</h1>
+  <p class="hint">
+    设置环境变量 <code>CHATFLOW_SAAS_ADMIN_TOKEN</code> 后，在下方填写 Bearer Token。
+    Webhook 基址格式：<code>/webhooks/t/&lt;slug&gt;/&lt;channel&gt;</code>（与各平台控制台配置一致）。
+  </p>
+
+  <label>Admin Bearer Token</label>
+  <input type="password" id="token" placeholder="与 CHATFLOW_SAAS_ADMIN_TOKEN 相同" autocomplete="off" />
+
+  <label>租户 slug（小写、数字、连字符）</label>
+  <input type="text" id="slug" placeholder="acme-corp" />
+
+  <label>新建租户显示名</label>
+  <input type="text" id="name" placeholder="Acme Corp" />
+
+  <button type="button" id="btnCreate">创建租户</button>
+
+  <label>凭证 JSON（合并写入 tenant_credentials，键名与 .env.example 一致）</label>
+  <textarea id="creds" placeholder='{"TELEGRAM_BOT_TOKEN":"...","OPENAI_API_KEY":"..."}'></textarea>
+  <button type="button" id="btnCreds">保存凭证</button>
+
+  <label>FAQ JSON 数组（替换该租户全部 FAQ）</label>
+  <textarea id="faq" placeholder='[{"id":"1","language":"zh","topic":"t","question":"Q","answer":"A","keywords":["k"],"is_active":true}]'></textarea>
+  <button type="button" id="btnFaq">保存 FAQ</button>
+
+  <label>机器人参数 JSON（合并写入 tenant_settings）</label>
+  <textarea id="settings" placeholder='{"handoff_keywords":["人工"]}'></textarea>
+  <button type="button" id="btnSettings">保存设置</button>
+
+  <button type="button" id="btnLoad">加载租户 FAQ</button>
+
+  <h2>响应</h2>
+  <pre id="out">{}</pre>
+
+  <script>
+    const out = document.getElementById('out');
+    function authHeaders() {
+      const t = document.getElementById('token').value.trim();
+      const h = { 'Content-Type': 'application/json' };
+      if (t) h['Authorization'] = 'Bearer ' + t;
+      return h;
+    }
+    function slug() { return document.getElementById('slug').value.trim(); }
+    async function show(p) {
+      const r = await p;
+      const text = await r.text();
+      try { out.textContent = JSON.stringify(JSON.parse(text), null, 2); }
+      catch { out.textContent = text; }
+    }
+    document.getElementById('btnCreate').onclick = () => show(fetch('/saas/v1/admin/tenants', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ slug: slug(), name: document.getElementById('name').value.trim() || slug() }),
+    }));
+    document.getElementById('btnCreds').onclick = () => {
+      let creds;
+      try { creds = JSON.parse(document.getElementById('creds').value || '{}'); }
+      catch (e) { out.textContent = 'credentials JSON invalid'; return; }
+      show(fetch('/saas/v1/admin/tenants/' + encodeURIComponent(slug()) + '/credentials', {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ credentials: creds }),
+      }));
+    };
+    document.getElementById('btnFaq').onclick = () => {
+      let entries;
+      try { entries = JSON.parse(document.getElementById('faq').value || '[]'); }
+      catch (e) { out.textContent = 'faq JSON invalid'; return; }
+      show(fetch('/saas/v1/admin/tenants/' + encodeURIComponent(slug()) + '/faq', {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ entries }),
+      }));
+    };
+    document.getElementById('btnSettings').onclick = () => {
+      let settings;
+      try { settings = JSON.parse(document.getElementById('settings').value || '{}'); }
+      catch (e) { out.textContent = 'settings JSON invalid'; return; }
+      show(fetch('/saas/v1/admin/tenants/' + encodeURIComponent(slug()) + '/settings', {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ settings }),
+      }));
+    };
+    document.getElementById('btnLoad').onclick = () => show(fetch('/saas/v1/admin/tenants/' + encodeURIComponent(slug()) + '/faq', { headers: authHeaders() }));
+  </script>
+</body>
+</html>

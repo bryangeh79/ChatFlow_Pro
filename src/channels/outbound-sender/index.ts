@@ -1,17 +1,19 @@
 import type { UnifiedResponse } from '../../../shared/types/unified-response';
 import { mapUnifiedResponseToOutboundPayload } from '../outbound-mapping';
-import { loadTelegramConfigForRealSend } from '../../config/telegram';
 import { sendTelegramTextMessage } from '../adapters/telegram/real-send';
-import { loadWhatsAppCloudConfigForRealSend } from '../../config/whatsapp-cloud';
 import { sendWhatsAppTextMessage } from '../adapters/whatsapp/real-send';
-import { loadMessengerGraphConfigForRealSend } from '../../config/messenger-graph';
 import { sendMessengerTextMessage } from '../adapters/messenger/real-send';
-import { loadLineMessagingConfigForRealSend } from '../../config/line-messaging';
 import { sendLineTextMessage } from '../adapters/line/real-send';
-import { loadZaloOpenApiConfigForRealSend } from '../../config/zalo-openapi';
 import { sendZaloTextMessage } from '../adapters/zalo/real-send';
-import { loadWebsiteOutboundConfig } from '../../config/website-outbound';
 import { sendWebsiteTextMessage } from '../adapters/website/real-send';
+import {
+  resolveTelegramConfigForOutbound,
+  resolveWhatsAppCloudConfigForOutbound,
+  resolveMessengerGraphConfigForOutbound,
+  resolveLineMessagingConfigForOutbound,
+  resolveZaloOpenApiConfigForOutbound,
+  resolveWebsiteOutboundConfigForOutbound,
+} from '../../saas/tenant-channel-config';
 import { createSendFailureResult, createSendSuccessResult, createSendFallbackResult, toUnifiedErrorInfo } from '../send-results';
 
 export interface ChannelSender {
@@ -62,17 +64,17 @@ function createSyntheticChannelSender(channel: UnifiedResponse['channel']): Chan
 }
 
 function createTelegramRealChannelSender(): ChannelSender {
-  const config = loadTelegramConfigForRealSend();
-  if (!config) {
-    return createSyntheticChannelSender('telegram');
-  }
-
   return {
     async send(response: UnifiedResponse) {
       const messageTraceId =
         (response.debug_metadata?.message_trace_id as string | undefined) ?? `msg-${Date.now().toString(36)}`;
       const traceId = response.debug_metadata?.trace_id as string | undefined ?? null;
       const requestId = response.debug_metadata?.request_id as string | undefined ?? null;
+
+      const config = await resolveTelegramConfigForOutbound();
+      if (!config) {
+        return createSyntheticChannelSender('telegram').send(response);
+      }
 
       try {
         const outbound = mapUnifiedResponseToOutboundPayload({ ...response, channel: 'telegram' });
@@ -166,17 +168,17 @@ function createTelegramRealChannelSender(): ChannelSender {
 }
 
 function createWhatsAppRealChannelSender(): ChannelSender {
-  const config = loadWhatsAppCloudConfigForRealSend();
-  if (!config) {
-    return createSyntheticChannelSender('whatsapp');
-  }
-
   return {
     async send(response: UnifiedResponse) {
       const messageTraceId =
         (response.debug_metadata?.message_trace_id as string | undefined) ?? `msg-${Date.now().toString(36)}`;
       const traceId = response.debug_metadata?.trace_id as string | undefined ?? null;
       const requestId = response.debug_metadata?.request_id as string | undefined ?? null;
+
+      const config = await resolveWhatsAppCloudConfigForOutbound();
+      if (!config) {
+        return createSyntheticChannelSender('whatsapp').send(response);
+      }
 
       try {
         const outbound = mapUnifiedResponseToOutboundPayload({ ...response, channel: 'whatsapp' });
@@ -270,17 +272,17 @@ function createWhatsAppRealChannelSender(): ChannelSender {
 }
 
 function createMessengerRealChannelSender(): ChannelSender {
-  const config = loadMessengerGraphConfigForRealSend();
-  if (!config) {
-    return createSyntheticChannelSender('messenger');
-  }
-
   return {
     async send(response: UnifiedResponse) {
       const messageTraceId =
         (response.debug_metadata?.message_trace_id as string | undefined) ?? `msg-${Date.now().toString(36)}`;
       const traceId = response.debug_metadata?.trace_id as string | undefined ?? null;
       const requestId = response.debug_metadata?.request_id as string | undefined ?? null;
+
+      const config = await resolveMessengerGraphConfigForOutbound();
+      if (!config) {
+        return createSyntheticChannelSender('messenger').send(response);
+      }
 
       try {
         const outbound = mapUnifiedResponseToOutboundPayload({ ...response, channel: 'messenger' });
@@ -374,17 +376,17 @@ function createMessengerRealChannelSender(): ChannelSender {
 }
 
 function createLineRealChannelSender(): ChannelSender {
-  const config = loadLineMessagingConfigForRealSend();
-  if (!config) {
-    return createSyntheticChannelSender('line');
-  }
-
   return {
     async send(response: UnifiedResponse) {
       const messageTraceId =
         (response.debug_metadata?.message_trace_id as string | undefined) ?? `msg-${Date.now().toString(36)}`;
       const traceId = response.debug_metadata?.trace_id as string | undefined ?? null;
       const requestId = response.debug_metadata?.request_id as string | undefined ?? null;
+
+      const config = await resolveLineMessagingConfigForOutbound();
+      if (!config) {
+        return createSyntheticChannelSender('line').send(response);
+      }
 
       try {
         const outbound = mapUnifiedResponseToOutboundPayload({ ...response, channel: 'line' });
@@ -478,17 +480,17 @@ function createLineRealChannelSender(): ChannelSender {
 }
 
 function createZaloRealChannelSender(): ChannelSender {
-  const config = loadZaloOpenApiConfigForRealSend();
-  if (!config) {
-    return createSyntheticChannelSender('zalo');
-  }
-
   return {
     async send(response: UnifiedResponse) {
       const messageTraceId =
         (response.debug_metadata?.message_trace_id as string | undefined) ?? `msg-${Date.now().toString(36)}`;
       const traceId = response.debug_metadata?.trace_id as string | undefined ?? null;
       const requestId = response.debug_metadata?.request_id as string | undefined ?? null;
+
+      const config = await resolveZaloOpenApiConfigForOutbound();
+      if (!config) {
+        return createSyntheticChannelSender('zalo').send(response);
+      }
 
       try {
         const outbound = mapUnifiedResponseToOutboundPayload({ ...response, channel: 'zalo' });
@@ -582,14 +584,14 @@ function createZaloRealChannelSender(): ChannelSender {
 }
 
 function createWebsiteRealChannelSender(): ChannelSender {
-  const config = loadWebsiteOutboundConfig();
-  const shouldSend = config && !config.disabled && !config.sandbox;
-
   return {
     async send(response: UnifiedResponse) {
       const messageTraceId = response.debug_metadata?.message_trace_id as string | undefined ?? `msg-${Date.now().toString(36)}`;
       const traceId = response.debug_metadata?.trace_id as string | undefined ?? null;
       const requestId = response.debug_metadata?.request_id as string | undefined ?? null;
+
+      const config = await resolveWebsiteOutboundConfigForOutbound();
+      const shouldSend = config && !config.disabled && !config.sandbox;
 
       if (!shouldSend) {
         return {
@@ -612,7 +614,7 @@ function createWebsiteRealChannelSender(): ChannelSender {
         const outbound = mapUnifiedResponseToOutboundPayload({ ...response, channel: 'website' });
         const replyText = (outbound.payload as any).reply_text || response.reply_text || '';
         const sendResult = await sendWebsiteTextMessage(
-          config!,
+          config,
           response.session_id,
           replyText,
           requestId ?? `req-${Date.now().toString(36)}`,

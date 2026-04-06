@@ -28,6 +28,9 @@ import { handleLineWebhook } from './webhooks/line';
 import { handleZaloWebhook } from './webhooks/zalo';
 import { runMinimalInboundVerification } from './webhooks/verification';
 import { initHandoffRuntimeConfig } from './config/handoff-assign';
+import { handleSaaSAdminRequest } from './saas/admin-routes';
+import { tryHandleTenantWebhook } from './saas/tenant-webhook-http';
+import { getSaaSDatabase } from './saas/db';
 
 const port = Number(process.env.PORT ?? 3030);
 
@@ -108,6 +111,43 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
   if (req.method === 'GET' && url.pathname === '/health') {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
+  if (pathname.startsWith('/saas/')) {
+    let bodyText = '';
+    if (method !== 'GET' && method !== 'HEAD') {
+      const { raw } = await readRequestBody(req);
+      bodyText = raw.toString('utf8');
+    }
+    const adminResult = await handleSaaSAdminRequest(
+      method,
+      pathname,
+      bodyText,
+      req.headers.authorization,
+    );
+    if (adminResult) {
+      const ct = adminResult.contentType ?? 'application/json';
+      res.writeHead(adminResult.status, { 'content-type': ct });
+      const b = adminResult.body;
+      res.end(typeof b === 'string' ? b : JSON.stringify(b, null, 2));
+      return;
+    }
+  }
+
+  const handledTenant = await tryHandleTenantWebhook({
+    method,
+    pathname,
+    url,
+    req,
+    res,
+    requestId,
+    readRequestBody,
+    setWebhookPhases: (p) => {
+      webhookPhases = p;
+    },
+  });
+  if (handledTenant) {
     return;
   }
 
@@ -295,7 +335,12 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
 export function startServer() {
   // Initialize handoff runtime config (Phase 21)
   initHandoffRuntimeConfig();
-  
+
+  void getSaaSDatabase().catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error('[saas] database init failed', err);
+  });
+
   const server = http.createServer((req, res) => {
     void handler(req, res);
   });

@@ -20,8 +20,12 @@ export function channelFromPathname(pathname: string): string | undefined {
     return undefined;
   }
   const rest = pathname.slice('/webhooks/'.length);
-  const seg = rest.split('/')[0];
-  return seg && seg.length > 0 ? seg : undefined;
+  const parts = rest.split('/').filter(Boolean);
+  // /webhooks/t/:tenantSlug/:channel → use channel segment for logs
+  if (parts[0] === 't' && parts.length >= 3) {
+    return parts[2];
+  }
+  return parts[0] && parts[0].length > 0 ? parts[0] : undefined;
 }
 
 /** When present, merged into http_access JSON from webhook handler results (prepare = before outbound send). */

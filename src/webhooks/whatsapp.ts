@@ -26,6 +26,7 @@ export async function handleWhatsAppWebhook(rawRequestBody: unknown, opts?: Webh
       traceContext: {
         request_id: opts?.httpRequestId,
       },
+      ...(opts?.faqEntries !== undefined ? { faqEntries: opts.faqEntries } : {}),
     });
     commitSessionContext(result.session);
 

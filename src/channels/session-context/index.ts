@@ -1,11 +1,18 @@
 import type { UnifiedInboundMessage } from '../../../shared/types/unified-inbound-message';
 import type { UnifiedSessionContext } from '../../../shared/types/unified-session-context';
+import { getTenantIdOrNull } from '../../saas/tenant-context';
 import { sessionStore } from './in-memory-store';
+
+export function namespacedSessionIdForMessage(message: UnifiedInboundMessage): string {
+  const base = `${message.channel}:${message.external_user_id}:${message.external_session_id}`;
+  const tid = getTenantIdOrNull();
+  return tid ? `${tid}:${base}` : base;
+}
 
 export function createOrUpdateSessionContext(
   message: UnifiedInboundMessage,
 ): UnifiedSessionContext {
-  const sessionId = `${message.channel}:${message.external_user_id}:${message.external_session_id}`;
+  const sessionId = namespacedSessionIdForMessage(message);
   
   // 尝试从存储中获取现有 session
   const existing = sessionStore.get(sessionId);
@@ -20,7 +27,7 @@ export function createOrUpdateSessionContext(
     return updated;
   }
   
-  // 创建新 session
+  // 创建新 session（tenant 请求下 session_id 已含租户前缀，避免跨租户串线）
   const newSession: UnifiedSessionContext = {
     session_id: sessionId,
     channel: message.channel,

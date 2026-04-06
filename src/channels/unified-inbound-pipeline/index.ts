@@ -6,7 +6,9 @@ import {
   dispatchUnifiedInboundIntent,
   prepareUnifiedInboundIntent,
 } from './intent-dispatch';
+import type { UnifiedFaqSeedEntry } from './faq-seed';
 import { resolveUnifiedFaqSkeleton } from './faq-resolver';
+import { namespacedSessionIdForMessage } from '../session-context';
 import { runLeadCaptureHook } from '../lead-capture-hook';
 import { detectContactIntent } from '../lead-capture-hook/contact-intent-detector';
 import { getLeadCaptureI18n } from '../lead-capture-hook/i18n';
@@ -24,6 +26,8 @@ export interface PipelineOptions {
     request_id?: string;
     message_trace_id?: string;
   };
+  /** Multi-tenant: FAQ from DB only (empty array = no built-in seed). Omit = legacy seed file. */
+  faqEntries?: UnifiedFaqSeedEntry[];
 }
 
 export function runUnifiedInboundPipeline(
@@ -31,9 +35,12 @@ export function runUnifiedInboundPipeline(
   session?: UnifiedSessionContext,
   options?: PipelineOptions,
 ): { session: UnifiedSessionContext; response: UnifiedResponse } {
+  const faqResolverOpts =
+    options?.faqEntries !== undefined ? { entries: options.faqEntries } : undefined;
+
   const nextSession: UnifiedSessionContext =
     session ?? {
-      session_id: `${message.channel}:${message.external_user_id}:${message.external_session_id}`,
+      session_id: namespacedSessionIdForMessage(message),
       channel: message.channel,
       external_user_id: message.external_user_id,
       external_session_id: message.external_session_id,
@@ -55,7 +62,13 @@ export function runUnifiedInboundPipeline(
   switch (dispatchResult.nextStage) {
     case 'prioritize_faq':
       // 先运行FAQ匹配
-      faqResult = resolveUnifiedFaqSkeleton(message, nextSession, intentPreparation, dispatchResult);
+      faqResult = resolveUnifiedFaqSkeleton(
+        message,
+        nextSession,
+        intentPreparation,
+        dispatchResult,
+        faqResolverOpts,
+      );
       // 如果FAQ未命中，再运行lead capture
       if (!faqResult.matched) {
         sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession, options?.traceContext);
@@ -84,7 +97,13 @@ export function runUnifiedInboundPipeline(
         (sessionAfterLeadCapture.lead_capture_state.status === 'partial' && !hasNewLeadSignals);
       
       if (shouldRunFaq) {
-        faqResult = resolveUnifiedFaqSkeleton(message, sessionAfterLeadCapture, intentPreparation, dispatchResult);
+        faqResult = resolveUnifiedFaqSkeleton(
+          message,
+          sessionAfterLeadCapture,
+          intentPreparation,
+          dispatchResult,
+          faqResolverOpts,
+        );
       } else {
         // 不需要FAQ
         faqResult = {
@@ -99,14 +118,26 @@ export function runUnifiedInboundPipeline(
     case 'run_both':
       // 同时运行两者（无优先级）
       sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession, options?.traceContext);
-      faqResult = resolveUnifiedFaqSkeleton(message, sessionAfterLeadCapture, intentPreparation, dispatchResult);
+      faqResult = resolveUnifiedFaqSkeleton(
+        message,
+        sessionAfterLeadCapture,
+        intentPreparation,
+        dispatchResult,
+        faqResolverOpts,
+      );
       break;
 
     case 'pass_through':
     default:
       // 原始行为：先lead capture，然后FAQ
       sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession, options?.traceContext);
-      faqResult = resolveUnifiedFaqSkeleton(message, sessionAfterLeadCapture, intentPreparation, dispatchResult);
+      faqResult = resolveUnifiedFaqSkeleton(
+        message,
+        sessionAfterLeadCapture,
+        intentPreparation,
+        dispatchResult,
+        faqResolverOpts,
+      );
       break;
   }
 

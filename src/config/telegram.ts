@@ -55,26 +55,37 @@ export function getTelegramBotTokenRaw(): string | undefined {
  * Returns config for real send, or null to use synthetic sender.
  * Null when: sandbox mode, missing token, or invalid token shape.
  */
-export function loadTelegramConfigForRealSend(): TelegramConfig | null {
+/**
+ * Build send config from a bot token (e.g. loaded from tenant DB). Does not read process.env for the token.
+ */
+export function buildTelegramConfigFromToken(botToken: string): TelegramConfig | null {
   if (isTelegramSandboxMode()) {
     return null;
   }
-  const botToken = getTelegramBotTokenRaw();
-  if (!botToken) {
+  const t = botToken.trim();
+  if (!t) {
     return null;
   }
-  if (!TOKEN_PATTERN.test(botToken)) {
+  if (!TOKEN_PATTERN.test(t)) {
     // eslint-disable-next-line no-console
-    console.error('[Telegram] TELEGRAM_BOT_TOKEN format invalid (expected digit:string)');
+    console.error('[Telegram] bot token format invalid (expected digit:string)');
     return null;
   }
   const username = process.env.TELEGRAM_BOT_USERNAME?.trim();
   const proxyConnectUri = buildTelegramProxyConnectUriFromEnv();
   return {
-    botToken,
+    botToken: t,
     botUsername: username || undefined,
     ...(proxyConnectUri ? { proxyConnectUri } : {}),
   };
+}
+
+export function loadTelegramConfigForRealSend(): TelegramConfig | null {
+  const botToken = getTelegramBotTokenRaw();
+  if (!botToken) {
+    return null;
+  }
+  return buildTelegramConfigFromToken(botToken);
 }
 
 export function redactTelegramTokenInMessage(message: string, token: string): string {

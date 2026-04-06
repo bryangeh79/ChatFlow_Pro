@@ -17,6 +17,7 @@ export async function handleWebsiteWebhook(rawRequestBody: unknown, opts?: Webho
       traceContext: {
         request_id: opts?.httpRequestId,
       },
+      ...(opts?.faqEntries !== undefined ? { faqEntries: opts.faqEntries } : {}),
     });
     
     // 提交 session 到进程内存储（使跨请求 lead 合并生效）

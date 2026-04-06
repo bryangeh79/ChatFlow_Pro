@@ -6,6 +6,7 @@ import {
 import { mapTelegramOutboundPayload } from '../channels/adapters/telegram/outbound';
 import { createChannelSender } from '../channels/outbound-sender';
 import { createOrUpdateSessionContext, commitSessionContext } from '../channels/session-context';
+import type { UnifiedFaqSeedEntry } from '../channels/unified-inbound-pipeline/faq-seed';
 import { runUnifiedInboundPipeline } from '../channels/unified-inbound-pipeline';
 import { createMinimalTraceContext } from '../channels/errors/observability';
 import { createSafeFallbackResponse } from '../channels/errors';
@@ -20,7 +21,11 @@ function createTelegramHelpText(): string {
   return 'Telegram is connected. Send a message, or use /start or /help to see this guide.';
 }
 
-export type WebhookHandlerOptions = { httpRequestId?: string };
+export type WebhookHandlerOptions = {
+  httpRequestId?: string;
+  /** Multi-tenant SaaS: FAQ rows from DB (omit = use built-in seed). */
+  faqEntries?: UnifiedFaqSeedEntry[];
+};
 
 export async function handleTelegramWebhook(rawRequestBody: unknown, opts?: WebhookHandlerOptions) {
   try {
@@ -43,6 +48,7 @@ export async function handleTelegramWebhook(rawRequestBody: unknown, opts?: Webh
       traceContext: {
         request_id: opts?.httpRequestId,
       },
+      ...(opts?.faqEntries !== undefined ? { faqEntries: opts.faqEntries } : {}),
     });
     
     // 提交 session 到进程内存储（使跨请求 lead 合并生效）
