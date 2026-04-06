@@ -2,6 +2,10 @@
 
 AI reception and customer-support automation for SMEs.
 
+## Deliverable runtime (this repo)
+
+Production path: Node server under `src/` (seven webhooks, unified pipeline, outbound send). **Go-live checklist (2-day, scope-frozen):** **`docs/168_pro_two_day_go_live_checklist.md`**. Module intent: **`docs/01_module_blueprint.md`**.
+
 ## Structure
 - `frontend/` chat widget and admin UI skeleton
 - `backend/` modular API and service skeleton
