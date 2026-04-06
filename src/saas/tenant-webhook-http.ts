@@ -3,14 +3,9 @@ import { verifyMetaSignature } from '../config/meta-webhook';
 import { verifyLineSignature } from '../config/line-webhook';
 import { verifyWebsiteSignature } from '../config/website-webhook';
 import {
-  getLineWebhookVerifyToken,
-  getMessengerWebhookVerifyToken,
-  getWebsiteWebhookVerifyToken,
-  getWhatsAppWebhookVerifyToken,
-  getZaloWebhookVerifyToken,
-  handleWebhookGetWithOptionalMetaVerify,
   informationalWebhookGetPing,
   sendWebhookGetVerifyResponse,
+  verifyMetaStyleWebhookGet,
 } from '../config/webhook-verify';
 import { getTenantBySlug, getTenantCredentials, loadTenantFaqEntries } from './repository';
 import { loadTenantRuntimeSettingsForTenantRequest } from './tenant-runtime-settings';
@@ -80,13 +75,67 @@ function denyTenantPostSignature(args: {
   );
 }
 
-async function verifyTokenWithTenantFallback(
+async function getTenantWebhookVerifyTokenOnly(
   tenantId: string,
-  key: string,
-  fallback: () => string | undefined,
+  credentialKey: string,
 ): Promise<string | undefined> {
   const creds = await getTenantCredentials(tenantId);
-  return creds.get(key)?.trim() || fallback();
+  return creds.get(credentialKey)?.trim() || undefined;
+}
+
+function saasControlTenantGetVerify(tokenPresent: boolean): {
+  tenant_get_verify_token_present: boolean;
+  tenant_get_env_fallback_blocked: boolean;
+} {
+  return {
+    tenant_get_verify_token_present: tokenPresent,
+    tenant_get_env_fallback_blocked: true,
+  };
+}
+
+function denyTenantGetVerifyTokenMissing(args: {
+  res: ServerResponse;
+  tenantId: string;
+  tenantSlug: string;
+  channel: string;
+}): void {
+  // eslint-disable-next-line no-console
+  console.warn(
+    '[tenant-webhook]',
+    JSON.stringify({
+      event: 'tenant_verify_token_missing',
+      channel: args.channel,
+      tenant_id: args.tenantId,
+      tenant_slug: args.tenantSlug,
+    }),
+  );
+  args.res.writeHead(403, { 'content-type': 'application/json' });
+  args.res.end(
+    JSON.stringify({
+      ok: false,
+      error: 'tenant_verify_token_missing',
+      debug_metadata: {
+        saas_control: saasControlTenantGetVerify(false),
+      },
+    }),
+  );
+}
+
+function tenantGetVerifyCredentialKey(channel: string): string {
+  switch (channel) {
+    case 'whatsapp':
+      return 'WHATSAPP_WEBHOOK_VERIFY_TOKEN';
+    case 'messenger':
+      return 'MESSENGER_WEBHOOK_VERIFY_TOKEN';
+    case 'website':
+      return 'WEBSITE_WEBHOOK_VERIFY_TOKEN';
+    case 'line':
+      return 'LINE_WEBHOOK_VERIFY_TOKEN';
+    case 'zalo':
+      return 'ZALO_WEBHOOK_VERIFY_TOKEN';
+    default:
+      return 'WHATSAPP_WEBHOOK_VERIFY_TOKEN';
+  }
 }
 
 export async function tryHandleTenantWebhook(args: {
@@ -121,41 +170,35 @@ export async function tryHandleTenantWebhook(args: {
   }
 
   if (args.method === 'GET') {
-    const vtok = await (async () => {
-      switch (m.channel) {
-        case 'whatsapp':
-          return verifyTokenWithTenantFallback(
-            tenant.id,
-            'WHATSAPP_WEBHOOK_VERIFY_TOKEN',
-            getWhatsAppWebhookVerifyToken,
-          );
-        case 'messenger':
-          return verifyTokenWithTenantFallback(
-            tenant.id,
-            'MESSENGER_WEBHOOK_VERIFY_TOKEN',
-            getMessengerWebhookVerifyToken,
-          );
-        case 'website':
-          return verifyTokenWithTenantFallback(
-            tenant.id,
-            'WEBSITE_WEBHOOK_VERIFY_TOKEN',
-            getWebsiteWebhookVerifyToken,
-          );
-        case 'line':
-          return verifyTokenWithTenantFallback(tenant.id, 'LINE_WEBHOOK_VERIFY_TOKEN', getLineWebhookVerifyToken);
-        case 'zalo':
-          return verifyTokenWithTenantFallback(tenant.id, 'ZALO_WEBHOOK_VERIFY_TOKEN', getZaloWebhookVerifyToken);
-        default:
-          return undefined;
-      }
-    })();
-
-    handleWebhookGetWithOptionalMetaVerify(
+    const tenantVtok = await getTenantWebhookVerifyTokenOnly(
+      tenant.id,
+      tenantGetVerifyCredentialKey(m.channel),
+    );
+    const v = verifyMetaStyleWebhookGet(args.url.searchParams, tenantVtok);
+    if (
+      v &&
+      v.kind === 'json' &&
+      v.status === 403 &&
+      v.body &&
+      typeof v.body === 'object' &&
+      'error' in v.body &&
+      v.body.error === 'webhook_verify_not_configured'
+    ) {
+      denyTenantGetVerifyTokenMissing({
+        res: args.res,
+        tenantId: tenant.id,
+        tenantSlug: tenant.slug,
+        channel: m.channel,
+      });
+      return true;
+    }
+    if (v) {
+      sendWebhookGetVerifyResponse(args.res, v);
+      return true;
+    }
+    sendWebhookGetVerifyResponse(
       args.res,
-      m.channel as 'whatsapp' | 'messenger' | 'website' | 'line' | 'zalo',
-      args.url.searchParams,
-      vtok,
-      'tenant_meta_style_hub',
+      informationalWebhookGetPing(m.channel, 'tenant_meta_style_hub'),
     );
     return true;
   }
