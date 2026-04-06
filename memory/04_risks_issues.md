@@ -142,6 +142,15 @@
 - **Performance metric reliability**: 基于小样本的性能指标可能不可靠
 - **Export command misuse**: 生成的 export 命令可能被误用或误执行
 
+## New Risks from Phase 21 / 选项 B (Pro_v1.07.56)
+- **File path security**: 运行时配置文件路径可能指向敏感位置（依赖部署环境）
+- **JSON parsing failures**: JSON 解析失败可能导致配置回退，但错误日志可能暴露文件内容
+- **SIGHUP availability**: Windows 不支持 SIGHUP，配置重载需重启进程
+- **Memory overlay staleness**: 内存覆盖层在进程重启后丢失，需重新加载文件
+- **Priority confusion**: 用户可能误解「env 为基底，JSON 仅覆盖文件中出现的键」的优先级规则
+- **Whitelist enforcement**: 非白名单键被忽略可能掩盖配置错误
+- **Concurrent reload races**: SIGHUP 重载期间可能读取到部分更新的配置
+
 ## Pro_v1.06 Known Limitations
 - **Session store**: In-memory only, single-process, no TTL expiration
 - **JSONL persistence**: Backup accumulation, no automatic cleanup

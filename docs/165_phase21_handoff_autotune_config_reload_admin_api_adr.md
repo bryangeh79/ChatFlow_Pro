@@ -2,7 +2,11 @@
 
 ## Status
 
-**Decision / documentation.** No runtime behavior change in this document. Implementation waits on explicit product sign-off. **Context:** Phase 20 `ops:handoff-autotune` (`scripts/run-handoff-autotune.mjs`) may propose changes to handoff-related env (e.g. balance mode, SLA target). Today those proposals are **stdout / unified-diff style only**; persistent state is limited to `CHATFLOW_OPS_AUTOTUNE_STATE_PATH` (default `data/.handoff-autotune-state.json`).
+**B 已落地（路径 + SIGHUP + 优先级）** — Phase 21 实现完成。新增环境变量 `CHATFLOW_HANDOFF_RUNTIME_CONFIG_PATH` 指向 JSON 文件；优先级规则：env 为基底，JSON 仅覆盖文件中出现的键；支持 Unix SIGHUP 重载；Windows 需重启进程。
+
+**C 仍为未来** — 最小 admin HTTP 端点未实现，保持可选。
+
+**Context:** Phase 20 `ops:handoff-autotune` (`scripts/run-handoff-autotune.mjs`) may propose changes to handoff-related env (e.g. balance mode, SLA target). Today those proposals are **stdout / unified-diff style only**; persistent state is limited to `CHATFLOW_OPS_AUTOTUNE_STATE_PATH` (default `data/.handoff-autotune-state.json`).
 
 ## Problem
 

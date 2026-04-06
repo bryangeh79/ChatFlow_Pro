@@ -27,6 +27,7 @@ import { handleMessengerWebhook } from './webhooks/messenger';
 import { handleLineWebhook } from './webhooks/line';
 import { handleZaloWebhook } from './webhooks/zalo';
 import { runMinimalInboundVerification } from './webhooks/verification';
+import { initHandoffRuntimeConfig } from './config/handoff-assign';
 
 const port = Number(process.env.PORT ?? 3030);
 
@@ -292,6 +293,9 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
 }
 
 export function startServer() {
+  // Initialize handoff runtime config (Phase 21)
+  initHandoffRuntimeConfig();
+  
   const server = http.createServer((req, res) => {
     void handler(req, res);
   });
