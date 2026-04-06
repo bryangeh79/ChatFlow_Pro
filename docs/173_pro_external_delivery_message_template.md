@@ -1,6 +1,6 @@
 # ChatFlow Pro — 对外发包文本模板（实施/客户可直接复制）
 
-> 用法：替换 `{}` 占位符后直接发送。默认口径：一客户一部署，token/真实联调后置到 onboarding。
+> 用法：优先执行 `npm run delivery:message` 自动生成实参文本；或手工替换 `{}` 占位符后发送。默认口径：一客户一部署，token/真实联调后置到 onboarding。
 
 ## 模板正文
 
