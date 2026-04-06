@@ -1,6 +1,15 @@
 # Next Phase Plan
 
-- Current Phase: **Phase 22** - 交付执行加速（自动生成并落盘对外发包文本，降低人工转发漏项）；authoritative status → **`memory/01_project_status.md`**
+- Current Phase: **Phase 23 — SaaS MVP Final Closure**（总验收 + 尾项裁决，不大面积扩功能）；authoritative status → **`memory/01_project_status.md`**
+- Phase 22 子阶段（**整段已收口**，SaaS 为 Phase 主线的一部分，非外挂）：
+  - **Phase 22A** — SaaS 基础接入（已完成）
+  - **Phase 22B** — SaaS 控制权接管（已完成）
+  - **Phase 22C** — SaaS 行为全面接管（已完成，**Pro_v1.07.65**）
+  - **Phase 22D** — SaaS / Legacy 收口（主目标已完成，**Pro_v1.07.67**）
+  - **Phase 22E** — CI / 文档 / 边界说明收尾（**✅ 已收口**，见下节）
+- **当前版本（package.json）**：**1.7.67**（**Pro_v1.07.67**）；22E 以 CI + 文档交付为主，**未单独升 patch**；Phase 23 首个可验收交付可发 **1.7.68**。
+- **任务归属（Phase 23）**：idle GET 策略、非主链路门控、`tenant_settings` 接管范围总表、SaaS MVP **完成定义 + 验收清单**。
+- **提交标注约定**（历史）：22D/22E 前缀仍见于已合并提交；**Phase 23** 见下节「提交标注约定（23）」。
 - Previous major milestone in this log: **Phase 16.2** - HTTP access observability enhanced (`X-Request-Id`, optional `CHATFLOW_HTTP_ACCESS_LOG`, webhook `phases_ms`, verification type narrowing)
 - Before that: Phase 16 - HTTP access observability first slice
 - Completed in Phase 15.0:
@@ -181,7 +190,7 @@
 - **Phase 21.2 已交付**：**`docs/167`**（autotune 可选合并写运行时 JSON）。
 - **商业形态**：**`docs/169`** — 一客户一部署；**`docs/170`** — 运维与 `backup:data`。
 - **厂商发版**：**`docs/171`** + **`CHANGELOG.md`** + **`docker-compose.customer.yml`**；HTTPS：**`docs/172`** + **`examples/reverse-proxy/`**。
-- Next Unique Priority Action: **产品冻结与交付阶段**：`release:verify` → `release:ship -- --with-pdf` → `delivery:latest`（zip+sha256）→ 文档包 `docs/168/169/170/171/172 + 161/162`；客户 token/部署后置到 onboarding。**T0+T1** / **`docs/155`**。
+- Next Unique Priority Action（历史条目已 supersede）：当前以文件 **顶部「Current Phase」与文末「Next (执行优先级)」为准** — **Phase 23 — SaaS MVP Final Closure**。
 
 ## 2026-04-06 收口补充（已完成）
 
@@ -190,8 +199,50 @@
 - ✅ P1：新增 `docs/173`（对外发包模板）与 `docs/174`（实施接入极短模板）。
 - ✅ P1：新增 `delivery:message` 自动化，减少手工拼接版本/zip/sha/CI 的漏项风险。
 
+## Phase 22B — SaaS 控制权接管（已收口）
+
+完成项（Pro_v1.07.62）：
+- `handoff.enabled` 接入 runtime 并验证生效
+- `notify.enabled` 接入 runtime 并验证生效
+- `lead_capture.enabled` 接入 runtime 并验证生效
+- 三项均已建立 git checkpoint（`main`）
+
+遗留风险：
+- 历史 session 状态未主动清空（仅阻断新推进，不回收既有内存状态）
+
+## Phase 22C — SaaS 行为全面接管（✅ 已收口，Pro_v1.07.65）
+
+已完成三刀（见 **`memory/02_completed_work.md`**）：`bot.enabled`、`suppress_reply.enabled`、`faq.fallback_enabled`。
+
+## Phase 22D — SaaS / Legacy 收口（✅ 主目标完成，Pro_v1.07.67）
+
+已完成：**租户 POST 签名**与 **租户 GET verify token** 均 **阻断 env fallback**；legacy 不变。盘点文档见对话/仓库内实现；**sandbox/disabled 全局 tenant 化**未作为 22D 必交付项，可后续单独立项。
+
+## Phase 22E — CI / Docs / Boundary Cleanup（✅ 已收口）
+
+**已完成**：
+1. **CI**：`ci.yml` 增加 **`tenant-boundary-verify`**（`needs: build`），跑 `verify:tenant-post-signature-boundary` + `verify:tenant-get-verify-boundary`；依赖 GitHub secret **`CHATFLOW_SAAS_ADMIN_TOKEN`**，未配置则 **job 跳过**；fork PR 不跑。
+2. **文档**：`docs/175`、`docs/GPT_PLANNER_HANDOFF_BLUEPRINT.md`、`docs/158`（CI note）— 租户必配项、通道差异（Telegram/Zalo 无 POST 验签等）、**idle GET** vs **hub challenge**、CI 前提写清。
+
+**未在 22E 强关（移交 Phase 23）**：**idle GET** 是否在无租户 verify token 时收紧为 **403**（产品/安全裁决）。
+
+---
+
+## Phase 23 — SaaS MVP Final Closure（当前）
+
+**目标**：总验收 + 剩余尾项裁决，**不再大面积扩功能**。
+
+**优先级（建议顺序）**：
+1. **idle GET 是否继续收紧** — 与 22E 文档已描述的当前行为对齐，做 go/no-go 并实现或冻结文档。
+2. **非主链路发送 / suppress 入口是否补门控** — 审计 handoff 抑制、outbound 总闸之外的独立路径，缺则最小门控或显式记为 out-of-scope。
+3. **`tenant_settings` 已接管范围总表** — 文档化（或 Admin 只读说明）哪些键已驱动 runtime，哪些仍仅存储。
+4. **SaaS MVP 完成定义与验收清单** — `docs/175` 或独立短节：何为「MVP done」、T0/T1 + 租户边界 CI（secret 配置时）+ 手工抽检矩阵。
+
+**提交标注约定（23）**：`feat(phase-23):` · `chore(phase-23):` · `docs(phase-23):`。
+
 ## Next (执行优先级)
 
-1. 默认外发动作：`npm run delivery:ship:final`（自动出包 + 发包文本落盘 + CI 快照）。
-2. 仅当明确触发 onboarding：进入 `docs/171` 的部署/联调段，实配 token/webhook。
-3. 未触发 onboarding 前：维持范围冻结，不扩展坐席 UI 或多租户控制面。
+1. **Phase 23（主线）**：上节四项；保持 **T0 + T1** 不降级；租户边界 CI 仍依赖仓库 secret（见 `docs/175`）。
+2. 默认外发动作（非 onboarding 场景）：`npm run delivery:ship:final`。
+3. 仅当明确触发 onboarding：`docs/171` 部署/联调 + 实配 token/webhook。
+4. 未触发 onboarding 前：不扩展坐席 UI；SaaS **收尾以文档 + 小改动门控**为主。

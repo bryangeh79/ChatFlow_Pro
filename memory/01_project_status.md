@@ -1,8 +1,8 @@
 # Project Status
 
 - Project Name: ChatFlow Pro
-- Current Phase: **Phase 22**（交付执行加速期：发包文本自动化 + memory 收口闭环）
-- Current Version: **Pro_v1.07.58** (package.json: 1.7.58)
+- Current Phase: **Phase 23 — SaaS MVP Final Closure**（总验收 + 尾项裁决）；Phase **22 全线收口**：**22A–22E** ✅（**22E**：租户边界 **CI** + **文档** 已落地）
+- Current Version: **Pro_v1.07.67** (package.json: **1.7.67**；22D 租户路径验签/verify 与 22B–22C 运行时控制项仍有效；**22E 未单独升 patch**，Phase 23 首个可标签交付可发 **1.7.68**)
 - Execution Root: C:\AI_WORKSPACE\Chatflow\ChatFlow_Pro
 - Current Project State: 
   - ✅ **Seven-route webhook baseline**: Website, Telegram, WhatsApp, Messenger, Line, Zalo (`POST /webhooks/*` + **`GET /webhooks/*`** verification per docs/141)
@@ -28,8 +28,16 @@
   - ✅ **Zalo Open API real outbound**: When `ZALO_ACCESS_TOKEN` + `ZALO_OA_ID` valid and not sandbox, outbound uses Open API (`docs/149`, `src/channels/outbound-sender/index.ts`)
   - ✅ **HTTP observability (Phase 16)**: All responses include `X-Request-Id`; optional one-line JSON access log when `CHATFLOW_HTTP_ACCESS_LOG` set (`docs/150`, `src/observability/http-access.ts`, `server.ts`); **HTTP `request_id` = `debug_metadata.request_id`** on all seven `POST /webhooks/*` paths via `createMinimalTraceContext({ httpRequestId })`; access log may include **`phases_ms`** (`prepare_ms`, optional `outbound_send_ms`) from webhook handlers
   - ✅ Optional **handoff notify**: `CHATFLOW_HANDOFF_NOTIFY_URL` (+ optional secret header) → async POST on first transition to `handoff_state` **pending** (**Pro_v1.07.41**)
-- Current Completion Point: **Pro_v1.07.58** — Phase 22 继续加速：新增 **`delivery:message:file`**（输出 `dist/delivery-message-latest.txt`）、新增 **`delivery:ship:final`**（一键 `release:ship -- --with-pdf` + `delivery:message:file` + `report:github-ci`）；已实跑通过并产出新交付包，最新 CI 绿灯（head `161d08f`）。
+  - ✅ **SaaS MVP（Phase 22A）**：sql.js SQLite、租户 webhook `GET|POST /webhooks/t/<slug>/<channel>`、Admin API + `public/saas-admin.html`、进程内租户 context + session 隔离 + 每租户 FAQ/凭据；`tenant_settings` 已落库与 Admin 读写，**运行时由 `tenant_settings` 驱动归 Phase 22B**（见 `memory/03`、`docs/175`、`src/saas/*`）
+  - ✅ **Phase 22D（主目标）**：租户路径 **POST**（WA/Messenger/Line/Website）验签 **仅用租户 secret**，缺失即 403；租户路径 **GET** hub 校验 **仅用租户 verify token**，缺失即 `tenant_verify_token_missing`；**legacy `/webhooks/*` 不变**。脚本：`verify:tenant-post-signature-boundary`、`verify:tenant-get-verify-boundary`。
+  - ✅ **Phase 22E（收口）**：**CI** `tenant-boundary-verify`（依赖 Actions secret `CHATFLOW_SAAS_ADMIN_TOKEN`，未设跳过；fork PR 不跑）；**文档** `docs/175` / `GPT_PLANNER_HANDOFF_BLUEPRINT` / `docs/158` 补齐运维边界与 idle vs hub 语义。
+- Current Completion Point: **Pro_v1.07.67** — **Phase 22（含 22E）已收口**；**Phase 23** 聚焦 idle GET 裁决、非主链路门控审计、`tenant_settings` 接管总表、SaaS MVP 完成定义与验收清单（见 **`memory/03_next_phase_plan.md`**）。
 - Pro Target Channels (product scope, Bryan-locked): **Telegram**, **WhatsApp**, **Facebook Messenger**, **Line**, **Zalo**; architecture must keep an **extension slot** for additional messaging platforms later. **Website live chat** remains part of Pro (already implemented alongside messaging channels).
 - Current Channel Boundary (runtime today): **All seven channels live** — unified pipeline; **Telegram** real outbound when token + not sandbox (**optional proxy**); **WhatsApp** real outbound when token + phone number ID + not sandbox; **Messenger** real outbound when token + page ID + not sandbox; **Line** real outbound when token + not sandbox; **Zalo** real outbound when token + OA ID + not sandbox; **Website** real outbound when `WEBSITE_OUTBOUND_URL` configured + not sandbox/disabled; **WhatsApp/Messenger/Line/Website** POST signature validation when secret configured; **Zalo** inbound relies on IP whitelisting (per official docs).
 - **Pause Status**: **Not blocked on staging** — 默认门槛：**T0 build + T1 `staging:docker-smoke`**（**`docs/158`** *Default staging ladder*）；公网/T3、Zalo OA、157 B/C 为**可选增强**，不挡合并与后续功能开发
-- Next Unique Priority Action: 对外交付默认执行 **`npm run delivery:ship:final`**（最少人工路径）；仅当收到 onboarding 指令时再进入 token/webhook 实配与公网真联调。
+- Next Unique Priority Action: **Phase 23** — （1）**idle GET** 是否收紧（裁决 + 实现或文档冻结）；（2）**非主链路** send/suppress **门控审计**；（3）**`tenant_settings` 已接管范围总表**；（4）**SaaS MVP 完成定义 + 验收清单**。提交前缀：`feat(phase-23):` / `chore(phase-23):` / `docs(phase-23):`。
+
+- ⚠️ **Phase 22C 后遗留风险**（收口承认，非阻塞）：
+  - **历史 session 状态不主动清空**：租户开关变更后，进程内既有 session 不回收，仅影响后续轮次行为边界。
+  - **非主链路 suppress 入口可能未覆盖**：除已接管的 handoff 抑制与 outbound 总闸外，若未来存在独立发送路径需单独审计。
+  - **FAQ fallback 范围**：当前仅接管 resolver 策略 2/3 与 `planDefaultTurn` 文本回显；**不含** `post_capture` / `capture` 阶段引导文案的 tenant 开关。

@@ -179,3 +179,32 @@
 - **Handoff minimal integration (Pro_v1.07.40)**: Keyword trigger (`人工|转人工|agent|human` etc.), session `handoff_state` updates, unified pipeline integration — **已交付**
 - **Phase 21 / 21.2**: runtime config reload (Option B) + autotune optional runtime-write — **已交付**
 - **Commercial delivery automation**: `docs/168~172` + `release:*` + `delivery:*` + `backup:data` + `health:curl` — **已交付**
+
+## Phase 22B Completed
+- Version aligned: **Pro_v1.07.62** (`package.json` 1.7.62).
+- `tenant_settings` runtime control closed with real behavior change and verification:
+  - `handoff.enabled` integrated and effective
+  - `notify.enabled` integrated and effective
+  - `lead_capture.enabled` integrated and effective
+- All above validated with runnable scripts and git checkpoints on `main`.
+- Residual risk logged: historical session states are not actively purged.
+
+## Phase 22C Completed
+- Version aligned: **Pro_v1.07.65** (`package.json` **1.7.65**).
+- `tenant_settings` **行为全面接管**三刀均已接入 runtime、改变真实行为、验证脚本与 git checkpoint（`main`）：
+  1. **`bot.enabled`** — 租户发送总闸；`should_send` + outbound-sender 早退；`debug_metadata.saas_control` 含 `bot_enabled` / `bot_reply_suppressed`；脚本 `verify:saas-bot-disabled`。
+  2. **`suppress_reply.enabled`** — 与 env `CHATFLOW_SUPPRESS_REPLY_ON_HANDOFF` 组合门控；`saas_control` 含 `suppress_reply_*`；脚本 `verify:saas-suppress-reply-disabled`。
+  3. **`faq.fallback_enabled`** — FAQ resolver 策略 2/3 可关；`planDefaultTurn` 关闭未命中时的用户原文回显；`saas_control` 含 `faq_fallback_*`；脚本 `verify:saas-faq-fallback-disabled`。
+- Legacy `/webhooks/*`（无租户 settings）行为保持与改造前一致的设计目标已在本阶段各刀中遵守。
+
+## Phase 22D Completed（主目标）
+- Version aligned: **Pro_v1.07.67** (`package.json` **1.7.67**；第二、三刀落在 **1.7.66** / **1.7.67**）。
+- **租户 POST 验签**：WhatsApp / Messenger / Line / Website 在 `/webhooks/t/...` 下 **禁止回退进程 env secret**；缺失租户 secret → 403 + `saas_control`（`tenant_post_*`）；验签通过后 pipeline 注入 `tenant_post_secret_present` / `tenant_post_env_fallback_blocked`。脚本：`verify:tenant-post-signature-boundary`。
+- **租户 GET verify token**：同上五通道（不含 Telegram）hub 订阅校验 **禁止回退 env verify token**；缺失 → 403 `tenant_verify_token_missing` + `tenant_get_*`；无 hub 参数时仍为 idle 信息 JSON。脚本：`verify:tenant-get-verify-boundary`。
+- **Legacy** `/webhooks/*`：**未改** env 回退与兼容行为。
+
+## Phase 22E Completed
+- Version: **未升 patch**，仍 **Pro_v1.07.67** / `package.json` **1.7.67**（与 22D 对齐）。
+- **CI**：`.github/workflows/ci.yml` 增加 **`tenant-boundary-verify`**（`needs: build`），跑 `verify:tenant-post-signature-boundary` + `verify:tenant-get-verify-boundary`；需 **`CHATFLOW_SAAS_ADMIN_TOKEN`**（Actions secret），未设则 job 跳过；fork PR 不跑。
+- **文档**：`docs/175_pro_saas_multitenant_mvp.md`、`docs/GPT_PLANNER_HANDOFF_BLUEPRINT.md`、`docs/158_docker_staging_quickstart.md` — 租户必配、通道差异、idle GET vs hub challenge、CI 前提。
+- **未关项（移交 Phase 23）**：idle GET 是否在无 verify token 时收紧为 403 — 产品裁决。
