@@ -1,6 +1,6 @@
 {
   "name": "chatflow-pro",
-  "version": "1.7.44",
+  "version": "1.7.55",
   "private": true,
   "type": "commonjs",
   "scripts": {
@@ -15,6 +15,11 @@
     "check:staging-env:debug": "node scripts/check-staging-env.mjs --debug-parse",
     "report:agent-git": "node scripts/agent-git-metadata.mjs",
     "report:github-ci": "node scripts/report-github-ci.mjs",
+    "report:handoff-assignments": "node scripts/report-handoff-assignments.mjs",
+    "report:handoff-sla": "node scripts/report-handoff-sla.mjs",
+    "report:handoff-daily": "node scripts/report-handoff-daily.mjs",
+    "ops:handoff-daily-alerts": "node scripts/run-handoff-daily-alerts.mjs",
+    "ops:handoff-autotune": "node scripts/run-handoff-autotune.mjs",
     "verify:local": "npm run build && npm run report:agent-git",
     "staging:docker-smoke": "node scripts/staging-docker-smoke.mjs",
     "staging:docker-smoke:t2": "node scripts/run-staging-t2.mjs",
