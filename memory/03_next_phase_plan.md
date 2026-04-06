@@ -192,6 +192,6 @@
 
 ## Next (执行优先级)
 
-1. 默认外发动作：`npm run delivery:message`，直接复制输出给实施/客户。
+1. 默认外发动作：`npm run delivery:ship:final`（自动出包 + 发包文本落盘 + CI 快照）。
 2. 仅当明确触发 onboarding：进入 `docs/171` 的部署/联调段，实配 token/webhook。
 3. 未触发 onboarding 前：维持范围冻结，不扩展坐席 UI 或多租户控制面。

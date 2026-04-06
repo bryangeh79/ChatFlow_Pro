@@ -159,3 +159,19 @@
 - 版本提升：`package.json` `1.7.57 -> 1.7.58`（Phase 22 执行起点）。
 - 发包文本新增落盘能力：`npm run delivery:message:file` 生成 `dist/delivery-message-latest.txt`。
 - `delivery:message` 支持 `--out=<path>` 参数；可同时写文件并在终端打印，减少复制差错。
+
+### 追加加速动作（Phase 22 第二包）
+- 新增脚本：`scripts/release-ship-final.mjs`。
+- 新增命令：`npm run delivery:ship:final`，固定执行：
+  1) `release:ship -- --with-pdf`
+  2) `delivery:message:file`
+  3) `report:github-ci`
+- 文档同步：`docs/171` 增加 `delivery:ship:final` 核对项。
+- 实跑结果：
+  - zip：`dist/delivery-bundle-2026-04-06T15-02-05-020Z.zip`
+  - sha256：`4994a93f966b2b4c124e4532b73c8b3c26805bb4114eb2c16c02bd9aeac99924`
+  - 文本：`dist/delivery-message-latest.txt`
+  - CI：`https://github.com/bryangeh79/ChatFlow_Pro/actions/runs/24037048930`（completed/success）
+- 对应提交：
+  - `19a0b52` chore(docs): regenerate 162 pdf
+  - `161d08f` feat(delivery): add one-command final shipping flow
