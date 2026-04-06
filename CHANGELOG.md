@@ -5,6 +5,7 @@ All notable changes to this repository are documented here. **Per-customer deplo
 ## Unreleased
 
 - **`npm run release:prepare`** — vendor preflight (`check:go-live` + `report:agent-git`, optional PDF/health).
+- **`npm run delivery:manifest`** — emit `data/delivery-manifest.json` (version/SHA/docs-exists).
 - **`npm run health:curl`** — `scripts/curl-health.mjs` (`HEALTH_CHECK_URL` optional).
 - **`LICENSE`** (proprietary), **`SECURITY.md`** (reporting guidance).
 - **`docs/172`** — HTTPS reverse proxy (Caddy / Nginx); **`examples/reverse-proxy/`** templates.

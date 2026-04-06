@@ -12,6 +12,7 @@
 
 - [ ] **`docs/162`** PDF（`npm run docs:pdf:162`）。
 - [ ] **`docs/168`**、**`docs/169`**、**`docs/170`**、**`docs/161`**（若启用 notify）。
+- [ ] **`npm run delivery:manifest`** 生成 `data/delivery-manifest.json`（版本、SHA、交付文档存在性）。
 - [ ] **`.env.example`**；客户现场从模板复制为 **`.env`**（不入库）。
 
 ## 客户机部署
