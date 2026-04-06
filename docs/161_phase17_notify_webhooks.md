@@ -142,5 +142,6 @@ Restart ChatFlow Pro after changing env. Trigger a lead capture or handoff keywo
 2. **幂等与关联**：接收端按 §3 做去重；用 **`request_id`**（及 `message_trace_id`）与自有日志/`X-Request-Id` 对齐。  
 3. **密钥**：若配置 `*_SECRET`，接收端用**常量时间**比对对应 header，**勿**把密钥打进应用日志。  
 4. **本地冒烟**：先 **`npm run dev:notify-echo`** + §4 示例 env，再触发一条 lead 与一次 handoff，确认 POST 体与字段。  
-5. **环境可见性（不打印密钥）**：`npm run check:staging-env` 查看 notify / suppress / handoff runtime 相关项为 SET 或 MISSING。  
-6. **全通道**：有公网 staging 后按 **`docs/157`** / **`docs/158`** 跑 smoke；无 Docker 见 **`docs/155`** *T1 equivalence*。
+5. **环境可见性（不打印密钥）**：`npm run check:staging-env` 查看 notify / suppress / handoff runtime 相关项为 SET 或 MISSING；一键 **T0 + 本检查**：`npm run check:go-live`。  
+6. **全通道**：有公网 staging 后按 **`docs/157`** / **`docs/158`** 跑 smoke；无 Docker 见 **`docs/155`** *T1 equivalence*。  
+7. **新客户凭据**：**`docs/162`**（PDF：`npm run docs:pdf:162`）；填表参考 **`docs/163`** / **`docs/164`**（若使用）。
