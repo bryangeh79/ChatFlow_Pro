@@ -73,3 +73,40 @@
 
 ### 下一步建议
 **建议进入 Phase 21**: 把建议真正落地为 env reload 或 admin API，实现动态配置管理。
+
+---
+
+## 追加记录（2026-04-06 晚间）— 可售卖交付自动化收口
+
+### 当前定位
+- **版本口径**: Pro_v1.07.57（package.json 1.7.57）
+- **工作性质**: 非核心业务逻辑变更，聚焦「厂商发版/客户交付」自动化与文档闭环
+
+### 本轮新增能力（已 push）
+1. **商业交付文档链**:
+   - `docs/168` 两天清单
+   - `docs/169` 一客户一部署商业模型
+   - `docs/170` 客户运维 Runbook
+   - `docs/171` 厂商发版核对
+   - `docs/172` HTTPS 反代（Caddy/Nginx）
+2. **交付流水线脚本**:
+   - `release:prepare`（预检）
+   - `release:verify`（只读校验）
+   - `release:ship`（一键出包 + CI 摘要）
+   - `delivery:manifest` / `delivery:bundle` / `delivery:zip` / `delivery:latest` / `delivery:clean`
+3. **运维辅助**:
+   - `backup:data`
+   - `health:curl`
+   - `docker-compose.customer.yml`
+   - `LICENSE` + `SECURITY.md`
+
+### 执行验证
+- ✅ `npm run build`
+- ✅ `npm run check:go-live`
+- ✅ `npm run release:verify`
+- ✅ `npm run release:ship -- --with-pdf`（成功产出 zip + sha256 + CI URL）
+
+### 当前交付状态
+- **产品工程可冻结**（无 token 前不阻塞）
+- **客户接入步骤已模板化**（token/部署在客户环境执行）
+- **下一步优先级**: 继续冻结版本并准备对外交付沟通材料；`docs/165` 选项 C / 多租户仍另立项
