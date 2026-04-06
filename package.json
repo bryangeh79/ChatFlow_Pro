@@ -15,6 +15,7 @@
     "check:staging-env:debug": "node scripts/check-staging-env.mjs --debug-parse",
     "check:go-live": "npm run build && node scripts/check-staging-env.mjs",
     "release:prepare": "node scripts/release-prepare.mjs",
+    "release:ship": "node scripts/release-ship.mjs",
     "delivery:manifest": "node scripts/build-delivery-manifest.mjs",
     "delivery:bundle": "npm run delivery:manifest && node scripts/build-delivery-bundle.mjs",
     "delivery:zip": "npm run delivery:bundle && node scripts/build-delivery-zip.mjs",

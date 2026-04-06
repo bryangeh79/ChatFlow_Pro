@@ -4,6 +4,7 @@ All notable changes to this repository are documented here. **Per-customer deplo
 
 ## Unreleased
 
+- **`npm run release:ship`** — one-command ship (`release:prepare` + `delivery:zip` + `report:github-ci`).
 - **`npm run release:prepare`** — vendor preflight (`check:go-live` + `report:agent-git`, optional PDF/health).
 - **`npm run delivery:manifest`** — emit `data/delivery-manifest.json` (version/SHA/docs-exists).
 - **`npm run delivery:bundle`** — build `dist/delivery-bundle/` + `SHA256SUMS.txt` for customer handoff.
