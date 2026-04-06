@@ -75,6 +75,9 @@ export async function handleMessengerWebhook(rawRequestBody: unknown, opts?: Web
         request_id: opts?.httpRequestId,
       },
       ...(opts?.faqEntries !== undefined ? { faqEntries: opts.faqEntries } : {}),
+      ...(opts?.tenantRuntimeSettings !== undefined
+        ? { tenantRuntimeSettings: opts.tenantRuntimeSettings }
+        : {}),
     });
     commitSessionContext(result.session);
 

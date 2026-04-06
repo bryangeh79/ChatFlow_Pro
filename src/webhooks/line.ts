@@ -74,6 +74,9 @@ export async function handleLineWebhook(rawRequestBody: unknown, opts?: WebhookH
         request_id: opts?.httpRequestId,
       },
       ...(opts?.faqEntries !== undefined ? { faqEntries: opts.faqEntries } : {}),
+      ...(opts?.tenantRuntimeSettings !== undefined
+        ? { tenantRuntimeSettings: opts.tenantRuntimeSettings }
+        : {}),
     });
     commitSessionContext(result.session);
 

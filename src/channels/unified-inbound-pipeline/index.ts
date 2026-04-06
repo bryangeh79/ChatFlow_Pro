@@ -20,6 +20,7 @@ import { planTurn } from '../conversation-runtime/policy';
 import { emitLeadCaptured, emitQualificationTagsUpdated } from '../conversation-runtime/events';
 import { determineOwnerAssignment } from '../handoff-trigger/assign';
 import { appendHandoffAssignmentRecord } from '../handoff-trigger/assignment-persistence';
+import type { TenantRuntimeSettings } from '../../saas/tenant-runtime-settings';
 
 export interface PipelineOptions {
   traceContext?: {
@@ -28,6 +29,8 @@ export interface PipelineOptions {
   };
   /** Multi-tenant: FAQ from DB only (empty array = no built-in seed). Omit = legacy seed file. */
   faqEntries?: UnifiedFaqSeedEntry[];
+  /** Phase 22B: tenant_settings applied per request (tenant webhooks only). */
+  tenantRuntimeSettings?: TenantRuntimeSettings;
 }
 
 export function runUnifiedInboundPipeline(
@@ -38,7 +41,7 @@ export function runUnifiedInboundPipeline(
   const faqResolverOpts =
     options?.faqEntries !== undefined ? { entries: options.faqEntries } : undefined;
 
-  const nextSession: UnifiedSessionContext =
+  let nextSession: UnifiedSessionContext =
     session ?? {
       session_id: namespacedSessionIdForMessage(message),
       channel: message.channel,
@@ -50,6 +53,17 @@ export function runUnifiedInboundPipeline(
       lead_capture_state: { status: 'none' },
       handoff_state: { enabled: true, status: 'none' },
     };
+
+  if (options?.tenantRuntimeSettings !== undefined) {
+    const handoffEnabled = options.tenantRuntimeSettings.handoff.enabled !== false;
+    nextSession = {
+      ...nextSession,
+      handoff_state: {
+        ...nextSession.handoff_state,
+        enabled: handoffEnabled,
+      },
+    };
+  }
 
   // 准备意图分类
   const intentPreparation = prepareUnifiedInboundIntent(message, nextSession);
@@ -278,6 +292,15 @@ export function runUnifiedInboundPipeline(
       assigned_owner_id: sessionAfterHandoffCheck.handoff_state.assigned_owner_id || null,
       online_agents: assignment.online_agents,
       balance_strategy: assignment.balance_strategy,
+      ...(options?.tenantRuntimeSettings !== undefined
+        ? {
+            saas_control: {
+              tenant_runtime_settings_injected: true,
+              handoff_enabled_effective: options.tenantRuntimeSettings.handoff.enabled !== false,
+              handoff_trigger_suppressed: options.tenantRuntimeSettings.handoff.enabled === false,
+            },
+          }
+        : {}),
       ...turnPlan.debug_metadata_patch,
     },
   });

@@ -7,6 +7,9 @@ export function shouldTriggerHandoff(
   message: UnifiedInboundMessage,
   session: UnifiedSessionContext,
 ): boolean {
+  if (!session.handoff_state.enabled) {
+    return false;
+  }
   // 1. Explicit handoff flag from message
   if (message.handoff_flag) {
     return true;
@@ -33,6 +36,9 @@ export function updateHandoffStateIfTriggered(
   message: UnifiedInboundMessage,
   session: UnifiedSessionContext,
 ): UnifiedSessionContext {
+  if (!session.handoff_state.enabled) {
+    return session;
+  }
   // Only trigger if session is in 'none' state and message has text
   if (session.handoff_state.status !== 'none' || !message.text) {
     return session;

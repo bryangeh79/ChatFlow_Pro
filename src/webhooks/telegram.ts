@@ -11,6 +11,7 @@ import { runUnifiedInboundPipeline } from '../channels/unified-inbound-pipeline'
 import { createMinimalTraceContext } from '../channels/errors/observability';
 import { createSafeFallbackResponse } from '../channels/errors';
 import { webhookObservabilityPhases } from './webhook-timing';
+import type { TenantRuntimeSettings } from '../saas/tenant-runtime-settings';
 
 function isTelegramStartOrHelp(text: string | null | undefined): boolean {
   const normalized = String(text ?? '').trim().toLowerCase();
@@ -25,6 +26,8 @@ export type WebhookHandlerOptions = {
   httpRequestId?: string;
   /** Multi-tenant SaaS: FAQ rows from DB (omit = use built-in seed). */
   faqEntries?: UnifiedFaqSeedEntry[];
+  /** Phase 22B: parsed tenant_settings (tenant webhooks only). */
+  tenantRuntimeSettings?: TenantRuntimeSettings;
 };
 
 export async function handleTelegramWebhook(rawRequestBody: unknown, opts?: WebhookHandlerOptions) {
@@ -49,6 +52,9 @@ export async function handleTelegramWebhook(rawRequestBody: unknown, opts?: Webh
         request_id: opts?.httpRequestId,
       },
       ...(opts?.faqEntries !== undefined ? { faqEntries: opts.faqEntries } : {}),
+      ...(opts?.tenantRuntimeSettings !== undefined
+        ? { tenantRuntimeSettings: opts.tenantRuntimeSettings }
+        : {}),
     });
     
     // 提交 session 到进程内存储（使跨请求 lead 合并生效）

@@ -13,6 +13,7 @@ import {
   sendWebhookGetVerifyResponse,
 } from '../config/webhook-verify';
 import { getTenantBySlug, getTenantCredentials, loadTenantFaqEntries } from './repository';
+import { loadTenantRuntimeSettingsForTenantRequest } from './tenant-runtime-settings';
 import { matchTenantWebhookPath } from './webhook-path';
 import { runWithTenantContext } from './tenant-context';
 import {
@@ -117,7 +118,8 @@ export async function tryHandleTenantWebhook(args: {
   }
 
   await runWithTenantContext({ tenantId: tenant.id, tenantSlug: tenant.slug }, async () => {
-    const opts = { httpRequestId: args.requestId, faqEntries };
+    const tenantRuntimeSettings = await loadTenantRuntimeSettingsForTenantRequest(tenant.id);
+    const opts = { httpRequestId: args.requestId, faqEntries, tenantRuntimeSettings };
 
     if (m.channel === 'telegram') {
       const { parsed: body } = await args.readRequestBody(args.req);
