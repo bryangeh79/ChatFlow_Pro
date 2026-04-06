@@ -85,7 +85,9 @@ export function runUnifiedInboundPipeline(
       );
       // 如果FAQ未命中，再运行lead capture
       if (!faqResult.matched) {
-        sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession, options?.traceContext);
+        sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession, options?.traceContext, {
+          tenantRuntimeSettings: options?.tenantRuntimeSettings,
+        });
       } else {
         sessionAfterLeadCapture = nextSession; // FAQ命中，不需要lead capture
       }
@@ -93,7 +95,9 @@ export function runUnifiedInboundPipeline(
 
     case 'prioritize_lead':
       // 先运行lead capture
-      sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession, options?.traceContext);
+      sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession, options?.traceContext, {
+        tenantRuntimeSettings: options?.tenantRuntimeSettings,
+      });
       
       // 检查本次消息是否有新的lead信号
       const contactDetection = detectContactIntent(message);
@@ -131,7 +135,9 @@ export function runUnifiedInboundPipeline(
 
     case 'run_both':
       // 同时运行两者（无优先级）
-      sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession, options?.traceContext);
+      sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession, options?.traceContext, {
+        tenantRuntimeSettings: options?.tenantRuntimeSettings,
+      });
       faqResult = resolveUnifiedFaqSkeleton(
         message,
         sessionAfterLeadCapture,
@@ -144,7 +150,9 @@ export function runUnifiedInboundPipeline(
     case 'pass_through':
     default:
       // 原始行为：先lead capture，然后FAQ
-      sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession, options?.traceContext);
+      sessionAfterLeadCapture = runLeadCaptureHook(message, nextSession, options?.traceContext, {
+        tenantRuntimeSettings: options?.tenantRuntimeSettings,
+      });
       faqResult = resolveUnifiedFaqSkeleton(
         message,
         sessionAfterLeadCapture,
@@ -171,8 +179,13 @@ export function runUnifiedInboundPipeline(
   // 获取分配信息（需要在 handoff notify 之前）
   const assignment = determineOwnerAssignment(sessionAfterHandoffCheck);
   
+  const tenantNotifyEnabled =
+    options?.tenantRuntimeSettings === undefined ||
+    options.tenantRuntimeSettings.notify.enabled !== false;
+
   // 如果 handoff 状态新变为 pending，发送通知
   if (
+    tenantNotifyEnabled &&
     sessionAfterLeadCapture.handoff_state.status !== 'pending' &&
     sessionAfterHandoffCheck.handoff_state.status === 'pending'
   ) {
@@ -298,6 +311,8 @@ export function runUnifiedInboundPipeline(
               tenant_runtime_settings_injected: true,
               handoff_enabled_effective: options.tenantRuntimeSettings.handoff.enabled !== false,
               handoff_trigger_suppressed: options.tenantRuntimeSettings.handoff.enabled === false,
+              notify_enabled_effective: options.tenantRuntimeSettings.notify.enabled !== false,
+              notify_http_suppressed: options.tenantRuntimeSettings.notify.enabled === false,
             },
           }
         : {}),

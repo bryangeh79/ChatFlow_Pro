@@ -1,5 +1,6 @@
 import type { UnifiedInboundMessage } from '../../../shared/types/unified-inbound-message';
 import type { UnifiedSessionContext } from '../../../shared/types/unified-session-context';
+import type { TenantRuntimeSettings } from '../../saas/tenant-runtime-settings';
 import { detectContactIntent, type ContactIntentDetection } from './contact-intent-detector';
 import { appendCapturedLeadRecord } from './persistence';
 
@@ -7,6 +8,7 @@ export function runLeadCaptureHook(
   message: UnifiedInboundMessage,
   session: UnifiedSessionContext,
   traceContext?: { request_id?: string; message_trace_id?: string },
+  pipelineOpts?: { tenantRuntimeSettings?: TenantRuntimeSettings },
 ): UnifiedSessionContext {
   const detection = detectContactIntent(message);
   
@@ -58,7 +60,12 @@ export function runLeadCaptureHook(
   // 仅在状态变为 captured 时持久化（避免重复记录）
   const shouldPersist = isNowCaptured && !wasCaptured;
   if (shouldPersist) {
-    appendCapturedLeadRecord(updatedSession, message, traceContext);
+    const tenantNotifyEnabled =
+      pipelineOpts?.tenantRuntimeSettings === undefined ||
+      pipelineOpts.tenantRuntimeSettings.notify.enabled !== false;
+    appendCapturedLeadRecord(updatedSession, message, traceContext, {
+      httpNotifyEnabled: tenantNotifyEnabled,
+    });
   }
 
   // 记录调试信息

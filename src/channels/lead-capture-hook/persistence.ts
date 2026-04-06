@@ -15,6 +15,7 @@ export function appendCapturedLeadRecord(
   session: UnifiedSessionContext,
   message: UnifiedInboundMessage,
   traceContext?: { request_id?: string; message_trace_id?: string },
+  opts?: { httpNotifyEnabled?: boolean },
 ): void {
   try {
     const dataDir = path.join(process.cwd(), 'data');
@@ -34,7 +35,15 @@ export function appendCapturedLeadRecord(
     // 使用共享的 JSONL 持久化工具
     appendJsonlRecord(filePath, record);
 
-    scheduleLeadCaptureNotify(record);
+    const allowHttpNotify = opts?.httpNotifyEnabled !== false;
+    if (allowHttpNotify) {
+      scheduleLeadCaptureNotify(record);
+    } else {
+      console.debug(
+        '[saas-control]',
+        JSON.stringify({ phase: '22b', lead_notify_http_skipped: true, reason: 'tenant_settings.notify.enabled_false' }),
+      );
+    }
 
     // 可选：记录成功（仅开发调试）
     if (process.env.NODE_ENV === 'development') {
