@@ -1,5 +1,7 @@
 # Pro 两天交付核对清单（通道 + 机器人 + lead / handoff / notify）
 
+**商业形态**：一客户一套部署 — **`docs/169_pro_commercial_one_customer_one_deploy.md`**。
+
 **范围冻结（本次交付）**：七通道 webhook、统一入站管道、真发送（按 env）、lead / FAQ / intent、handoff 与可选 notify。**不含**完整坐席工作台产品（另立项）。
 
 ---
