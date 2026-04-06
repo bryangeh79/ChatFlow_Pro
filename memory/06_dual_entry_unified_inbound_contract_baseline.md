@@ -1,8 +1,12 @@
-# 2026-04-06 - Seven-Channel Unified Inbound Contract Baseline (sync **Pro_v1.07.42**)
+# 2026-04-06 - Seven-Channel Unified Inbound Contract Baseline (sync **Pro_v1.07.55**)
 
 - Phase 15.0–15.8 complete: ADR + Telegram real outbound + proxy + GET verification + Meta POST signature + Line POST signature + Zalo signature research + Website POST signature + WhatsApp Cloud API real outbound + Messenger Graph API real outbound + Line Messaging API real outbound + Zalo Open API real outbound.
 - Phase 16.2 (observability enhanced): HTTP access logging with `X-Request-Id` + optional JSON log line + webhook `phases_ms` timings (prepare vs outbound send) + verification type narrowing.
-- Phase **17.1 / 17.2**: in-process Zalo refresh + Meta **`fb_exchange_token`** MVP (see **docs/154** / **docs/156**); Version: **Pro_v1.07.42** (package.json **1.7.42**).
+- Phase **17.1 / 17.2**: in-process Zalo refresh + Meta **`fb_exchange_token`** MVP (see **docs/154** / **docs/156**).
+- Phase **18 / 包 1-4**: notify request_id 追踪 + 坐席分配策略增强 + 坐席状态管理 + 分配历史可审计。
+- Phase **19 / 包 1-3**: 最小报表能力 + owner SLA 报表 + 趋势对比日报输出。
+- Phase **20 / 包 1-2**: 日报警报外呼动作 + 自动参数调优。
+- Version: **Pro_v1.07.55** (package.json **1.7.55**).
 - **Seven-channel minimal real webhook baseline preserved**: Website, Telegram, WhatsApp, Messenger, Line, Zalo.
 - Unified inbound contract now includes complete lead capture + FAQ + intent dispatch integration.
 - Shared boundary areas: adapter normalization, session context, unified inbound pipeline (lead+FAQ+intent), outbound mapping, sender, trace context.

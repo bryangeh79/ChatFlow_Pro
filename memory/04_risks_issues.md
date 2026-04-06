@@ -5,7 +5,7 @@
 - Do not expand into menu / command / state systems just because the webhook baselines are now alive.
 - Do not let channel-specific changes pollute shared core behavior without a hard reason.
 - Continue protecting the **seven-route baseline**: All 7 channels must remain independently verifiable and non-breaking.
-- The current version is **Pro_v1.07.44** (package.json **1.7.44**; **dev:notify-echo** + **`docs/161`** + **check:staging-env** suppress + **Handoff 回复抑制** + optional **handoff/lead notify** POST + Phase **17.2** + **docs/155**). Truth → **`memory/01_project_status.md`**.
+- The current version is **Pro_v1.07.55** (package.json **1.7.55**; **Phase 20 / 包 2** + **Phase 20 / 包 1** + **Phase 19 / 包 3** + **Phase 19 / 包 2** + **Phase 19 / 包 1** + **Phase 18 / 包 4** + **Phase 18 / 包 3** + **Phase 18 / 包 2** + **Phase 18 / 包 1** + **多轮对话逻辑强化** + **Conversation Runtime 骨架 + Lead 自动处理链** + **dev:notify-echo** + **`docs/161`** + **check:staging-env** suppress + **Handoff 回复抑制** + optional **handoff/lead notify** POST + Phase **17.2** + **docs/155**). Truth → **`memory/01_project_status.md`**.
 - The biggest recurring error to avoid is confusing stable minimal entrypoints with full platform completion.
 - Regression risk remains live whenever shared contracts or routing paths are touched.
 - **Pause Status**: **Not blocked** — default gate **T0 build + T1 `docker-smoke`** (incl. `smoke:webhooks` + `verify:lead-capture-states`); read-only agent env → **docs/155** *T1 equivalence* + **`npm run report:github-ci`**. No public staging URL does **not** block dev; **docs/157** Phase 0 waits on **HTTPS** staging.
@@ -64,6 +64,83 @@
 - **Configuration dependency**: 抑制行为依赖环境变量，部署时易遗漏
 - **Channel consistency**: 七通道都使用 `result.response.should_send`，但需确保无硬编码覆盖
 - **Default behavior**: 默认不抑制（保持现有行为），但用户可能期望抑制
+
+## New Risks from Conversation Runtime (Pro_v1.07.45)
+- **Phase transition logic**: 对话阶段判定可能过于简单，需要更多业务场景验证
+- **Policy complexity**: 策略规划可能引入新的回归风险
+- **Event emission**: 进程内事件发射可能影响性能（虽然当前是空实现）
+- **Qualification tag accuracy**: 资格标签规则（complete_profile, high_intent）可能不够准确
+- **Single-field prompting**: 单槽引导可能不够灵活，需要更多业务规则
+- **Debug metadata bloat**: 新增的debug字段可能增加响应大小
+
+## New Risks from Phase 18 / 包 1 (Pro_v1.07.47)
+- **Backward compatibility**: 新增的 request_id/message_trace_id 字段可能影响旧版接收端解析
+- **Auto-assignment conflicts**: 自动分配可能与手动分配冲突
+- **Trace context propagation**: request_id 传递链路可能中断（webhook → pipeline → notify）
+- **Environment variable management**: 新增 CHATFLOW_HANDOFF_AUTO_ASSIGN_OWNER 需要文档说明
+
+## New Risks from Phase 18 / 包 2 (Pro_v1.07.48)
+- **Assignment strategy complexity**: 三种分配模式增加配置复杂度
+- **Round-robin stability**: 基于 session_id 哈希的分配可能不够均匀
+- **Tag mapping parsing**: TAG_MAP 环境变量解析可能失败（格式错误）
+- **Fallback logic**: by_tag 模式的回退逻辑可能不够清晰
+- **Debug metadata bloat**: 新增 assign_mode/assign_reason 字段增加响应大小
+
+## New Risks from Phase 18 / 包 3 (Pro_v1.07.49)
+- **Memory growth**: 进程内分配历史追踪可能造成内存泄漏（有上限控制）
+- **Agent status staleness**: 环境变量中的坐席状态可能过时（需要重启更新）
+- **Least-recent accuracy**: 基于进程内历史的 least_recent 策略在重启后失效
+- **Sticky TTL complexity**: 粘性分配 TTL 逻辑增加分配复杂性
+- **Online agent filtering**: 在线坐席过滤可能意外排除有效坐席
+- **Notification payload growth**: handoff notify 新增字段增加 payload 大小
+
+## New Risks from Phase 18 / 包 4 (Pro_v1.07.50)
+- **File system dependency**: JSONL 落盘依赖文件系统权限和空间
+- **Rotation complexity**: 文件轮转逻辑可能失败（影响后续写入）
+- **Data consistency**: 进程重启可能导致分配历史不完整
+- **Log ID collisions**: assignment_log_id 短哈希可能冲突（低概率）
+- **Performance impact**: 同步文件写入可能影响响应时间
+- **Backup management**: 备份文件积累可能占用磁盘空间
+
+## New Risks from Phase 19 / 包 1 (Pro_v1.07.51)
+- **File reading errors**: JSONL 文件读取可能失败（权限、损坏）
+- **Memory usage**: 流式读取但统计可能消耗内存（大量数据时）
+- **Time filter accuracy**: 时间过滤可能不准确（时区、时钟偏移）
+- **JSON parsing errors**: 损坏的 JSONL 行可能导致脚本失败
+- **Performance**: 大文件处理可能较慢（流式读取缓解）
+- **Output format changes**: JSON 输出格式可能不兼容下游工具
+
+## New Risks from Phase 19 / 包 2 (Pro_v1.07.52)
+- **Timestamp data quality**: first_pending_at 字段可能缺失或不准确（影响 SLA 计算）
+- **Duplicate session handling**: 同 session 重复记录过滤可能误判
+- **Percentile calculation accuracy**: p50/p90 分位计算可能不准确（小样本时）
+- **SLA target sensitivity**: 默认 15 分钟 SLA 目标可能不适合所有业务场景
+- **Timezone handling**: 时间戳时区处理可能不一致
+- **Missing data impact**: dropped_missing_timestamps 可能掩盖数据质量问题
+
+## New Risks from Phase 19 / 包 3 (Pro_v1.07.53)
+- **Timezone complexity**: 简单时区处理可能不准确（生产环境需要完整 IANA 时区支持）
+- **Trend calculation reliability**: 小样本趋势分析可能产生误导性结果
+- **Alert false positives**: 警报规则可能产生误报（如低流量时）
+- **Date range handling**: 日期范围生成可能受系统时钟影响
+- **Performance with large datasets**: 多日数据分析可能较慢（流式读取缓解）
+- **Output format stability**: 日报 JSON 结构可能变化影响下游集成
+
+## New Risks from Phase 20 / 包 1 (Pro_v1.07.54)
+- **Webhook misconfiguration**: 外呼 webhook URL 误配可能导致警报丢失或发送到错误端点
+- **Secret leakage**: CHATFLOW_OPS_ALERT_SECRET 可能泄露（环境变量安全）
+- **Throttling bypass**: 简单文件锁节流可能被并发执行绕过
+- **Network dependency**: 外呼依赖网络连通性，失败时回退到 stdout 可能不够及时
+- **Alert spam**: 即使有节流，频繁变化的 flags 仍可能产生过多警报
+- **State file corruption**: .last-alert.json 文件损坏可能导致节流失效
+
+## New Risks from Phase 20 / 包 2 (Pro_v1.07.55)
+- **Parameter tuning errors**: 自动调参可能产生错误建议（误调参）
+- **Cooldown bypass**: 冷却期可能被手动修改状态文件绕过
+- **Aggressive mode risks**: aggressive 模式可能建议不安全的变更
+- **State file conflicts**: 多实例运行可能导致状态文件冲突
+- **Performance metric reliability**: 基于小样本的性能指标可能不可靠
+- **Export command misuse**: 生成的 export 命令可能被误用或误执行
 
 ## Pro_v1.06 Known Limitations
 - **Session store**: In-memory only, single-process, no TTL expiration
