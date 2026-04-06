@@ -87,4 +87,5 @@
 
 - 实现：`src/config/handoff-assign.ts`，`src/server.ts`  
 - 手动验证辅助：`test-handoff-runtime-config.js`（若存在于仓库）  
-- 过程记录（若保留）：`memory/2026-04-06-phase21-delivery.md` — 与本文档并存时，**以本文档 `docs/166` 为对外最终交付口径**
+- **Phase 21.2**（autotune 合并写运行时 JSON）：**`docs/167`**
+- 过程记录（若保留）：`memory/2026-04-06-phase21-delivery.md` — 与本文档并存时，**以本文档 `docs/166` 为 Phase 21 B 对外交付口径**

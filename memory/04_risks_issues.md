@@ -5,7 +5,7 @@
 - Do not expand into menu / command / state systems just because the webhook baselines are now alive.
 - Do not let channel-specific changes pollute shared core behavior without a hard reason.
 - Continue protecting the **seven-route baseline**: All 7 channels must remain independently verifiable and non-breaking.
-- The current version is **Pro_v1.07.55** (package.json **1.7.55**; **Phase 20 / 包 2** + **Phase 20 / 包 1** + **Phase 19 / 包 3** + **Phase 19 / 包 2** + **Phase 19 / 包 1** + **Phase 18 / 包 4** + **Phase 18 / 包 3** + **Phase 18 / 包 2** + **Phase 18 / 包 1** + **多轮对话逻辑强化** + **Conversation Runtime 骨架 + Lead 自动处理链** + **dev:notify-echo** + **`docs/161`** + **check:staging-env** suppress + **Handoff 回复抑制** + optional **handoff/lead notify** POST + Phase **17.2** + **docs/155**). Truth → **`memory/01_project_status.md`**.
+- The current version is **Pro_v1.07.57** (package.json **1.7.57**; **Phase 21.2** + **Phase 21 B** + **Phase 20 / 包 2** + **Phase 20 / 包 1** + **Phase 19** + **Phase 18** + **Conversation Runtime / 多轮 lead** + **dev:notify-echo** + **`docs/161`** + **Handoff 回复抑制** + optional **handoff/lead notify** + Phase **17.2** + **docs/155**). Truth → **`memory/01_project_status.md`**.
 - The biggest recurring error to avoid is confusing stable minimal entrypoints with full platform completion.
 - Regression risk remains live whenever shared contracts or routing paths are touched.
 - **Pause Status**: **Not blocked** — default gate **T0 build + T1 `docker-smoke`** (incl. `smoke:webhooks` + `verify:lead-capture-states`); read-only agent env → **docs/155** *T1 equivalence* + **`npm run report:github-ci`**. No public staging URL does **not** block dev; **docs/157** Phase 0 waits on **HTTPS** staging.
@@ -150,6 +150,14 @@
 - **Priority confusion**: 用户可能误解「env 为基底，JSON 仅覆盖文件中出现的键」的优先级规则
 - **Whitelist enforcement**: 非白名单键被忽略可能掩盖配置错误
 - **Concurrent reload races**: SIGHUP 重载期间可能读取到部分更新的配置
+
+## New Risks from Phase 21.2 (Pro_v1.07.57)
+- **Accidental overwrite**: 误开关 CHATFLOW_OPS_AUTOTUNE_WRITE_RUNTIME=1 可能覆盖生产 JSON
+- **Merge conflicts**: 深合并策略可能意外覆盖其他手动修改的配置键
+- **File permission issues**: autotune 脚本可能没有写入目标文件的权限
+- **Timing mismatch**: autotune 写文件后，进程未及时 SIGHUP 导致配置不一致
+- **Partial write failures**: 文件写入失败可能导致配置处于不一致状态
+- **Whitelist mapping gaps**: autotune 建议的变更可能无法正确映射到运行时配置白名单键
 
 ## Pro_v1.06 Known Limitations
 - **Session store**: In-memory only, single-process, no TTL expiration

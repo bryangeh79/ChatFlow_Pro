@@ -6,7 +6,7 @@
  */
 
 import { join } from 'path';
-import { writeFileSync, readFileSync, existsSync } from 'fs';
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import {
   getDateRange,
@@ -18,6 +18,8 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 // Configuration from environment
 const AUTOTUNE_ENABLED = process.env.CHATFLOW_OPS_AUTOTUNE === '1';
+const WRITE_RUNTIME = process.env.CHATFLOW_OPS_AUTOTUNE_WRITE_RUNTIME === '1';
+const RUNTIME_CONFIG_PATH = process.env.CHATFLOW_HANDOFF_RUNTIME_CONFIG_PATH?.trim();
 const STATE_PATH = process.env.CHATFLOW_OPS_AUTOTUNE_STATE_PATH || 
                    join(process.cwd(), 'data', '.handoff-autotune-state.json');
 const COOLDOWN_MIN = parseInt(process.env.CHATFLOW_OPS_AUTOTUNE_COOLDOWN_MIN || '1440', 10);
@@ -75,6 +77,117 @@ function saveAutotuneState(state) {
     console.log(`Autotune state saved to ${STATE_PATH}`);
   } catch (error) {
     console.error(`Error saving autotune state: ${error.message}`);
+  }
+}
+
+/**
+ * Write runtime config JSON with autotune changes
+ * Only writes whitelisted keys that are being changed
+ */
+function writeRuntimeConfig(currentConfig, newConfig, actions) {
+  if (!WRITE_RUNTIME || !RUNTIME_CONFIG_PATH) {
+    return false;
+  }
+  
+  console.log(`\n=== Writing Runtime Config (${RUNTIME_CONFIG_PATH}) ===`);
+  
+  try {
+    // Check if any actions actually change config
+    const hasConfigChanges = actions.some(action => 
+      action.action !== 'monitor_only' && action.action !== 'noop'
+    );
+    
+    if (!hasConfigChanges) {
+      console.log('No configuration changes to write to runtime config.');
+      return false;
+    }
+    
+    // Determine which keys to update based on actions
+    const keysToUpdate = new Set();
+    actions.forEach(action => {
+      switch (action.action) {
+        case 'switch_balance_strategy':
+          keysToUpdate.add('assign_balance');
+          break;
+        case 'increase_target_minutes':
+          // Note: target_minutes is not in handoff whitelist, skip
+          console.log('Note: target_minutes is not in handoff runtime config whitelist, skipping');
+          break;
+        // Add more cases as needed
+      }
+    });
+    
+    if (keysToUpdate.size === 0) {
+      console.log('No whitelisted keys to update in runtime config.');
+      return false;
+    }
+    
+    // Load existing config if it exists
+    let existingConfig = {};
+    if (existsSync(RUNTIME_CONFIG_PATH)) {
+      try {
+        const content = readFileSync(RUNTIME_CONFIG_PATH, 'utf8');
+        const parsed = JSON.parse(content);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          existingConfig = parsed;
+          console.log(`Loaded existing runtime config with ${Object.keys(existingConfig).length} keys`);
+        } else {
+          console.warn(`Warning: Existing runtime config is not a JSON object, creating new file`);
+        }
+      } catch (error) {
+        console.warn(`Warning: Could not parse existing runtime config: ${error.message}`);
+      }
+    }
+    
+    // Create updated config with only whitelisted keys
+    const updatedConfig = { ...existingConfig };
+    
+    // Whitelist of keys allowed in runtime config
+    const WHITELIST_KEYS = new Set([
+      'assign_mode', 'auto_assign_owner', 'owner_pool', 'tag_map',
+      'agent_status', 'assign_balance', 'assign_sticky_ttl_min'
+    ]);
+    
+    // Update only whitelisted keys that are being changed
+    keysToUpdate.forEach(key => {
+      if (WHITELIST_KEYS.has(key)) {
+        // Map from autotune config key to runtime config key
+        let runtimeKey = key;
+        let value;
+        
+        switch (key) {
+          case 'assign_balance':
+            value = newConfig.assign_balance;
+            break;
+          // Add more mappings as needed
+          default:
+            console.warn(`Warning: No mapping for key ${key}, skipping`);
+            return;
+        }
+        
+        if (value !== undefined) {
+          updatedConfig[runtimeKey] = value;
+          console.log(`  ${runtimeKey}: ${JSON.stringify(existingConfig[runtimeKey])} -> ${JSON.stringify(value)}`);
+        }
+      }
+    });
+    
+    // Ensure directory exists
+    const dir = join(RUNTIME_CONFIG_PATH, '..');
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+    
+    // Write updated config
+    writeFileSync(RUNTIME_CONFIG_PATH, JSON.stringify(updatedConfig, null, 2));
+    console.log(`Runtime config written to: ${RUNTIME_CONFIG_PATH}`);
+    console.log('Note: Send SIGHUP (kill -HUP) to running process or restart to apply changes.');
+    
+    return true;
+  } catch (error) {
+    console.error(`Error writing runtime config: ${error.message}`);
+    console.error('Runtime config update failed, but autotune state was saved.');
+    return false;
   }
 }
 
@@ -281,6 +394,7 @@ async function main() {
   console.log('=== ChatFlow Pro Handoff Autotune ===');
   console.log(`Mode: ${RULES_MODE}`);
   console.log(`Enabled: ${AUTOTUNE_ENABLED ? 'YES (will write state)' : 'NO (dry run only)'}`);
+  console.log(`Write runtime: ${WRITE_RUNTIME ? 'YES' : 'NO'}${RUNTIME_CONFIG_PATH ? ` (path: ${RUNTIME_CONFIG_PATH})` : ' (no path set)'}`);
   console.log(`Cooldown: ${COOLDOWN_MIN} minutes`);
   console.log(`State path: ${STATE_PATH}`);
   console.log('');
@@ -363,6 +477,15 @@ async function main() {
   if (AUTOTUNE_ENABLED) {
     saveAutotuneState(newState);
     console.log(`\nAutotune state updated. Next run allowed after: ${new Date(newState.cooldown_until).toISOString()}`);
+    
+    // Write runtime config if enabled and path is set
+    if (WRITE_RUNTIME && RUNTIME_CONFIG_PATH) {
+      console.log(`\nRuntime config write enabled (CHATFLOW_OPS_AUTOTUNE_WRITE_RUNTIME=1)`);
+      writeRuntimeConfig(CURRENT_CONFIG, newConfig, actions);
+    } else if (WRITE_RUNTIME && !RUNTIME_CONFIG_PATH) {
+      console.warn(`\nWarning: CHATFLOW_OPS_AUTOTUNE_WRITE_RUNTIME=1 but CHATFLOW_HANDOFF_RUNTIME_CONFIG_PATH is not set`);
+      console.warn('Skipping runtime config write.');
+    }
   } else {
     console.log('\nDry run complete. Set CHATFLOW_OPS_AUTOTUNE=1 to apply changes.');
   }

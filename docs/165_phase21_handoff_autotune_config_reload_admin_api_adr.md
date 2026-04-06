@@ -6,7 +6,9 @@
 
 **C 仍为未来** — 最小 admin HTTP 端点未实现，保持可选。
 
-**Context:** Phase 20 `ops:handoff-autotune` (`scripts/run-handoff-autotune.mjs`) may propose changes to handoff-related env (e.g. balance mode, SLA target). Today those proposals are **stdout / unified-diff style only**; persistent state is limited to `CHATFLOW_OPS_AUTOTUNE_STATE_PATH` (default `data/.handoff-autotune-state.json`).
+**Phase 21.2（`docs/167`）** — 可选 `CHATFLOW_OPS_AUTOTUNE_WRITE_RUNTIME=1`：在 `CHATFLOW_HANDOFF_RUNTIME_CONFIG_PATH` 已设且 autotune 采纳变更时，将**白名单键**合并写入该 JSON；Unix 写后需 **SIGHUP** 或重启方载入进程。
+
+**Context:** Phase 20 `ops:handoff-autotune` (`scripts/run-handoff-autotune.mjs`) may propose changes to handoff-related env (e.g. balance mode, SLA target). Persistent state includes `CHATFLOW_OPS_AUTOTUNE_STATE_PATH` (default `data/.handoff-autotune-state.json`); optional merge write to runtime JSON per **21.2**.
 
 ## Problem
 
