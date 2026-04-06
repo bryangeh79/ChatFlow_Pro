@@ -11,6 +11,7 @@
 ## Phase 24 — 预期风险域（立项时展开）
 
 - **认证与授权**：单一 `CHATFLOW_SAAS_ADMIN_TOKEN` 不适多用户托管；误配可导致越权或锁死运维。  
+- **收口（Phase 24 包 1A）**：迁移路径与验收见 **`docs/176_phase24_saas_admin_auth_rbac_adr.md`**；**实现落地前** 仍为 **open operational risk** — 须限制 token 分发面、rotation 与 break-glass 流程；落地后改为跟踪 RBAC 漏配与审计缺口。  
 - **数据层迁移**：sql.js → Postgres 需双写/迁移策略，避免租户数据丢失。  
 - **多实例**：内存 session、JSONL 追加、notify 幂等 — 需 sticky 或外置 store。  
 - **凭证**：DB 明文 → KMS/信封加密、轮换与审计面。

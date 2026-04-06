@@ -258,8 +258,10 @@
 
 **定位**：在 **MVP 已交付** 前提下，面向 **托管生产** 的强化线（**非**「把 MVP 当未完主线」）。
 
+**首包锁定（ADR-first）**：**Admin Auth / RBAC** — **`docs/176_phase24_saas_admin_auth_rbac_adr.md`**。实现代码后续包再做；**本阶段不**开 Postgres、不**动 webhook 主链与 legacy。
+
 **建议方向（立项时拆包）**：
-1. **Tenant 用户认证 / RBAC**（替代或补充单一 `CHATFLOW_SAAS_ADMIN_TOKEN`）。
+1. **Tenant 用户认证 / RBAC**（替代或补充单一 `CHATFLOW_SAAS_ADMIN_TOKEN`）— **已锁定为首包（ADR 已立）**。
 2. **Postgres + migration**（替换或并存 sql.js 文件库）。
 3. **多实例 / session / store 收口**（sticky、外置 session、JSONL 单写者假设等）。
 4. **凭证安全**：加密-at-rest、轮换策略、审计日志（`docs/175` non-goals 已有提示）。
