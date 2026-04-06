@@ -48,3 +48,38 @@ jobs:
 
       - name: Docker smoke (T1 — compose + seven webhooks + lead-capture triplets)
         run: npm run staging:docker-smoke
+
+  # Phase 22E: tenant /webhooks/t/... must not fall back to process env for POST signature or GET verify.
+  # Runs only when CHATFLOW_SAAS_ADMIN_TOKEN is configured and the workflow is not from a fork PR
+  # (forks do not receive base-repo secrets — condition matches that safety model).
+  tenant-boundary-verify:
+    runs-on: ubuntu-latest
+    needs: build
+    # Fork PRs: head repo ≠ base repo → skipped. Secret unset → skipped. Token only in env for steps (masked in logs).
+    if: ${{ secrets.CHATFLOW_SAAS_ADMIN_TOKEN != '' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)) }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Tenant POST signature boundary (env secret fallback blocked on /webhooks/t/…)
+        env:
+          CHATFLOW_SAAS_ADMIN_TOKEN: ${{ secrets.CHATFLOW_SAAS_ADMIN_TOKEN }}
+          VERIFY_CHATFLOW_PORT: '3120'
+        run: npm run verify:tenant-post-signature-boundary
+
+      - name: Tenant GET verify-token boundary (env verify-token fallback blocked on /webhooks/t/…)
+        env:
+          CHATFLOW_SAAS_ADMIN_TOKEN: ${{ secrets.CHATFLOW_SAAS_ADMIN_TOKEN }}
+          VERIFY_CHATFLOW_PORT: '3121'
+        run: npm run verify:tenant-get-verify-boundary
