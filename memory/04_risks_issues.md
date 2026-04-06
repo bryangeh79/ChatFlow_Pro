@@ -5,7 +5,7 @@
 - Do not expand into menu / command / state systems just because the webhook baselines are now alive.
 - Do not let channel-specific changes pollute shared core behavior without a hard reason.
 - Continue protecting the **seven-route baseline**: All 7 channels must remain independently verifiable and non-breaking.
-- The current version is **Pro_v1.07.57** (package.json **1.7.57**; **Phase 21.2** + **Phase 21 B** + **Phase 20 / 包 2** + **Phase 20 / 包 1** + **Phase 19** + **Phase 18** + **Conversation Runtime / 多轮 lead** + **dev:notify-echo** + **`docs/161`** + **Handoff 回复抑制** + optional **handoff/lead notify** + Phase **17.2** + **docs/155**). Truth → **`memory/01_project_status.md`**.
+- The current version is **Pro_v1.07.67** (package.json **1.7.67**; **Phase 22D 主目标已完成**（租户 POST/GET 校验与 env 解耦）；22C/22B 控制项仍有效). Truth → **`memory/01_project_status.md`**.
 - The biggest recurring error to avoid is confusing stable minimal entrypoints with full platform completion.
 - Regression risk remains live whenever shared contracts or routing paths are touched.
 - **Pause Status**: **Not blocked** — default gate **T0 build + T1 `docker-smoke`** (incl. `smoke:webhooks` + `verify:lead-capture-states`); read-only agent env → **docs/155** *T1 equivalence* + **`npm run report:github-ci`**. No public staging URL does **not** block dev; **docs/157** Phase 0 waits on **HTTPS** staging.
@@ -201,3 +201,18 @@
 - ⚠️ Prompt formatting may need channel-specific adjustments
 - ⚠️ i18n translations may need refinement
 - ⚠️ FAQ seeds need real content and multilingual support
+
+## New Risks from Phase 22B Closure (Pro_v1.07.62)
+- **Historical session residue**: 开关关闭后会阻断新流程推进，但历史内存 session 状态未主动清空，跨轮可能看到旧状态痕迹。
+
+## New Risks from Phase 22C Closure (Pro_v1.07.65)
+- **Historical session residue (延续)**：22C 各开关变更后仍**不主动清空**进程内 session；租户侧可能短期看到与旧状态叠加的行为，需运营知晓或后续做显式 session 重置策略。
+- **Non-primary suppress/send paths**：22C 主要覆盖 unified pipeline 的 outbound 总闸与 handoff 回复抑制；若存在**绕过主链路的独立发送或抑制入口**，可能仍未被 `tenant_settings` 覆盖，需后续单独盘点。
+- **FAQ fallback scope**：`faq.fallback_enabled` 仅接管 **FAQ resolver 语言/跨语言回落**与 **default 阶段用户原文回显**；**`post_capture` / `capture` 阶段 i18n 引导文案**不在本开关内，产品预期需与文档一致，避免误配。
+- **Env vs tenant credential ambiguity**：**租户路径**下 POST/GET 校验已与进程 env **解耦**（22D）；**legacy** 仍依赖 env；**Telegram/Zalo** POST 无 body 验签、与 Meta/Line/Website 行为不一致 — **文档与 CI 尾项见 Phase 22E**。
+- **Phase 22E 尾项（idle GET）— superseded by Phase 23**：**idle GET 保留 200** 为**产品裁决**（选项 A），与 **hub challenge 必配 verify token** 并存；**非矛盾** — 见 **`docs/175`** §「Idle GET — product freeze」与 **`memory/03`**。~~易被误读~~ → 已通过文档冻结缓解。
+
+## Known SaaS MVP boundaries (Phase 23 — accepted, not backlog)
+
+- **Tenant path slug exposure**：`GET /webhooks/t/<slug>/...` — 无效 slug → **404** `tenant_not_found`；有效 slug + idle GET → **200** JSON。存在**租户存在性**推断面；**MVP 接受**，后续若需可改路由/鉴权而非单独「收紧 idle」。
+- **Idle GET information surface**：响应含 **`channel`**、**`verification`** 说明串；**无密钥**；与 **legacy** `/webhooks/<channel>` idle 行为同类。**探活**应优先 **`GET /health`**（`src/server.ts`），避免将 webhook URL 当作正式健康契约。

@@ -8,7 +8,7 @@
   - **Phase 22D** — SaaS / Legacy 收口（主目标已完成，**Pro_v1.07.67**）
   - **Phase 22E** — CI / 文档 / 边界说明收尾（**✅ 已收口**，见下节）
 - **当前版本（package.json）**：**1.7.67**（**Pro_v1.07.67**）；22E 以 CI + 文档交付为主，**未单独升 patch**；Phase 23 首个可验收交付可发 **1.7.68**。
-- **任务归属（Phase 23）**：idle GET 策略、非主链路门控、`tenant_settings` 接管范围总表、SaaS MVP **完成定义 + 验收清单**。
+- **任务归属（Phase 23）**：~~idle GET 策略~~ **✅ 已裁决（A：保留 200 + 文档冻结 + `/health` 探活）**；非主链路门控；~~`tenant_settings` 总表~~ **✅ 已写入 `docs/175` matrix**；SaaS MVP **完成定义 + 验收清单**（`docs/175` § Phase 23 acceptance）。
 - **提交标注约定**（历史）：22D/22E 前缀仍见于已合并提交；**Phase 23** 见下节「提交标注约定（23）」。
 - Previous major milestone in this log: **Phase 16.2** - HTTP access observability enhanced (`X-Request-Id`, optional `CHATFLOW_HTTP_ACCESS_LOG`, webhook `phases_ms`, verification type narrowing)
 - Before that: Phase 16 - HTTP access observability first slice
@@ -233,10 +233,10 @@
 **目标**：总验收 + 剩余尾项裁决，**不再大面积扩功能**。
 
 **优先级（建议顺序）**：
-1. **idle GET 是否继续收紧** — 与 22E 文档已描述的当前行为对齐，做 go/no-go 并实现或冻结文档。
+1. ~~**idle GET**~~ **✅ 选项 A**：保留 200 idle JSON；不改代码；`docs/175` + 蓝图已冻结；探活 **`GET /health`**；slug / idle 信息面为已知 MVP 边界。
 2. **非主链路发送 / suppress 入口是否补门控** — 审计 handoff 抑制、outbound 总闸之外的独立路径，缺则最小门控或显式记为 out-of-scope。
-3. **`tenant_settings` 已接管范围总表** — 文档化（或 Admin 只读说明）哪些键已驱动 runtime，哪些仍仅存储。
-4. **SaaS MVP 完成定义与验收清单** — `docs/175` 或独立短节：何为「MVP done」、T0/T1 + 租户边界 CI（secret 配置时）+ 手工抽检矩阵。
+3. ~~**`tenant_settings` 总表**~~ **✅** — `docs/175` §「tenant_settings → runtime matrix」+ 与 `verify:saas-*` 对账。
+4. **SaaS MVP 完成定义与验收清单** — `docs/175` §「Phase 23 — SaaS MVP acceptance notes」已起头；可再补手工抽检矩阵一行表。
 
 **提交标注约定（23）**：`feat(phase-23):` · `chore(phase-23):` · `docs(phase-23):`。
 

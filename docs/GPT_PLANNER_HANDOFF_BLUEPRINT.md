@@ -142,6 +142,8 @@ memory/                     # 人类/龙虾/Cursor 维护的进度与风险（�
 
 细则与键名表 → **`docs/175_pro_saas_multitenant_mvp.md`** §「Tenant webhook verification」。
 
+**Phase 23 — idle GET 裁决定稿（选项 A）**：**idle GET 保留 200** 信息性 JSON 为**产品裁决**，非遗漏；**hub challenge** 仍**必须**租户 verify token。**探活推荐 `GET /health`**，不以 webhook idle GET 为主探针。**`/webhooks/t/<slug>/...` 的 slug 可枚举 + idle JSON 信息面**为 **MVP 已接受边界**（见 `docs/175` §「Idle GET — product freeze」）。**`tenant_settings` 运行时接管范围** → `docs/175` §「tenant_settings → runtime matrix」。
+
 ### 6.3 租户凭证（存 DB，键名与 env 对齐）
 
 规划扩展时，优先使用 **与 `.env.example` 相同的 key 名** 写入 `tenant_credentials`，以便 `tenant-channel-config` 统一解析。例如：`TELEGRAM_BOT_TOKEN`、`WHATSAPP_ACCESS_TOKEN`、`OPENAI_API_KEY`（**OpenAI 尚未接入对话主链，仅可存库待用**）。
