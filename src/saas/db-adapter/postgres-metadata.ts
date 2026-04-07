@@ -1,4 +1,5 @@
 import { listSaasDbMigrations, SAAS_SCHEMA_MIGRATIONS_TABLE } from '../db-migrations';
+import { getPostgresConnectionConfigSummary, type PostgresConnectionConfigSource } from './postgres-config';
 import {
   POSTGRES_CLIENT_MODULE_NOT_AVAILABLE,
   POSTGRES_CLIENT_RUNTIME_NOT_WIRED,
@@ -43,6 +44,10 @@ export interface PostgresExecutionReadiness {
   postgres_client_module_available: boolean;
   /** Always false until pool + query path is implemented (after 2J). */
   postgres_client_runtime_wired: boolean;
+  connection_config_present: boolean;
+  connection_config_valid: boolean;
+  connection_config_source: PostgresConnectionConfigSource;
+  connection_message: string;
   message: string;
 }
 
@@ -89,6 +94,11 @@ export async function getPostgresExecutionReadiness(): Promise<PostgresExecution
   const runtime = await getPostgresClientRuntimeSummary();
   const postgres_client_module_available = postgres_client_gate_enabled && runtime.module_available;
   const postgres_client_runtime_wired = runtime.runtime_wired;
+  const conn = getPostgresConnectionConfigSummary();
+  const connection_config_present = conn.source !== 'missing';
+  const connection_config_valid = conn.valid;
+  const connection_config_source = conn.source;
+  const connection_message = conn.message;
 
   let sql_assets_present = false;
   try {
@@ -105,7 +115,7 @@ export async function getPostgresExecutionReadiness(): Promise<PostgresExecution
   } else if (driver === 'postgres' && postgres_client_gate_enabled && !postgres_client_module_available) {
     message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: ${POSTGRES_CLIENT_MODULE_NOT_AVAILABLE} — gate=on, driver=postgres, but \`pg\` did not load; fix install; ${POSTGRES_CLIENT_RUNTIME_NOT_WIRED}.`;
   } else if (driver === 'postgres' && postgres_client_gate_enabled && postgres_client_module_available) {
-    message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: ${POSTGRES_CLIENT_RUNTIME_NOT_WIRED} — \`pg\` loads but pool/query adapter not wired (2J skeleton).`;
+    message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: ${POSTGRES_CLIENT_RUNTIME_NOT_WIRED} — \`pg\` loads but pool/query adapter not wired (2K: config contract only, no connect).`;
   } else if (postgres_client_gate_enabled && driver === 'sqljs') {
     message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: gate=on, driver=sqljs — live path stays sql.js; \`pg\` probe=${postgres_client_module_available ? 'ok' : 'unavailable'} (not used for default driver).`;
   } else {
@@ -121,6 +131,10 @@ export async function getPostgresExecutionReadiness(): Promise<PostgresExecution
     postgres_client_gate_enabled,
     postgres_client_module_available,
     postgres_client_runtime_wired,
+    connection_config_present,
+    connection_config_valid,
+    connection_config_source,
+    connection_message,
     message,
   };
 }

@@ -66,6 +66,10 @@ async function main() {
   if (typeof r.postgres_client_gate_enabled !== 'boolean') fail('postgres_client_gate_enabled');
   if (typeof r.postgres_client_module_available !== 'boolean') fail('postgres_client_module_available');
   if (r.postgres_client_runtime_wired !== false) fail('postgres_client_runtime_wired');
+  if (typeof r.connection_config_present !== 'boolean') fail('connection_config_present');
+  if (typeof r.connection_config_valid !== 'boolean') fail('connection_config_valid');
+  if (!['missing', 'url', 'fields'].includes(r.connection_config_source)) fail('connection_config_source');
+  if (typeof r.connection_message !== 'string') fail('connection_message');
   if (!r.message.includes(POSTGRES_METADATA_QUERY_NOT_WIRED)) fail('readiness.message');
 
   const out = execFileSync(process.execPath, [pathJoin(root, 'scripts', 'saas-db-postgres-readiness.mjs'), '--format=json'], {
@@ -86,6 +90,9 @@ async function main() {
   if (j.postgres_client_runtime_wired !== false) fail('CLI postgres_client_runtime_wired');
   if (!j.postgres_client_gate || typeof j.postgres_client_gate.enabled !== 'boolean') fail('CLI postgres_client_gate');
   if (!j.postgres_client_runtime || typeof j.postgres_client_runtime.module_available !== 'boolean') fail('CLI postgres_client_runtime');
+  if (typeof j.connection_config_present !== 'boolean') fail('CLI connection_config_present');
+  if (typeof j.connection_config_valid !== 'boolean') fail('CLI connection_config_valid');
+  if (!j.postgres_connection_config) fail('CLI postgres_connection_config');
 
   await runVerifyScript('verify-saas-db-migration-ledger.mjs');
   await runVerifyScript('verify-saas-db-migration-assets.mjs');

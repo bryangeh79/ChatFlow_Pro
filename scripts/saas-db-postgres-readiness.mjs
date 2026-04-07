@@ -32,6 +32,7 @@ async function main() {
     getPostgresExecutionReadiness,
     getPostgresClientGateSummary,
     getPostgresClientRuntimeSummary,
+    getPostgresConnectionConfigSummary,
     POSTGRES_METADATA_QUERY_NOT_WIRED,
   } = require(pathJoin(root, 'dist', 'src', 'saas', 'db-adapter', 'index.js'));
 
@@ -40,6 +41,7 @@ async function main() {
   const readiness = await getPostgresExecutionReadiness();
   const postgres_client_gate = getPostgresClientGateSummary();
   const postgres_client_runtime = await getPostgresClientRuntimeSummary();
+  const postgres_connection_config = getPostgresConnectionConfigSummary();
 
   const payload = {
     ok: true,
@@ -51,6 +53,11 @@ async function main() {
     postgres_client_gate_enabled: readiness.postgres_client_gate_enabled,
     postgres_client_module_available: readiness.postgres_client_module_available,
     postgres_client_runtime_wired: readiness.postgres_client_runtime_wired,
+    postgres_connection_config,
+    connection_config_present: readiness.connection_config_present,
+    connection_config_valid: readiness.connection_config_valid,
+    connection_config_source: readiness.connection_config_source,
+    connection_message: readiness.connection_message,
     ledger,
     schema_assets: {
       count: schema_assets.count,
@@ -77,6 +84,17 @@ async function main() {
   console.log(`sql_assets_present: ${readiness.sql_assets_present}`);
   console.log(`ledger_table: ${ledger.ledger_table} exists: ${ledger.exists} status: ${ledger.status}`);
   console.log(`migration_sql_assets_count: ${schema_assets.count}`);
+  console.log(
+    `connection: present=${readiness.connection_config_present} valid=${readiness.connection_config_valid} source=${readiness.connection_config_source}`,
+  );
+  if (postgres_connection_config.redacted_url) {
+    console.log(`connection_redacted_url: ${postgres_connection_config.redacted_url}`);
+  } else if (postgres_connection_config.host) {
+    console.log(
+      `connection_host: ${postgres_connection_config.host} port: ${postgres_connection_config.port} db: ${postgres_connection_config.database} user: ${postgres_connection_config.user} ssl: ${postgres_connection_config.ssl_enabled}`,
+    );
+  }
+  console.log(`connection_message: ${readiness.connection_message}`);
   console.log(readiness.message);
 }
 

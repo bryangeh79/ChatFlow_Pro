@@ -2,7 +2,7 @@
 
 ## 战报顶栏（2026-04-07）
 
-- **版本 / Phase**：**1.7.85**；**Phase 24** — **Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**包 2A–2J ✅**（**`pg`** 已入依赖，**仅 gate on 动态加载**；**pool/连接/查询仍未接线**）；**下一** **runtime 接线 + 2K apply / DB ledger** / CI；**Phase 23 / SaaS MVP 主线已关闭**。  
+- **版本 / Phase**：**1.7.86**；**Phase 24** — **Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**包 2A–2K ✅**（**连接配置契约已立**，**真实 TCP connect / probe / pool / SSL 文件校验仍未接线**）；**下一** **2L+ runtime / DB ledger** / CI；**Phase 23 / SaaS MVP 主线已关闭**。  
 - **本轮 git**：以 `git log origin/main` 为准。  
 - **新发现风险（本轮）**：**Postgres 迁移线**见下节「Phase 24 — Postgres 迁移线（2A+）」；其余见 **Phase 24 预期风险**。  
 - **已知边界**：**冻结（MVP）** — `docs/175` + `memory/04` §「Known SaaS MVP boundaries」；**待后续（v1）** — 凭证 KMS、多实例 store、**sql.js→Postgres（2B/2C）**。  
@@ -29,6 +29,7 @@
 - **Migration 机制（2D–2G）**：**registry + SQL + checksum + execution + ledger contract** 已有；**`FakeSaasMigrationLedger` 仅内存** — **`saas_schema_migrations` 仍未接真实 DB**、**apply 仍 `not_wired`**、**无 `pg`** — **勿将 fake harness 当生产 ledger**。  
 - **Metadata readiness（2H）**：**`postgres-metadata`** 与 **`saas:db:postgres:readiness`** 仅为 **contract / CLI 摘要**；**真实 Postgres metadata 查询**（ledger 表是否存在、执行器接线等）**仍未实现** — **勿将 readiness 输出当 DB 健康或迁移已应用**。  
 - **Postgres client gate + loader（2I / 2J）**：**`CHATFLOW_SAAS_POSTGRES_CLIENT=1`** 才 **动态 `import('pg')`**（见 **`docs/178`**）；**gate 关** → **不加载** `pg`，**勿误判安装失败**。**`postgres_client_runtime_wired` 仍为 false** — **勿将 module 可解析当已连库或可执行 query**。  
+- **Connection config（2K）**：**`CHATFLOW_SAAS_POSTGRES_URL` 或分字段** 仅 **解析/校验 stub** — **`connection_config_valid` 不代表 DB 可达**；**无 probe、无 pool、无真实 SSL 材料读取** — **勿当生产凭据或健康检查终态**。  
 - **Postgres adapter（2C）**：**仅为 stub** — 设 `CHATFLOW_SAAS_DB_DRIVER=postgres` 时 **任何 DB 调用即抛** `postgres_adapter_not_implemented`；**未**接 `pg`、**无** CI Postgres runtime — **勿当可跑生产后端**。  
 - **adapter 过渡期（2B+）**：**repository 双路径** — principals/audit 走 **`SaaSDbAdapter`**，其余表仍 **`getSaaSDatabase` + stmt**；新增功能若接错路径易出现 **持久化语义不一致**（忘记 `persistIfNeeded` / 混用连接）— **扩表时必须跟 adapter 模式或显式文档例外**。  
 - **数据迁移 / 一致性**：单文件 SQLite（sql.js）→ 托管 Postgres 需 **显式导出/导入或双写窗口**；多租户表外键与索引需 **一次性校验**，避免部分表成功导致 **orphan** 或 **unique 冲突**。  

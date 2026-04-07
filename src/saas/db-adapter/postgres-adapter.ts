@@ -46,6 +46,12 @@ export class PostgresSaaSDbAdapter implements SaaSDbAdapter {
 }
 
 export {
+  getPostgresConnectionConfigSummary,
+  loadPostgresConnectionConfig,
+  redactPostgresConnectionString,
+} from './postgres-config';
+export type { PostgresConnectionConfigResult, PostgresConnectionConfigSource } from './postgres-config';
+export {
   POSTGRES_CLIENT_LOAD_SKIPPED_GATE_OFF,
   POSTGRES_CLIENT_MODULE_NOT_AVAILABLE,
   POSTGRES_CLIENT_RUNTIME_NOT_WIRED,

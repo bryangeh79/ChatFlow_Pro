@@ -1,7 +1,17 @@
 # ADR — Phase 24 / 包 2A — Postgres + migration（仅决策，无实现）
 
 > **状态**：Accepted（**2A = ADR 文档**；**不**含 Postgres runtime、**不**改 sql.js live 路径、**不**动租户 webhook / 现有 auth 实现）。  
-> **真源**：`package.json` **1.7.85+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。**Gate + 动态 `pg` 加载契约** 见 **`docs/178_phase24_real_postgres_client_gate_adr.md`**（**2I / 2J**）。**2J** 已立 **client loading contract**；**pool / query / migration 真执行** 仍未接线。
+> **真源**：`package.json` **1.7.86+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。**Gate + `pg` + connection env** 见 **`docs/178`**。**2K** 已立 **connection config / DSN validation stub**（**无 TCP、无 pool**）；**connect probe / 真 query / migration 执行** 仍未接线。
+
+---
+
+## Phase 24 — 包 2K ✅（Postgres connection config + DSN validation stub）
+
+- **模块**：**`postgres-config.ts`** — **`CHATFLOW_SAAS_POSTGRES_URL`** 优先，否则 **HOST / PORT / DB / USER / PASSWORD / SSL**；**`loadPostgresConnectionConfig()`**、**`getPostgresConnectionConfigSummary()`**（附 gate 提示）、**`redactPostgresConnectionString()`**。  
+- **校验**：host/db/user 非空、port **1–65535**（默认 **5432**）、**`CHATFLOW_SAAS_POSTGRES_SSL=0|1`**；**不回显 password**；**无 connect**。  
+- **readiness**：**`connection_config_present` / `valid` / `source` / `connection_message`**；**`postgres_client_runtime_wired` 仍为 false**。  
+- **验证**：**`npm run verify:saas-db-postgres-config`**。  
+- **下一**：**2L** connection probe（可选）— 见 **`docs/178`**。
 
 ---
 
