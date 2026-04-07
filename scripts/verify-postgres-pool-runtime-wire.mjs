@@ -39,6 +39,8 @@ function execReadiness(env) {
         driver: r.driver,
         postgres_client_runtime_wired: r.postgres_client_runtime_wired,
         adapter_stub: r.adapter_stub,
+        connection_config_valid: r.connection_config_valid,
+        postgres_probe_status: r.postgres_probe_status,
       }));
     })().catch((e) => { console.error(e); process.exit(1); });
   `;
@@ -61,6 +63,41 @@ function execGoNoGo(env) {
   return JSON.parse(out.trim().split('\n').pop());
 }
 
+function maybeControlledRuntimeWiredGate(base) {
+  if (process.env.CHATFLOW_SAAS_POSTGRES_CONTROLLED_VERIFY !== '1') {
+    console.log('verify-postgres-pool-runtime-wire: controlled_runtime_wired_skip(flag_off)');
+    return;
+  }
+  const url = process.env.CHATFLOW_SAAS_POSTGRES_URL;
+  if (!url || typeof url !== 'string' || !url.trim()) {
+    console.log('verify-postgres-pool-runtime-wire: controlled_runtime_wired_skip(no_postgres_url)');
+    return;
+  }
+
+  const env = {
+    ...base,
+    CHATFLOW_SAAS_DB_DRIVER: 'postgres',
+    CHATFLOW_SAAS_POSTGRES_CLIENT: '1',
+    CHATFLOW_SAAS_POSTGRES_URL: url,
+  };
+  const snap = execReadiness(env);
+  if (!snap.connection_config_valid || snap.postgres_probe_status !== 'probe_connect_ok') {
+    console.log(
+      `verify-postgres-pool-runtime-wire: controlled_runtime_wired_skip(preconditions_not_met:config_valid=${snap.connection_config_valid};probe_status=${snap.postgres_probe_status})`,
+    );
+    return;
+  }
+  if (snap.postgres_client_runtime_wired !== true) {
+    console.log('verify-postgres-pool-runtime-wire: controlled_runtime_wired_hard_fail');
+    fail('controlled preconditions met but postgres_client_runtime_wired is not true');
+  }
+
+  const g = execGoNoGo(env);
+  if (g.overall_status === 'go') fail('controlled runtime_wired success must not imply overall GO');
+  console.log('verify-postgres-pool-runtime-wire: controlled_runtime_wired_ok');
+  console.log('verify-postgres-pool-runtime-wire: overall_go_not_implied');
+}
+
 function main() {
   const base = scrub(process.env);
 
@@ -70,6 +107,7 @@ function main() {
   if (r0.adapter_stub !== true) fail('default adapter_stub must be true');
   const g0 = execGoNoGo(base);
   if (g0.overall_status !== 'no_go') fail('default go/no-go must be no_go');
+  console.log('verify-postgres-pool-runtime-wire: default_no_go_ok');
 
   const e1 = {
     ...base,
@@ -97,6 +135,7 @@ function main() {
     fail('unreachable PG: expect runtime_not_wired blocker');
   }
 
+  maybeControlledRuntimeWiredGate(base);
   console.log('verify-postgres-pool-runtime-wire: ok');
 }
 

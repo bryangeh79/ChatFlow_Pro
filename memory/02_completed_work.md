@@ -1,5 +1,14 @@
 # Completed Work
 
+## Phase 24 — runtime_wired hard gate calibration ✅
+
+**名称**：`Phase 24 / controlled runtime_wired hard gate calibration` — **非** Postgres ready、**非** `go` 已达成。  
+**交付摘要**：受控验证中将 `postgres_client_runtime_wired` 升级为硬门禁：仅在前置明确满足（开关+URL+配置合法+受控探测成功）后必须为 `true`，否则 hard fail。  
+**默认语义**：默认链仍 `NO_GO`；受控前置不足仍 `skip`；默认 live 路径仍为 sqljs。  
+**边界口径**：整体 `go/no-go` 仍按完整门禁判定，不因本刀自动变 GO。  
+
+---
+
 ## Phase 24 — tenant_settings read path adapterization ✅
 
 **名称**：`Phase 24 / tenant_settings read path adapterization` — **非** Postgres ready、**非** `go` 已达成。  
