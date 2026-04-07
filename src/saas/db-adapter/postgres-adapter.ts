@@ -28,3 +28,17 @@ export class PostgresSaaSDbAdapter implements SaaSDbAdapter {
     this.notImplemented();
   }
 }
+
+export {
+  getPostgresExecutionReadiness,
+  getPostgresMigrationLedgerInfo,
+  getPostgresSchemaAssetInfo,
+  POSTGRES_METADATA_QUERY_NOT_WIRED,
+} from './postgres-metadata';
+export type {
+  PostgresExecutionReadiness,
+  PostgresMigrationLedgerInfo,
+  PostgresLedgerMetadataStatus,
+  PostgresSchemaAssetInfo,
+  PostgresSchemaAssetSummary,
+} from './postgres-metadata';

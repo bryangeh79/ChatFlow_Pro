@@ -1,7 +1,18 @@
 # ADR — Phase 24 / 包 2A — Postgres + migration（仅决策，无实现）
 
 > **状态**：Accepted（**2A = ADR 文档**；**不**含 Postgres runtime、**不**改 sql.js live 路径、**不**动租户 webhook / 现有 auth 实现）。  
-> **真源**：`package.json` **1.7.82+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。
+> **真源**：`package.json` **1.7.83+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。
+
+---
+
+## Phase 24 — 包 2H ✅（Postgres metadata / readiness stub — no DB I/O）
+
+- **模块**：**`postgres-metadata.ts`** — 只读 **contract stub**：**`getPostgresMigrationLedgerInfo()`**（ledger 表名 + **`status=not_wired`** / **`exists=false`**）、**`getPostgresSchemaAssetInfo()`**（registry 内 SQL 资产 + **checksum** + **count**）、**`getPostgresExecutionReadiness()`**（**`adapter_stub: true`**、**`execution_wired: false`**、**`ledger_persistence_wired: false`**、**`sql_assets_present`**）。  
+- **常量**：**`POSTGRES_METADATA_QUERY_NOT_WIRED`** — 明示 **未** 接真实 `information_schema` / `pg` 查询。  
+- **接线**：**`postgres-adapter.ts`** / **`db-adapter/index.ts`** 再导出上述 API；**不**改 live 默认 **sql.js**、**不**动租户 webhook。  
+- **CLI**：**`npm run saas:db:postgres:readiness`**（**`scripts/saas-db-postgres-readiness.mjs`**）— 摘要 JSON/text，**非** DB 健康检查通过语义。  
+- **验证**：**`npm run verify:saas-db-postgres-readiness`**（含既有 ledger / assets / execution / ledger-contract 回归链）。  
+- **禁止**：本包 **不**引入 **`pg`**、**不**执行 SQL、**不**伪成功 apply。
 
 ---
 

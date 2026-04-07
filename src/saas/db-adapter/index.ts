@@ -6,7 +6,21 @@ import type { SaaSDbDriver } from './types';
 
 export type { DbRow, SaaSDbAdapter, SaaSDbDriver } from './types';
 export { SqlJsSaaSDbAdapter } from './sqljs-adapter';
-export { PostgresSaaSDbAdapter, POSTGRES_ADAPTER_NOT_IMPLEMENTED } from './postgres-adapter';
+export {
+  PostgresSaaSDbAdapter,
+  POSTGRES_ADAPTER_NOT_IMPLEMENTED,
+  POSTGRES_METADATA_QUERY_NOT_WIRED,
+  getPostgresExecutionReadiness,
+  getPostgresMigrationLedgerInfo,
+  getPostgresSchemaAssetInfo,
+} from './postgres-adapter';
+export type {
+  PostgresExecutionReadiness,
+  PostgresLedgerMetadataStatus,
+  PostgresMigrationLedgerInfo,
+  PostgresSchemaAssetInfo,
+  PostgresSchemaAssetSummary,
+} from './postgres-adapter';
 
 let cachedDriver: SaaSDbDriver | null = null;
 let cachedAdapter: Promise<SaaSDbAdapter> | null = null;
