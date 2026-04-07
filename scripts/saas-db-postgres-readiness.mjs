@@ -30,18 +30,23 @@ function main() {
     getPostgresMigrationLedgerInfo,
     getPostgresSchemaAssetInfo,
     getPostgresExecutionReadiness,
+    getPostgresClientGateSummary,
     POSTGRES_METADATA_QUERY_NOT_WIRED,
   } = require(pathJoin(root, 'dist', 'src', 'saas', 'db-adapter', 'index.js'));
 
   const ledger = getPostgresMigrationLedgerInfo();
   const schema_assets = getPostgresSchemaAssetInfo();
   const readiness = getPostgresExecutionReadiness();
+  const postgres_client_gate = getPostgresClientGateSummary();
 
   const payload = {
     ok: true,
     note: 'not_a_db_healthcheck: stub metadata only; no postgres connection; execution not wired',
     postgres_metadata_query_not_wired: true,
     constant: POSTGRES_METADATA_QUERY_NOT_WIRED,
+    postgres_client_gate,
+    postgres_client_gate_enabled: readiness.postgres_client_gate_enabled,
+    postgres_client_runtime_wired: readiness.postgres_client_runtime_wired,
     ledger,
     schema_assets: {
       count: schema_assets.count,
@@ -61,6 +66,9 @@ function main() {
 
   console.log('saas_db_postgres_readiness: stub_summary');
   console.log(`driver: ${readiness.driver}`);
+  console.log(
+    `postgres_client_gate_enabled: ${readiness.postgres_client_gate_enabled} postgres_client_runtime_wired: ${readiness.postgres_client_runtime_wired}`,
+  );
   console.log(`adapter_stub: ${readiness.adapter_stub} execution_wired: ${readiness.execution_wired} ledger_persistence_wired: ${readiness.ledger_persistence_wired}`);
   console.log(`sql_assets_present: ${readiness.sql_assets_present}`);
   console.log(`ledger_table: ${ledger.ledger_table} exists: ${ledger.exists} status: ${ledger.status}`);

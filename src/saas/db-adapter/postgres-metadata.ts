@@ -1,4 +1,5 @@
 import { listSaasDbMigrations, SAAS_SCHEMA_MIGRATIONS_TABLE } from '../db-migrations';
+import { isPostgresClientEnabled } from './postgres-gate';
 import type { SaaSDbDriver } from './types';
 
 /** Ledger table metadata query not connected to any database (Phase 24 / 2H). */
@@ -31,6 +32,10 @@ export interface PostgresExecutionReadiness {
   execution_wired: boolean;
   ledger_persistence_wired: boolean;
   sql_assets_present: boolean;
+  /** `CHATFLOW_SAAS_POSTGRES_CLIENT=1`; does not mean `pg` is loaded or connected. */
+  postgres_client_gate_enabled: boolean;
+  /** Always false until Phase 24+ wires a real client. */
+  postgres_client_runtime_wired: boolean;
   message: string;
 }
 
@@ -72,6 +77,7 @@ export function getPostgresSchemaAssetInfo(): PostgresSchemaAssetInfo {
  */
 export function getPostgresExecutionReadiness(): PostgresExecutionReadiness {
   const driver = readDbDriverForMetadata();
+  const postgres_client_gate_enabled = isPostgresClientEnabled();
   let sql_assets_present = false;
   try {
     const m = listSaasDbMigrations();
@@ -81,12 +87,25 @@ export function getPostgresExecutionReadiness(): PostgresExecutionReadiness {
     sql_assets_present = false;
   }
 
+  let message: string;
+  if (driver === 'postgres' && !postgres_client_gate_enabled) {
+    message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: driver=postgres but CHATFLOW_SAAS_POSTGRES_CLIENT gate is closed (unset/0) — gate-closed, not pretending postgres-ready.`;
+  } else if (postgres_client_gate_enabled && driver === 'postgres') {
+    message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: gate=on allows future real client wiring only; adapter/runtime still not wired (no pg).`;
+  } else if (postgres_client_gate_enabled && driver === 'sqljs') {
+    message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: postgres client gate=on but driver=sqljs — default sql.js path unchanged; no pg loaded.`;
+  } else {
+    message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: postgres runner and ledger persistence not wired; contract stub only (postgres client gate off).`;
+  }
+
   return {
     driver,
     adapter_stub: true,
     execution_wired: false,
     ledger_persistence_wired: false,
     sql_assets_present,
-    message: `${POSTGRES_METADATA_QUERY_NOT_WIRED}: postgres runner and ledger persistence not wired; this is a contract stub only.`,
+    postgres_client_gate_enabled,
+    postgres_client_runtime_wired: false,
+    message,
   };
 }

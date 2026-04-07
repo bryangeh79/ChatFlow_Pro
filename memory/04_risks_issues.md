@@ -2,7 +2,7 @@
 
 ## 战报顶栏（2026-04-07）
 
-- **版本 / Phase**：**1.7.83**；**Phase 24** — **Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**包 2A–2H ✅**（2H = **Postgres metadata readiness stub**，**非** 真实 DB `information_schema` / ledger 表存在性检查）；**下一** 真 **`pg`** / apply / **DB ledger** / CI；**Phase 23 / SaaS MVP 主线已关闭**。  
+- **版本 / Phase**：**1.7.84**；**Phase 24** — **Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**包 2A–2I ✅**（2I = **`CHATFLOW_SAAS_POSTGRES_CLIENT` gate + `docs/178`**；**真实 `pg` client 仍未接入**）；**下一** **2J `pg` + 2K apply / DB ledger** / CI；**Phase 23 / SaaS MVP 主线已关闭**。  
 - **本轮 git**：以 `git log origin/main` 为准。  
 - **新发现风险（本轮）**：**Postgres 迁移线**见下节「Phase 24 — Postgres 迁移线（2A+）」；其余见 **Phase 24 预期风险**。  
 - **已知边界**：**冻结（MVP）** — `docs/175` + `memory/04` §「Known SaaS MVP boundaries」；**待后续（v1）** — 凭证 KMS、多实例 store、**sql.js→Postgres（2B/2C）**。  
@@ -28,6 +28,7 @@
 
 - **Migration 机制（2D–2G）**：**registry + SQL + checksum + execution + ledger contract** 已有；**`FakeSaasMigrationLedger` 仅内存** — **`saas_schema_migrations` 仍未接真实 DB**、**apply 仍 `not_wired`**、**无 `pg`** — **勿将 fake harness 当生产 ledger**。  
 - **Metadata readiness（2H）**：**`postgres-metadata`** 与 **`saas:db:postgres:readiness`** 仅为 **contract / CLI 摘要**；**真实 Postgres metadata 查询**（ledger 表是否存在、执行器接线等）**仍未实现** — **勿将 readiness 输出当 DB 健康或迁移已应用**。  
+- **Postgres client gate（2I）**：**`CHATFLOW_SAAS_POSTGRES_CLIENT=1`** 才 **允许未来** 真实 client 路径（见 **`docs/178`**）；**未设/`0`** → gate **关**；**`driver=postgres` 且 gate 关** → **仍 stub**，readiness **明示非 ready**。**`pg` 仍未进依赖** — **勿将 gate=on 当已连库**。  
 - **Postgres adapter（2C）**：**仅为 stub** — 设 `CHATFLOW_SAAS_DB_DRIVER=postgres` 时 **任何 DB 调用即抛** `postgres_adapter_not_implemented`；**未**接 `pg`、**无** CI Postgres runtime — **勿当可跑生产后端**。  
 - **adapter 过渡期（2B+）**：**repository 双路径** — principals/audit 走 **`SaaSDbAdapter`**，其余表仍 **`getSaaSDatabase` + stmt**；新增功能若接错路径易出现 **持久化语义不一致**（忘记 `persistIfNeeded` / 混用连接）— **扩表时必须跟 adapter 模式或显式文档例外**。  
 - **数据迁移 / 一致性**：单文件 SQLite（sql.js）→ 托管 Postgres 需 **显式导出/导入或双写窗口**；多租户表外键与索引需 **一次性校验**，避免部分表成功导致 **orphan** 或 **unique 冲突**。  

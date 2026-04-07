@@ -1,7 +1,17 @@
 # ADR — Phase 24 / 包 2A — Postgres + migration（仅决策，无实现）
 
 > **状态**：Accepted（**2A = ADR 文档**；**不**含 Postgres runtime、**不**改 sql.js live 路径、**不**动租户 webhook / 现有 auth 实现）。  
-> **真源**：`package.json` **1.7.83+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。
+> **真源**：`package.json` **1.7.84+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。**真实 `pg` client 引入前置条件** 见 **`docs/178_phase24_real_postgres_client_gate_adr.md`**（**2I**）。
+
+---
+
+## Phase 24 — 包 2I ✅（real postgres client：ADR + dependency gate，仍无 `pg`）
+
+- **ADR**：**`docs/178_phase24_real_postgres_client_gate_adr.md`** — 背景、**不**立刻接 `pg` 的理由、**driver + `CHATFLOW_SAAS_POSTGRES_CLIENT=1`** 前置、失败/回滚、**2J/2K** 拆分建议。  
+- **Gate**：**`postgres-gate.ts`** — **`isPostgresClientEnabled()`** / **`getPostgresClientGateSummary()`**（未设/`0` → off；`1` → on；其他值 fail-fast）。  
+- **readiness**：**`postgres_client_gate_enabled`**、**`postgres_client_runtime_wired: false`**；**`driver=postgres` 且 gate 关** 时摘要 **明示 gate 关闭**。  
+- **验证**：**`npm run verify:saas-db-postgres-client-gate`**。  
+- **禁止**：本包 **不**安装 **`pg`**、**不**连库、**不**改默认 **sql.js**。
 
 ---
 

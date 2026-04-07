@@ -1,9 +1,18 @@
+import {
+  getPostgresClientGateSummary as resolvePostgresClientGateSummary,
+  type PostgresClientGateSummary,
+} from './postgres-gate';
 import type { DbRow, SaaSDbAdapter } from './types';
 
 /** Thrown by all `PostgresSaaSDbAdapter` methods until a real client is wired (Phase 24+). */
 export const POSTGRES_ADAPTER_NOT_IMPLEMENTED = 'postgres_adapter_not_implemented';
 
 export class PostgresSaaSDbAdapter implements SaaSDbAdapter {
+  /** Read-only: current `CHATFLOW_SAAS_POSTGRES_CLIENT` gate (no DB I/O). */
+  getPostgresClientGateSummary(): PostgresClientGateSummary {
+    return resolvePostgresClientGateSummary();
+  }
+
   private notImplemented(): never {
     throw new Error(POSTGRES_ADAPTER_NOT_IMPLEMENTED);
   }
@@ -29,6 +38,8 @@ export class PostgresSaaSDbAdapter implements SaaSDbAdapter {
   }
 }
 
+export { getPostgresClientGateSummary, isPostgresClientEnabled } from './postgres-gate';
+export type { PostgresClientGateSummary } from './postgres-gate';
 export {
   getPostgresExecutionReadiness,
   getPostgresMigrationLedgerInfo,

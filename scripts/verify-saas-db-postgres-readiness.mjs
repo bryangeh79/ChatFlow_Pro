@@ -63,6 +63,8 @@ async function main() {
   if (r.execution_wired !== false) fail('execution_wired');
   if (r.ledger_persistence_wired !== false) fail('ledger_persistence_wired');
   if (typeof r.sql_assets_present !== 'boolean') fail('sql_assets_present');
+  if (typeof r.postgres_client_gate_enabled !== 'boolean') fail('postgres_client_gate_enabled');
+  if (r.postgres_client_runtime_wired !== false) fail('postgres_client_runtime_wired');
   if (!r.message.includes(POSTGRES_METADATA_QUERY_NOT_WIRED)) fail('readiness.message');
 
   const out = execFileSync(process.execPath, [pathJoin(root, 'scripts', 'saas-db-postgres-readiness.mjs'), '--format=json'], {
@@ -78,6 +80,9 @@ async function main() {
   if (!j.ok || j.postgres_metadata_query_not_wired !== true) fail('CLI payload markers');
   if (!j.ledger || j.ledger.status !== 'not_wired') fail('CLI ledger');
   if (!j.readiness || j.readiness.execution_wired !== false) fail('CLI readiness');
+  if (typeof j.postgres_client_gate_enabled !== 'boolean') fail('CLI postgres_client_gate_enabled');
+  if (j.postgres_client_runtime_wired !== false) fail('CLI postgres_client_runtime_wired');
+  if (!j.postgres_client_gate || typeof j.postgres_client_gate.enabled !== 'boolean') fail('CLI postgres_client_gate');
 
   await runVerifyScript('verify-saas-db-migration-ledger.mjs');
   await runVerifyScript('verify-saas-db-migration-assets.mjs');

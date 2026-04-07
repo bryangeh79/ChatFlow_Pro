@@ -1,6 +1,6 @@
 {
   "name": "chatflow-pro",
-  "version": "1.7.83",
+  "version": "1.7.84",
   "private": true,
   "type": "commonjs",
   "scripts": {
@@ -32,6 +32,7 @@
     "verify:saas-db-migration-ledger-contract": "node scripts/verify-saas-db-migration-ledger-contract.mjs",
     "saas:db:postgres:readiness": "node scripts/saas-db-postgres-readiness.mjs",
     "verify:saas-db-postgres-readiness": "node scripts/verify-saas-db-postgres-readiness.mjs",
+    "verify:saas-db-postgres-client-gate": "node scripts/verify-saas-db-postgres-client-gate.mjs",
     "saas:db:migration:plan": "node scripts/saas-db-migration-plan.mjs",
     "saas:db:migration:bootstrap": "node scripts/saas-db-migration-bootstrap.mjs",
     "verify:saas-admin-auth-cutline": "node scripts/verify-saas-admin-auth-cutline.mjs",

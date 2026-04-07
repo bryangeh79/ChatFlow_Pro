@@ -10,11 +10,14 @@ export {
   PostgresSaaSDbAdapter,
   POSTGRES_ADAPTER_NOT_IMPLEMENTED,
   POSTGRES_METADATA_QUERY_NOT_WIRED,
+  getPostgresClientGateSummary,
   getPostgresExecutionReadiness,
   getPostgresMigrationLedgerInfo,
   getPostgresSchemaAssetInfo,
+  isPostgresClientEnabled,
 } from './postgres-adapter';
 export type {
+  PostgresClientGateSummary,
   PostgresExecutionReadiness,
   PostgresLedgerMetadataStatus,
   PostgresMigrationLedgerInfo,
