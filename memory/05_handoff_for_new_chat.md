@@ -6,7 +6,7 @@
 
 ## 1. 当前项目一句话状态
 
-**ChatFlow Pro**：七通道统一入站 + 出站、Legacy `/webhooks/:channel` 与 **多租户** `/webhooks/t/:slug/:channel` 并存；**多租户 SaaS MVP 已封板**（Phase 23 关闭），`package.json` **1.7.89**（以仓库为准）。**Phase 24**：**Postgres Foundation checkpoint 已封**（**仍 `NO_GO`**）；**3A** — **`docs/179`** multi-instance ADR **已立**。下一实现包：**3B/3C**。
+**ChatFlow Pro**：七通道统一入站 + 出站、Legacy `/webhooks/:channel` 与 **多租户** `/webhooks/t/:slug/:channel` 并存；**多租户 SaaS MVP 已封板**（Phase 23 关闭），`package.json` **1.7.90**（以仓库为准）。**Phase 24**：**Postgres Foundation 已封**（**`go/no-go` 仍为 `NO_GO`**）；**3A** `docs/179`；**3B** **`SessionStore` 骨架已完成**，**默认仍 in-memory**，**勿当 multi-instance ready**。下一：**3C** 小步 — **notify / JSONL 幂等键与 `request_id`**（`docs/179`），**不** 开外置队列大包。
 
 ---
 
@@ -23,8 +23,9 @@
 ## 3. 已完成的最近关键 checkpoint（git）
 
 1. **Phase 24 / Auth-RBAC Foundation（1A–1J）** — **子里程碑已封**（`docs/176` + `verify:saas-admin-*`）。  
-2. **Phase 24 / Postgres Foundation（2A–2M）** — **checkpoint 已封**（`docs/177`、`docs/178`、`saas:db:postgres:go-no-go`）；**runtime 仍 NO_GO**。  
-3. 更早：**Phase 23 关闭**、**Phase 24 开 v1 Hardening** — 仍见 `memory/02` 与 `git log`。
+2. **Phase 24 / Postgres Foundation（2A–2M）** — **checkpoint 已封**；**`go/no-go` 仍为 `NO_GO`**。  
+3. **Phase 24 / 包 3B** — **session store 抽象骨架**（`getSessionStore()`，**默认 in-memory**）；**非** MI-ready。  
+4. 更早：**Phase 23 关闭**、**Phase 24 开 v1 Hardening** — 仍见 `memory/02` 与 `git log`。
 
 **Push**：以 **`git log origin/main`** 为准。
 
@@ -32,9 +33,9 @@
 
 ## 4. 下一步唯一优先动作
 
-**Phase 24 包 3B+**：按 **`docs/179`** 落地 **session store** 与 **JSONL/notify** 收口；**3A 仅 ADR，已完成**。  
+**Phase 24 包 3C**：按 **`docs/179`** 先做 **JSONL + lead/handoff notify 的幂等键 / `request_id` 契约**（**最小切口**）；**3B 已完成**（**仍 in-memory**，**非** multi-instance）。  
 
-**Postgres**：**`npm run saas:db:postgres:go-no-go`** — **当前默认 `no_go`**。
+**Postgres**：**`npm run saas:db:postgres:go-no-go`** — **仍为 `no_go`**。
 
 **合并门禁（不变）**：**T0** `npm run build` + **T1** `npm run staging:docker-smoke`（或 CI `docker-smoke` 绿）。
 

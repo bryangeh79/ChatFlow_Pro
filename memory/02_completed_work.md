@@ -1,5 +1,15 @@
 # Completed Work
 
+## Phase 24 — 包 3B ✅ session store abstraction skeleton
+
+**名称**：`Phase 24 / 包 3B` — **非** multi-instance、**非** Redis。  
+**交付摘要**：**`SessionStore` + `getSessionStore()`**；**`InMemorySessionStore`** 实现不变（TTL / 上限 / cleanup）；**默认 live 仍 in-memory**；**`verify:session-store-abstraction`**。  
+**明确不是**：多副本安全、外置 session、JSONL 改造 — **仍为单进程语义**。  
+**提交**：`feat(phase-24): add session store abstraction skeleton`（`9f76785`，以 `git log` 为准）。  
+**下一小步**：**3C** — `docs/179` 下 **notify / JSONL 幂等键** 契约，**不** 开大包。
+
+---
+
 ## Phase 24 — Postgres Foundation checkpoint（2A–2M）✅ 叙事已封
 
 **名称**：`Phase 24 / Postgres Foundation checkpoint`  
