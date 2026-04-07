@@ -11,9 +11,14 @@ import {
 } from './repository';
 import { getSaaSDbPathForDisplay } from './db';
 import { breakGlassAdminToken, requireSaasAdmin } from './admin-auth';
+import { authorizeAdminRouteAfterAuth } from './admin-authorization';
 
 function unauthorized(): { status: number; body: unknown } {
   return { status: 401, body: { ok: false, error: 'unauthorized' } };
+}
+
+function forbidden(): { status: number; body: unknown } {
+  return { status: 403, body: { ok: false, error: 'forbidden' } };
 }
 
 function parseJson(text: string): unknown {
@@ -55,8 +60,11 @@ export async function handleSaaSAdminRequest(
     };
   }
 
-  if (pathname.startsWith('/saas/v1/admin/') && !requireSaasAdmin(authHeader).ok) {
-    return unauthorized();
+  if (pathname.startsWith('/saas/v1/admin/')) {
+    const authResult = requireSaasAdmin(authHeader);
+    if (!authResult.ok) return unauthorized();
+    const authz = authorizeAdminRouteAfterAuth(method, pathname, authResult.context);
+    if (!authz.ok) return forbidden();
   }
 
   if (pathname === '/saas/v1/admin/tenants' && method === 'GET') {

@@ -1,8 +1,8 @@
 # ADR — Phase 24 / SaaS Admin Auth & RBAC（最小落地）
 
-> **状态**：Accepted；**包 1B** 已落地 auth 抽象桥接（仍仅 break-glass env token）  
+> **状态**：Accepted；**包 1C** 已落地 authorization scaffold（策略表 + 403）；live 身份仍仅 break-glass `platform_admin`  
 > **范围**：SaaS **控制面**（`/saas/*` Admin API + Admin UI），**非** MVP 功能补完  
-> **真源**：`package.json` **1.7.68+**（Phase 24 小步）；SaaS MVP **sealed**（`docs/175`）；本 ADR 属于 **Phase 24 — SaaS v1 Hardening**
+> **真源**：`package.json` **1.7.69+**（Phase 24 小步）；SaaS MVP **sealed**（`docs/175`）；本 ADR 属于 **Phase 24 — SaaS v1 Hardening**
 
 ---
 
@@ -11,6 +11,14 @@
 - **代码**：`src/saas/admin-auth.ts` — `breakGlassAdminToken`、`resolveSaasAdminAuth`、`requireSaasAdmin`；命中 env token 时 `SaasAdminAuthContext` 为 **`role: platform_admin`**、**`auth_source: break_glass_env`**。`src/saas/admin-routes.ts` 仅调用该模块，**不再内联** Bearer 字符串比较。
 - **未变**：`/saas/v1/health`、`GET /saas/admin` 仍**不**要求 Bearer；`/saas/v1/admin/*` 仍 401 / 放行规则与 1B 前一致；**无**用户表、**无** JWT、**无**租户级 RBAC；legacy 与租户 webhook 边界不动。
 - **验证**：`npm run verify:saas-admin-auth-break-glass`（需已 `npm run build`）。
+
+---
+
+## Phase 24 — 包 1C（authorization scaffold，已落地）
+
+- **代码**：`src/saas/admin-authorization.ts` — `ADMIN_ROUTE_POLICIES`（每路由 **`allowed_roles`**，当前均为 **`platform_admin`**）、`matchAdminRoutePolicy`、`authorizeAdminRouteAfterAuth`。`admin-routes`：**先鉴权** → **再授权**；未登录 **401**；已登录但角色不在 `allowed_roles` **403** `forbidden`。未登记在策略表上的 `/saas/v1/admin/*` 路径不因此 403（仍走原有 404）。
+- **未做**：租户用户、登录页、JWT、向 `allowed_roles` 下放 `tenant_admin` / `tenant_operator_readonly`（仅类型与表结构预留）。
+- **验证（纯函数）**：`npm run verify:saas-admin-rbac-scaffold`（依赖 `npm run build`）。
 
 ---
 
@@ -26,6 +34,7 @@
 |------|------|
 | **Token 读取** | `src/saas/admin-auth.ts`：`breakGlassAdminToken()` → `process.env.CHATFLOW_SAAS_ADMIN_TOKEN` |
 | **鉴权** | `requireSaasAdmin(authHeader)`（内部 `resolveSaasAdminAuth`）：Bearer 精确匹配；失败 → `/saas/v1/admin/*` **401** `unauthorized`；成功返回 context（当前仅 `platform_admin` / `break_glass_env`） |
+| **授权** | `authorizeAdminRouteAfterAuth`（`admin-authorization.ts`）：按路由匹配 `ADMIN_ROUTE_POLICIES` 的 **`allowed_roles`**；不匹配策略的路径不 403；角色不足 → **403** `forbidden` |
 | **`/saas/v1/health`** | **不**校验 Bearer；返回 `admin_configured: Boolean(breakGlassAdminToken())` |
 | **`GET /saas/admin`** | 静态返回 `public/saas-admin.html`，**无**服务端会话 gate |
 | **Admin UI** | `public/saas-admin.html`：用户粘贴 token，`fetch(..., { headers: { Authorization: 'Bearer ' + token } })` 调所有 admin REST |
