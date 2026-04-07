@@ -15,7 +15,7 @@
 **名称**：`Phase 24 / Postgres Foundation checkpoint`  
 **交付摘要**：**2A–2M** — Postgres+migration **ADR**（`docs/177`）；**SaaSDbAdapter** 选择 + **SqlJs** 实现 + **Postgres stub**；**db-migrations** registry、**postgres/*.sql**、checksum、**execution contract**、**fake ledger**；**client gate + 动态 `pg` loader**；**connection config**；**optional TCP probe**；**go/no-go**（`postgres-readiness-boundary.ts` + CLI + verify）。  
 **明确未完成**：**real Postgres runtime**、**ledger 落库**、**migration apply**、**repository 全量 postgres** — **`evaluatePostgresGoNoGo()` 仍为 `no_go`**；**勿误读为可切生产 DB**。  
-**下一工程线**：**包 3A** — **`docs/179`** multi-instance session/store ADR（先于 Postgres runtime 扩面，降低多副本假设冲突）。  
+**与 `docs/179` 衔接**：**3A ✅** ADR；**3B ✅** 见上节（**默认 live 仍 in-memory**，**非** multi-instance ready）；**下一**：**3C** 仅 **`docs/179`** 下 **JSONL / notify 幂等键与 `request_id`** 最小切口，**不** 开外置队列大包。  
 **封板提交**：`chore(phase-24): seal postgres foundation checkpoint`（以 `git log` 为准）。
 
 ---

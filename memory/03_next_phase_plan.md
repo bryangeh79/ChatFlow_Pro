@@ -5,7 +5,7 @@
 - **版本**：`package.json` **1.7.90**（**Pro_v1.07.90**）— Phase 24：**3A ✅**；**3B ✅** — **`SessionStore` 骨架**，**默认 in-memory**，**非** multi-instance ready（`verify:session-store-abstraction`）；**下一 3C** — **notify + JSONL 幂等键 / `request_id`** 最小切口（`docs/179`），**不** 扩外置队列。**`go/no-go` 仍为 `NO_GO`**。SaaS MVP 仍 **sealed**。  
 - **当前 Phase**：**24 — SaaS v1 Hardening**（**当前主线**）。  
 - **已关闭**：**Phase 23**（SaaS MVP Final Closure）— **主线 closed**，后续 **不算 MVP 扩功能**。  
-- **本轮 git / push**：`c2a08cc` → `8cae7d4` → `bb5d17e` 已上 **`main`**，**push success**。  
+- **本轮 git / push**：**以 `git log origin/main` 为准**；**3B** 骨架 **`9f76785`** `feat(phase-24): add session store abstraction skeleton`。  
 - **下一阶段建议**（24 拆包）：① 租户认证/RBAC ② Postgres+migration ③ 多实例 session/store ④ 凭证 KMS/轮换/审计。  
 - **新发现风险**：本轮无新增 P0；24 将引入 **规模/合规/运维复杂度**，需按包写风险条目入 **`memory/04`**。  
 - **已知边界**：**冻结** — idle GET 200（A）、hub verify 租户 token、`faq.fallback_enabled` partial、slug/idle 信息面。**待 24** — 明文凭证、内存 session、sql.js。
@@ -277,7 +277,10 @@
 - **包 2E**：**✅** — **`postgres/pg_0001_*.sql` / `pg_0002_*.sql`** + **`checksum.ts`** + registry 字段 **`asset_path` / `asset_kind` / `checksum_sha256`**；验证 **`verify:saas-db-migration-assets`**。  
 - **包 2F**：**✅** — **`execution-types.ts` / `execution-contract.ts`**、**`runSaasPostgresMigrations`**；**`bootstrap --mode=`**；验证 **`verify:saas-db-migration-execution-contract`**。  
 - **包 2G**：**✅** — **`ledger-types` / `ledger-contract` / `fake-ledger`**；**`runSaasPostgresMigrations({ ledger })`** dry-run：**`already_applied` / `would_apply` / checksum `failed`**；**`bootstrap --fake-applied=`**；验证 **`verify:saas-db-migration-ledger-contract`**。  
-- **下一（Postgres 执行）**：真实 **`pg`**、迁移 **apply**、**DB ledger**、repository 扩面、CI — 见 **`docs/177`**。  
+- **包 3A**：**✅** **`docs/179`**（multi-instance 决策；**无** 本包内默认运行时行为变更）。  
+- **包 3B**：**✅** **session store abstraction skeleton completed** — **`SessionStore` + `getSessionStore()`**；**默认 live 仍 in-memory**；**勿表述为 multi-instance ready**；**`verify:session-store-abstraction`**。  
+- **下一 3C（小步）**：**`docs/179`** — **JSONL + lead/handoff notify** 与 **`request_id` / 幂等键** 契约，**不** 扩外置队列大包。  
+- **下一（Postgres 执行）**：真实 **`pg`**、迁移 **apply**、**DB ledger**、repository 扩面、CI — 见 **`docs/177`**；**`go/no-go` 仍为 `NO_GO`**。  
 - **未开始（仍有效）**：真实多用户身份源、password/JWT/session、**完整登录审计**；**不动** webhook 主链与 legacy。
 
 **建议方向（立项时拆包）**：
@@ -288,7 +291,8 @@
 
 ## Next (执行优先级)
 
-1. **Phase 24**：接 **`pg`**、迁移 **apply**、**`saas_schema_migrations`**、扩 repository、CI — 按 **`docs/177_phase24_postgres_migration_adr.md`**；默认仍保持 **T0 + T1** 不降级。
-2. **MVP 回归**：合并前仍以 **`docs/175`** + **T0/T1** 为 SaaS 基线。
-3. 默认外发动作（非 onboarding）：`npm run delivery:ship:final`。
-4. 客户 **onboarding / 一客户一部署**：继续走 **`docs/171`** 等交付链，与 Phase 24 **并行规划**时需标明资源优先级。
+1. **Phase 24 / 包 3C（最小）**：**`docs/179`** — **JSONL + notify 幂等键 / `request_id`**；**不** 扩 scope 到外置 MQ/大改 pipeline。  
+2. **Phase 24 / Postgres 执行线**：接 **`pg`**、迁移 **apply**、**`saas_schema_migrations`**、扩 repository、CI — 按 **`docs/177_phase24_postgres_migration_adr.md`**；**`saas:db:postgres:go-no-go` 仍为 `no_go`**；默认仍保持 **T0 + T1** 不降级。
+3. **MVP 回归**：合并前仍以 **`docs/175`** + **T0/T1** 为 SaaS 基线。
+4. 默认外发动作（非 onboarding）：`npm run delivery:ship:final`。
+5. 客户 **onboarding / 一客户一部署**：继续走 **`docs/171`** 等交付链，与 Phase 24 **并行规划**时需标明资源优先级。

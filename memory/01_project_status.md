@@ -8,7 +8,7 @@
 | **当前 Phase** | **Phase 24 — SaaS v1 Hardening**（当前主线） |
 | **子里程碑** | **Auth-RBAC（1A–1J）** ✅；**Postgres Foundation（2A–2M）** ✅ checkpoint；**3A** ✅ `docs/179`；**3B** ✅ **`SessionStore` 抽象骨架** — **默认 live 仍 in-memory**，**非** multi-instance ready、**无** Redis。**Postgres `go/no-go` 仍为 `NO_GO`**。下一：**3C** 小步（见 `memory/03`）。 |
 | **已关闭主线** | **Phase 23 — SaaS MVP Final Closure** ✅；**SaaS MVP 交付口径 = 完成**（非「未完 MVP」） |
-| **本轮 git（已 push `main`）** | 以 `git log origin/main` 为准；含 **1J** `f508d38` auth cutline 等。 |
+| **本轮 git（已 push `main`）** | 以 `git log origin/main` 为准；Phase 24 **3B** 骨架 **`9f76785`**；历史 **1J** auth cutline 等仍见 `git log`。 |
 | **push** | **success**（远端与本地一致以 `git log` 为准） |
 | **下一阶段建议** | **3C** 仅从 **JSONL + lead/handoff notify 幂等键 / `request_id` 契约** 切入（`docs/179`），**不** 开外置队列大包；Postgres **仍 `NO_GO`** — 见 `memory/03`。 |
 | **新发现风险（本轮）** | 无新的 P0；**Postgres 线**见 `memory/04` 新增条目。 |
