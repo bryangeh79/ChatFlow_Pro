@@ -1,5 +1,15 @@
 # Completed Work
 
+## Phase 24 — Auth-RBAC Foundation checkpoint（1A–1J）✅ 已封
+
+**名称**：`Phase 24 / Auth-RBAC Foundation checkpoint`  
+**交付摘要**：Admin 抽象（`admin-auth`）+ 授权策略（`admin-authorization`）+ tenant slug RBAC；**break-glass**（`break_glass_env`）保留；**env** tenant admin/readonly bridge + **DB** `tenant_admin_principals`（**hash-at-rest**）+ **principal 审计**（`tenant_admin_principal_audit_logs`，含 `rotated`）+ **auth cutline**（`admin-auth-sources` + `GET /saas/v1/admin/auth/summary`）。**后续不再在同一子线堆新型 bridge**；真实 tenant auth 单独立项。  
+**ADR**：`docs/176_phase24_saas_admin_auth_rbac_adr.md`（含 1J Auth stack / deprecations）。  
+**验证**：`verify:saas-admin-*` 全套（含 `auth-cutline`）。  
+**封板提交**：`chore(phase-24): seal auth rbac foundation checkpoint`（以 `git log` 为准）。
+
+---
+
 ## 2026-04-07 战报回写（本轮会话固化）
 
 **本轮完成项（叙事 + 仓库）**  

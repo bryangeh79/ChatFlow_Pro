@@ -6,7 +6,7 @@
 
 ## 1. 当前项目一句话状态
 
-**ChatFlow Pro**：七通道统一入站 + 出站、Legacy `/webhooks/:channel` 与 **多租户** `/webhooks/t/:slug/:channel` 并存；**多租户 SaaS MVP 已封板**（Phase 23 关闭），`package.json` **1.7.67**。当前工程叙事主线为 **Phase 24 — SaaS v1 Hardening**（托管/安全/规模，**非**「把 MVP 当未完」）。
+**ChatFlow Pro**：七通道统一入站 + 出站、Legacy `/webhooks/:channel` 与 **多租户** `/webhooks/t/:slug/:channel` 并存；**多租户 SaaS MVP 已封板**（Phase 23 关闭），`package.json` **1.7.76**（以仓库为准）。**Phase 24 / Auth-RBAC Foundation（1A–1J）子里程碑已封**（`docs/176`、`memory/01`）；当前主线在 **Phase 24 — SaaS v1 Hardening** 下推进 **Postgres + migration ADR/实现**（**`docs/177_phase24_postgres_migration_adr.md`**，包 **2A+**）。
 
 ---
 
@@ -20,21 +20,21 @@
 
 ---
 
-## 3. 已完成的最近 3 个关键 checkpoint（git）
+## 3. 已完成的最近关键 checkpoint（git）
 
-1. **`bb5d17e`** — `chore(phase-24): open SaaS v1 hardening; seal MVP (Phase 23 closed)`：`memory/01`·`03`·`02`·`04`、`docs/175`、`GPT_PLANNER_HANDOFF_BLUEPRINT` 切换 v1 叙事。  
-2. **`8cae7d4`** — `chore(phase-23): close SaaS MVP final audit; sync memory`：非主链路 **send / suppress** 审计结论写入 memory。  
-3. **`c2a08cc`** — `docs(phase-23): freeze idle GET behavior for SaaS MVP`：idle GET **选项 A**、`/health` 探活、`tenant_settings` 矩阵入 `docs/175`。
+1. **Phase 24 / Auth-RBAC Foundation（1A–1J）** — **子里程碑已封**（`docs/176` + `verify:saas-admin-*`）；封板提交见 `git log`（`chore(phase-24): seal auth rbac foundation checkpoint`）。  
+2. **`f508d38`** — `docs(phase-24): define saas auth cutline and bridge deprecation prep`（包 **1J**）。  
+3. 更早：**Phase 23 关闭**、**Phase 24 开 v1 Hardening** — 仍见 `memory/02` 与 `git log`。
 
-**Push**：以上均在 **`main`**，**已成功 push**（以本地 `git log origin/main` 为准）。
+**Push**：以 **`git log origin/main`** 为准。
 
 ---
 
 ## 4. 下一步唯一优先动作
 
-**在 Phase 24 中任选一条竖切立项**：写 **短 ADR（或 docs 节）+ 最小可验收 PR**，建议顺序由你方定，常见首包为 **租户 Admin 认证 / RBAC** 或 **Postgres 并存与 migration 骨架**。  
+**Phase 24 包 2A+**：按 **`docs/177_phase24_postgres_migration_adr.md`**（**2A ADR**）推进 **Postgres + migration**（**先 ADR，再 adapter/双实现/迁移**）；**local/dev 可继续 sql.js**，**hosted/prod 目标 Postgres**。  
 
-**原因**：MVP 已封板，继续堆「MVP 功能」会偏离真源；v1 需从 **安全/托管** 底座开刀，且每项独立可测。
+**原因**：**Auth-RBAC bridge 子线（1A–1J）已封 checkpoint**，不应再堆 bridge；托管规模与多实例一致性需要 **服务端 DB**，与 sql.js 文件库路径分离。
 
 **合并门禁（不变）**：**T0** `npm run build` + **T1** `npm run staging:docker-smoke`（或 CI `docker-smoke` 绿）。
 

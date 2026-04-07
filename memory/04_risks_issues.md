@@ -2,10 +2,10 @@
 
 ## 战报顶栏（2026-04-07）
 
-- **版本 / Phase**：**1.7.76**；**Phase 24** 当前（**1J** auth cutline），**Phase 23 / SaaS MVP 主线已关闭**。  
-- **本轮 git**：`bb5d17e`（及 `8cae7d4`、`c2a08cc`）已 **push success**。  
-- **新发现风险（本轮）**：无新的代码缺陷级条目；**Phase 24 预期风险**见下节。  
-- **已知边界**：**冻结（MVP）** — `docs/175` + `memory/04` §「Known SaaS MVP boundaries」；**待后续（v1）** — 凭证加密、多实例、Postgres、Admin RBAC。  
+- **版本 / Phase**：**1.7.76**；**Phase 24** — **Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**当前包 2A**：Postgres + migration **ADR**（**`docs/177_phase24_postgres_migration_adr.md`**）；**Phase 23 / SaaS MVP 主线已关闭**。  
+- **本轮 git**：以 `git log origin/main` 为准。  
+- **新发现风险（本轮）**：**Postgres 迁移线**见下节「Phase 24 — Postgres 迁移线（2A+）」；其余见 **Phase 24 预期风险**。  
+- **已知边界**：**冻结（MVP）** — `docs/175` + `memory/04` §「Known SaaS MVP boundaries」；**待后续（v1）** — 凭证 KMS、多实例 store、**sql.js→Postgres（2B/2C）**。  
 - **勿再当 backlog**：非主链路 channel send / handoff suppress（Phase 23 已审计 **covered**）。
 
 ## Phase 24 — 预期风险域（立项时展开）
@@ -20,10 +20,18 @@
 - **包 1G**：**principal 行已入库** — **已完成**。  
 - **包 1H**：hash-at-rest — **已完成**；**仍无** KMS、加盐、**token rotation policy engine**。  
 - **包 1I**：principal 变更审计摘要 — **已完成**；**仍无**完整 **登录会话审计**、SIEM、**轮换策略引擎**、password/JWT 产品面。  
-- **包 1J**：bridge / break-glass **cutline 已文档化+registry**；**bridge 若长期留存**会叠加 **env + DB** 配置面与运维误配风险 — **后续应进入真实 tenant auth 产品化**，**避免**在同一子线继续加新型 bridge。  
-- **数据层迁移**：sql.js → Postgres 需双写/迁移策略，避免租户数据丢失。  
+- **包 1J**：bridge / break-glass **cutline 已文档化+registry** — **子里程碑已封**；**不再堆新型 bridge**；真实 tenant auth **另立项**。  
 - **多实例**：内存 session、JSONL 追加、notify 幂等 — 需 sticky 或外置 store。  
 - **凭证**：DB 明文 → KMS/信封加密、轮换与审计面。
+
+## Phase 24 — Postgres 迁移线（2A+，ADR：`docs/177_phase24_postgres_migration_adr.md`）
+
+- **数据迁移 / 一致性**：单文件 SQLite（sql.js）→ 托管 Postgres 需 **显式导出/导入或双写窗口**；多租户表外键与索引需 **一次性校验**，避免部分表成功导致 **orphan** 或 **unique 冲突**。  
+- **回滚**：若生产已切 Postgres 而应用回滚到仅 sql.js 版本，**数据分叉** — 需 **迁移前快照**、**可重复迁移脚本**、**环境变量明确 backend**（避免静默写错库）。  
+- **连接池 / 并发**：当前 **单进程内存 DB + 全量 `export` 写盘**；Postgres 后需 **pool 上限、语句超时、重试策略**；长事务与 Admin 批量写可能与 webhook 读争用 — 需 **隔离或限流**（实现阶段定）。  
+- **多实例一致性**：文件库 **隐式单 writer**；多副本 + Postgres 为常态，**无**全局 `persistSaaSDatabase()` 语义 — 依赖 **DB 事务** 与 **迁移后不再依赖进程内单例 sqlite**。  
+- **方言与隐式 SQLite 特性**：现有 schema 使用 `datetime('now')`、`PRAGMA table_info`、`部分唯一索引 WHERE ...`（SQLite）；Postgres 需 **等价类型/默认/索引** 与 **独立 migration runner**（非仅 `CREATE TABLE IF NOT EXISTS` 字符串复用）。  
+- **local vs prod 分叉**：长期 **双后端**（sql.js + postgres）若测试不足，易出现 **「本地绿、线上红」** — CI 建议 eventually **Postgres job** 或 contract 测试（2B/2C 定）。
 
 ---
 

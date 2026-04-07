@@ -1,6 +1,6 @@
 # ADR — Phase 24 / SaaS Admin Auth & RBAC（最小落地）
 
-> **状态**：Accepted；**包 1J** 已划 **auth cutline / deprecation prep**（registry + `GET .../auth/summary`）；**不**新增登录产品  
+> **状态**：Accepted；**包 1J** 已划 **auth cutline / deprecation prep**（registry + `GET .../auth/summary`）；**不**新增登录产品 — **Phase 24 / Auth-RBAC Foundation（1A–1J）子里程碑已封**（见 `memory/01` / `memory/03`）。  
 > **范围**：SaaS **控制面**（`/saas/*` Admin API + Admin UI），**非** MVP 功能补完  
 > **真源**：`package.json` **1.7.76+**（Phase 24 小步）；SaaS MVP **sealed**（`docs/175`）；本 ADR 属于 **Phase 24 — SaaS v1 Hardening**
 
