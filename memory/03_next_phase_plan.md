@@ -5,8 +5,8 @@
 - **版本**：`package.json` **1.7.90**（**Pro_v1.07.90**）— Phase 24：**3A ✅**；**3B ✅**；**3C ✅** — **`event_type` + `idempotency_key` 契约**（`docs/179` §9、`verify:phase24-3c-jsonl-notify-contract`），**仍** at-least-once / **非** MI-ready。**Postgres 线**：共享 **Pool** + **`PostgresSaaSDbAdapter`** 最小真实 query/execute（**gate + 合法配置 + 只读探测** 才 `runtime_wired`）；**默认 sqljs 不变**；**`evaluatePostgresGoNoGo()` 仍为 `NO_GO`**。SaaS MVP 仍 **sealed**。  
 - **当前 Phase**：**24 — SaaS v1 Hardening**（**当前主线**）。  
 - **已关闭**：**Phase 23**（SaaS MVP Final Closure）— **主线 closed**，后续 **不算 MVP 扩功能**。  
-- **本轮 git / push**：**以 `git log origin/main` 为准**；**3C** **`30bdc57`**；**3B** **`9f76785`**。  
-- **下一阶段建议**（24 拆包）：① 租户认证/RBAC ② Postgres+migration ③ 多实例 session/store ④ 凭证 KMS/轮换/审计。  
+- **本轮 git / push**：**以 `git log origin/main` 为准**；**Postgres Pool/adapter 切片** **`0b540f4`**（**已 push**）；**3C** **`30bdc57`**；**3B** **`9f76785`**。  
+- **下一阶段建议**（24 拆包）：① 租户认证/RBAC ② Postgres 线余下（**待选下一最小切口**：migration execution wired / **ledger 落库** / repository 小段 PG 化 — **三选一**，**未**在仓库内预设已开工）③ 多实例 session/store ④ 凭证 KMS/轮换/审计。  
 - **新发现风险**：本轮无新增 P0；24 将引入 **规模/合规/运维复杂度**，需按包写风险条目入 **`memory/04`**。  
 - **已知边界**：**冻结** — idle GET 200（A）、hub verify 租户 token、`faq.fallback_enabled` partial、slug/idle 信息面。**待 24** — 明文凭证、内存 session、sql.js。
 
@@ -19,7 +19,7 @@
   - **Phase 22C** — SaaS 行为全面接管（已完成，**Pro_v1.07.65**）
   - **Phase 22D** — SaaS / Legacy 收口（主目标已完成，**Pro_v1.07.67**）
   - **Phase 22E** — CI / 文档 / 边界说明收尾（**✅ 已收口**，见下节）
-- **当前版本（package.json）**：**1.7.90**（**Pro_v1.07.90**）— Phase 24 **3B ✅**、**3C ✅**（JSONL/notify **`idempotency_key` + `event_type`**，`docs/179` §9）；live **仍 in-memory**；**非** MI-ready。SaaS MVP 封板语义不变。
+- **当前版本（package.json）**：**1.7.90**（**Pro_v1.07.90**）— Phase 24 **3B ✅**、**3C ✅**；**Postgres**：共享 Pool + adapter 最小接线 ✅（**runtime_wired** 前进一步），**默认 SaaS DB 仍为 sqljs**，**go/no-go 整体仍为 `NO_GO`**；session live **仍 in-memory**；**非** MI-ready。SaaS MVP 封板语义不变。
 - **任务归属（Phase 24）**：**租户认证 / RBAC**；**Postgres + migration**；**多实例下 session / store 收口**；**凭证安全**（加密、轮换、审计）。拆包顺序由规划与风险决定，**不**在本文件预写死交付日。
 - **提交标注约定**（历史）：22D/22E/23 前缀仍见于已合并提交；**Phase 24**：`feat(phase-24):` · `chore(phase-24):` · `docs(phase-24):`。
 - Previous major milestone in this log: **Phase 16.2** - HTTP access observability enhanced (`X-Request-Id`, optional `CHATFLOW_HTTP_ACCESS_LOG`, webhook `phases_ms`, verification type narrowing)

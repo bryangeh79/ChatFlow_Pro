@@ -6,11 +6,11 @@
 |----|-----|
 | **package.json / Pro** | **1.7.90** / **Pro_v1.07.90**（以 `package.json` 为准） |
 | **当前 Phase** | **Phase 24 — SaaS v1 Hardening**（当前主线） |
-| **子里程碑** | **Auth-RBAC（1A–1J）** ✅；**Postgres Foundation（2A–2M）** ✅ checkpoint；**3A** ✅ `docs/179`；**3B** ✅ **`SessionStore` 骨架**；**3C** ✅ **JSONL / notify `event_type` + `idempotency_key` 契约已收口**（`docs/179` §9、`verify:phase24-3c-jsonl-notify-contract`）。**默认 live 仍 in-memory**；**仍非** multi-instance ready、**无** Redis。**Postgres `go/no-go` 仍为 `NO_GO`**。下一：见 `memory/03`（**不**预设 Redis/队列已开工）。 |
+| **子里程碑** | **Auth-RBAC（1A–1J）** ✅；**Postgres Foundation（2A–2M）** ✅ checkpoint；**Postgres runtime 底座切片** ✅ — **shared `pg` Pool** + **`PostgresSaaSDbAdapter` 最小真实 query/execute**（`postgres_client_runtime_wired` 仅 gate+合法配置+只读探测成功）；**≠ Postgres ready**。**3A** ✅ `docs/179`；**3B** ✅ **`SessionStore` 骨架**；**3C** ✅ **JSONL / notify 契约已收口**。**默认 SaaS DB live 路径仍为 sqljs**（**未**切换 Postgres）；**默认 session 仍 in-memory**；**仍非** MI-ready、**无** Redis。**整体 `evaluatePostgresGoNoGo()` / Postgres 线仍为 `NO_GO`**。下一：见 `memory/03`。 |
 | **已关闭主线** | **Phase 23 — SaaS MVP Final Closure** ✅；**SaaS MVP 交付口径 = 完成**（非「未完 MVP」） |
-| **本轮 git（已 push `main`）** | 以 `git log origin/main` 为准；含 Phase 24 **3C** `30bdc57` 与 **3B** `9f76785` 等。 |
+| **本轮 git（已 push `main`）** | 以 `git log origin/main` 为准；含 **Postgres Pool/adapter 切片** `0b540f4`、**3C** `30bdc57`、**3B** `9f76785` 等。 |
 | **push** | **success**（远端与本地一致以 `git log` 为准） |
-| **下一阶段建议** | **3C 已交付**；**下一** 以 **`docs/177` Postgres 执行线** 为 Phase 24 主缺口（**仍 `NO_GO`**）；**不** 在本行立项 Redis/外置队列 — 见 `memory/03`。 |
+| **下一阶段建议** | **3C 已交付**；**Postgres Pool/adapter 最小片已交付**（**仍 `NO_GO`**）。**下一** 以 **`docs/177` Postgres 执行线余下切口** 为主缺口 — 见 **`memory/03`**；**不** 在本行立项 Redis/外置队列。 |
 | **新发现风险（本轮）** | 无新的 P0；**Postgres 线**见 `memory/04` 新增条目。 |
 | **已知边界** | **冻结**：idle GET 200（选项 A）、`faq.fallback_enabled` partial、slug/idle 信息面（MVP 接受）。**待 Phase 24**：明文凭证、单实例 session、**sql.js→Postgres（2A+）** |
 
@@ -18,7 +18,7 @@
 
 - Project Name: ChatFlow Pro
 - Current Phase: **Phase 24 — SaaS v1 Hardening**（**非** MVP 扩功能主线，而是托管/安全/规模强化）。**Phase 23 — SaaS MVP Final Closure** ✅ **已关闭**；Phase **22（22A–22E）** ✅。
-- Current Version: **Pro_v1.07.90** (package.json: **1.7.90**；**SaaS MVP 口径已完成**；**3B** session **接口骨架** + **3C** JSONL/notify **契约收口**，**后端仍仅 in-memory**；**live 仍非 multi-instance ready**；**Postgres `go/no-go` 仍为 `NO_GO`**)
+- Current Version: **Pro_v1.07.90** (package.json: **1.7.90**；**SaaS MVP 口径已完成**；**3B** + **3C** 同上；**SaaS DB 默认仍为 sqljs**，**Pool + Postgres adapter 最小接线已落地**（**runtime_wired** 前进一步，**整体 Postgres `go/no-go` 仍为 `NO_GO`**)；**session 仍 in-memory**；**非** MI-ready)
 - Execution Root: C:\AI_WORKSPACE\Chatflow\ChatFlow_Pro
 - Current Project State: 
   - ✅ **Seven-route webhook baseline**: Website, Telegram, WhatsApp, Messenger, Line, Zalo (`POST /webhooks/*` + **`GET /webhooks/*`** verification per docs/141)
@@ -48,11 +48,11 @@
   - ✅ **Phase 22D（主目标）**：租户路径 **POST**（WA/Messenger/Line/Website）验签 **仅用租户 secret**，缺失即 403；租户路径 **GET** hub 校验 **仅用租户 verify token**，缺失即 `tenant_verify_token_missing`；**legacy `/webhooks/*` 不变**。脚本：`verify:tenant-post-signature-boundary`、`verify:tenant-get-verify-boundary`。
   - ✅ **Phase 22E（收口）**：**CI** `tenant-boundary-verify`（依赖 Actions secret `CHATFLOW_SAAS_ADMIN_TOKEN`，未设跳过；fork PR 不跑）；**文档** `docs/175` / `GPT_PLANNER_HANDOFF_BLUEPRINT` / `docs/158` 补齐运维边界与 idle vs hub 语义。
   - ✅ **Phase 23（SaaS MVP Final Closure）— 已关闭**：**多租户 SaaS MVP 交付口径完成** — idle GET **选项 A** 冻结、`tenant_settings` 主控制链 + 矩阵（`docs/175`）、非主链路 send/suppress **covered**、docs/蓝图/memory **aligned**、`faq.fallback_enabled` **partial** 按已知边界冻结。
-- Current Completion Point: **Pro_v1.07.90** — **SaaS MVP sealed**；**包 3B** ✅；**包 3C** ✅ **JSONL / notify 契约已收口**（**仍** at-least-once，**非** MI-ready）；**默认 in-memory**；**Postgres** 仍 **`no_go`**。
+- Current Completion Point: **Pro_v1.07.90** — **SaaS MVP sealed**；**包 3B** ✅；**包 3C** ✅；**Postgres runtime 底座切片** ✅（共享 Pool + adapter 最小 query/execute，**默认 live DB 仍为 sqljs**）；**Postgres 整体** 仍 **`no_go`**。
 - Pro Target Channels (product scope, Bryan-locked): **Telegram**, **WhatsApp**, **Facebook Messenger**, **Line**, **Zalo**; architecture must keep an **extension slot** for additional messaging platforms later. **Website live chat** remains part of Pro (already implemented alongside messaging channels).
 - Current Channel Boundary (runtime today): **All seven channels live** — unified pipeline; **Telegram** real outbound when token + not sandbox (**optional proxy**); **WhatsApp** real outbound when token + phone number ID + not sandbox; **Messenger** real outbound when token + page ID + not sandbox; **Line** real outbound when token + not sandbox; **Zalo** real outbound when token + OA ID + not sandbox; **Website** real outbound when `WEBSITE_OUTBOUND_URL` configured + not sandbox/disabled; **WhatsApp/Messenger/Line/Website** POST signature validation when secret configured; **Zalo** inbound relies on IP whitelisting (per official docs).
 - **Pause Status**: **Not blocked on staging** — 默认门槛：**T0 build + T1 `staging:docker-smoke`**（**`docs/158`** *Default staging ladder*）；公网/T3、Zalo OA、157 B/C 为**可选增强**，不挡合并与后续功能开发
-- Next Unique Priority Action: **Phase 24 — Postgres 执行线**（**`docs/177`**，**仍 `NO_GO`** 直至门禁转 go；**不**与本包混谈 Redis/队列）；**MVP 回归**仍：**T0 + T1** + `docs/175` + **`verify:phase24-3c-jsonl-notify-contract`**（契约回归）。提交前缀：`feat(phase-24):` · `chore(phase-24):` · `docs(phase-24):`。
+- Next Unique Priority Action: **Phase 24 — Postgres 执行线**（**`docs/177`**；下一最小切口见 **`memory/03` 顶栏 / 本节 Postgres 段**，**未**预设已开工）；**仍 `NO_GO`**。**MVP 回归**：**T0 + T1** + `docs/175` + **`verify:phase24-3c-jsonl-notify-contract`**。提交前缀：`feat(phase-24):` · `chore(phase-24):` · `docs(phase-24):`。
 
 - ⚠️ **Phase 22C 后遗留风险**（收口承认，非阻塞）：
   - **历史 session 状态不主动清空**：租户开关变更后，进程内既有 session 不回收，仅影响后续轮次行为边界。

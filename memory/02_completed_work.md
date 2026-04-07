@@ -1,5 +1,14 @@
 # Completed Work
 
+## Phase 24 — Postgres runtime 底座切片 ✅ shared Pool + adapter 最小接线
+
+**名称**：`Phase 24 / Postgres runtime 底座` — **非** Postgres ready、**非** `go` 已达成。  
+**交付摘要**：**单一共享 `pg` Pool**（`CHATFLOW_SAAS_DB_DRIVER=postgres` + **`CHATFLOW_SAAS_POSTGRES_CLIENT=1`** + 合法连接配置 + **受控只读参数化 `SELECT 1` 成功** 才创建/复用）；**`PostgresSaaSDbAdapter`** **queryOne / queryAll / execute** 最小真实路径（`?`→`$n`）；**`postgres_client_runtime_wired`** 仅上述条件满足时为真；**`verify:postgres-pool-runtime-wire`** + readiness 链。**默认 live SaaS DB 仍为 sqljs**，**未**切换 Postgres。  
+**明确不是**：migration apply、**`saas_schema_migrations` ledger 落库**、repository 全量 PG、整体 **`evaluatePostgresGoNoGo()` 转 go** — **仍为 `NO_GO`**。  
+**提交**：`feat(saas-db): shared pg pool + PostgresSaaSDbAdapter minimal query/execute`（**`0b540f4`**，以 `git log origin/main` 为准）。
+
+---
+
 ## Phase 24 — 包 3C ✅ JSONL / notify 契约收口
 
 **名称**：`Phase 24 / 包 3C` — **输出契约**；**非** multi-instance ready、**非** Redis、**非** 队列。  
@@ -23,8 +32,8 @@
 
 **名称**：`Phase 24 / Postgres Foundation checkpoint`  
 **交付摘要**：**2A–2M** — Postgres+migration **ADR**（`docs/177`）；**SaaSDbAdapter** 选择 + **SqlJs** 实现 + **Postgres stub**；**db-migrations** registry、**postgres/*.sql**、checksum、**execution contract**、**fake ledger**；**client gate + 动态 `pg` loader**；**connection config**；**optional TCP probe**；**go/no-go**（`postgres-readiness-boundary.ts` + CLI + verify）。  
-**明确未完成**：**real Postgres runtime**、**ledger 落库**、**migration apply**、**repository 全量 postgres** — **`evaluatePostgresGoNoGo()` 仍为 `no_go`**；**勿误读为可切生产 DB**。  
-**与 `docs/179` 衔接**：**3A ✅** ADR；**3B ✅**；**3C ✅** JSONL/notify **契约**（见上「包 3C」）；**live 仍非 MI-ready**；**下一**：**Postgres runtime**（**`go/no-go` 仍为 `no_go`**）。  
+**明确未完成（相对「可投产 Postgres」）**：**ledger 落库**、**migration apply**、**repository 全量 postgres**、**整体门禁转 go** — **`evaluatePostgresGoNoGo()` 仍为 `no_go`**。**底座切片**：共享 Pool + adapter 最小接线 ✅（见上节）。  
+**与 `docs/179` 衔接**：**3A ✅** ADR；**3B ✅**；**3C ✅**；**live 仍非 MI-ready**；**下一**：**Postgres 执行线余下切口**（**`go/no-go` 仍为 `no_go`**）。  
 **封板提交**：`chore(phase-24): seal postgres foundation checkpoint`（以 `git log` 为准）。
 
 ---
