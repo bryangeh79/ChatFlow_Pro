@@ -104,9 +104,9 @@ export function resolveAdminRouteTargetTenantSlug(pathname: string): string | nu
   const m = pathname.match(/^\/saas\/v1\/admin\/tenants\/([^/]+)(?:\/(credentials|faq|settings))?$/);
   if (!m) return null;
   try {
-    return decodeURIComponent(m[1]);
+    return decodeURIComponent(m[1]).trim().toLowerCase();
   } catch {
-    return m[1];
+    return m[1].trim().toLowerCase();
   }
 }
 
@@ -119,7 +119,7 @@ export function doesAdminScopeMatchRouteTarget(
   if (context.scope_type !== 'tenant' || context.tenant_slug == null || context.tenant_slug === '') {
     return false;
   }
-  return context.tenant_slug === targetSlug;
+  return context.tenant_slug === targetSlug.trim().toLowerCase();
 }
 
 /**

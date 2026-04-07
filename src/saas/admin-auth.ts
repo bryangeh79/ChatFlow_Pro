@@ -1,13 +1,16 @@
 /**
- * SaaS Admin control-plane auth (Phase 24 — abstraction + tenant bridge).
+ * SaaS Admin control-plane auth (Phase 24 — abstraction + tenant bridges).
  * Webhook / legacy paths stay separate; tenant webhook verification is unchanged.
  */
 
-/** Roles for Admin API; live sources: break-glass `platform_admin`, bridge `tenant_admin`. */
+/** Roles for Admin API; live sources: break-glass, tenant_admin bridge, tenant_operator_readonly bridge. */
 export type SaasAdminAuthRole = 'platform_admin' | 'tenant_admin' | 'tenant_operator_readonly';
 
 /** Credential sources for admin principals. */
-export type SaasAdminAuthSource = 'break_glass_env' | 'tenant_bridge_env';
+export type SaasAdminAuthSource =
+  | 'break_glass_env'
+  | 'tenant_bridge_env'
+  | 'tenant_readonly_bridge_env';
 
 /** Admin principal scope: platform ops vs single-tenant binding (1D+ semantics). */
 export type SaasAdminScopeType = 'platform' | 'tenant';
@@ -32,12 +35,11 @@ export function breakGlassAdminToken(): string | undefined {
 }
 
 /**
- * JSON map slug → bearer secret for **dev/ops bridge only** (Phase 24 / 1E).
- * Env: `CHATFLOW_SAAS_TENANT_ADMIN_TOKENS='{"acme":"secret1","corp-b":"secret2"}'`
- * Keys normalized to lowercase; values trimmed. Invalid JSON → empty map.
+ * Parse `slug → bearer secret` JSON from an env var (shared shape for admin/readonly bridges).
+ * Keys lowercased; values trimmed. Invalid / empty → empty map.
  */
-export function parseTenantAdminTokenMap(): Map<string, string> {
-  const raw = process.env.CHATFLOW_SAAS_TENANT_ADMIN_TOKENS?.trim();
+function parseSlugTokenJsonMapFromEnv(envName: string): Map<string, string> {
+  const raw = process.env[envName]?.trim();
   if (!raw) return new Map();
   try {
     const o = JSON.parse(raw) as unknown;
@@ -56,15 +58,31 @@ export function parseTenantAdminTokenMap(): Map<string, string> {
 }
 
 /**
- * Resolve tenant bridge: Bearer body must equal a configured per-slug token.
- * Returns null if unmapped or header missing.
+ * Phase 24 / 1E — JSON map slug → secret for **tenant_admin** bridge (dev/ops only).
+ * Env: `CHATFLOW_SAAS_TENANT_ADMIN_TOKENS`
  */
-function resolveTenantBridgeContext(authHeader: string | undefined): SaasAdminAuthContext | null {
+export function parseTenantAdminTokenMap(): Map<string, string> {
+  return parseSlugTokenJsonMapFromEnv('CHATFLOW_SAAS_TENANT_ADMIN_TOKENS');
+}
+
+/**
+ * Phase 24 / 1F — JSON map slug → secret for **tenant_operator_readonly** bridge (dev/ops only).
+ * Env: `CHATFLOW_SAAS_TENANT_READONLY_TOKENS`
+ */
+export function parseTenantReadonlyTokenMap(): Map<string, string> {
+  return parseSlugTokenJsonMapFromEnv('CHATFLOW_SAAS_TENANT_READONLY_TOKENS');
+}
+
+function bearerSecretFromHeader(authHeader: string | undefined): string | null {
   if (!authHeader?.startsWith('Bearer ')) return null;
-  const bearerSecret = authHeader.slice('Bearer '.length).trim();
+  const s = authHeader.slice('Bearer '.length).trim();
+  return s || null;
+}
+
+function resolveTenantAdminBridgeContext(authHeader: string | undefined): SaasAdminAuthContext | null {
+  const bearerSecret = bearerSecretFromHeader(authHeader);
   if (!bearerSecret) return null;
-  const map = parseTenantAdminTokenMap();
-  for (const [slug, tok] of map) {
+  for (const [slug, tok] of parseTenantAdminTokenMap()) {
     if (tok === bearerSecret) {
       return {
         role: 'tenant_admin',
@@ -78,12 +96,32 @@ function resolveTenantBridgeContext(authHeader: string | undefined): SaasAdminAu
   return null;
 }
 
+function resolveTenantReadonlyBridgeContext(authHeader: string | undefined): SaasAdminAuthContext | null {
+  const bearerSecret = bearerSecretFromHeader(authHeader);
+  if (!bearerSecret) return null;
+  for (const [slug, tok] of parseTenantReadonlyTokenMap()) {
+    if (tok === bearerSecret) {
+      return {
+        role: 'tenant_operator_readonly',
+        auth_source: 'tenant_readonly_bridge_env',
+        scope_type: 'tenant',
+        tenant_slug: slug,
+        tenant_id: null,
+      };
+    }
+  }
+  return null;
+}
+
 /**
  * Resolve Admin Bearer to an auth context.
- * **Priority**: (1) break-glass `CHATFLOW_SAAS_ADMIN_TOKEN` → `platform_admin`;
- * (2) `CHATFLOW_SAAS_TENANT_ADMIN_TOKENS` slug map → `tenant_admin` for matched slug;
- * (3) unauthenticated.
- * If the same secret is both break-glass and in the map, break-glass wins.
+ * **Priority**:
+ * 1. break-glass `CHATFLOW_SAAS_ADMIN_TOKEN` → `platform_admin`
+ * 2. `CHATFLOW_SAAS_TENANT_ADMIN_TOKENS` → `tenant_admin`
+ * 3. `CHATFLOW_SAAS_TENANT_READONLY_TOKENS` → `tenant_operator_readonly`
+ * 4. unauthenticated
+ *
+ * Same secret in multiple maps: earlier step wins (break-glass > admin map > readonly map).
  */
 export function resolveSaasAdminAuth(authHeader: string | undefined): ResolvedSaasAdminAuth {
   const bg = breakGlassAdminToken();
@@ -98,8 +136,10 @@ export function resolveSaasAdminAuth(authHeader: string | undefined): ResolvedSa
       },
     };
   }
-  const tenantCtx = resolveTenantBridgeContext(authHeader);
-  if (tenantCtx) return { ok: true, context: tenantCtx };
+  const adminBridge = resolveTenantAdminBridgeContext(authHeader);
+  if (adminBridge) return { ok: true, context: adminBridge };
+  const roBridge = resolveTenantReadonlyBridgeContext(authHeader);
+  if (roBridge) return { ok: true, context: roBridge };
   return { ok: false };
 }
 

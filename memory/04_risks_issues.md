@@ -2,7 +2,7 @@
 
 ## 战报顶栏（2026-04-07）
 
-- **版本 / Phase**：**1.7.71**；**Phase 24** 当前（**1E** tenant bridge），**Phase 23 / SaaS MVP 主线已关闭**。  
+- **版本 / Phase**：**1.7.72**；**Phase 24** 当前（**1F** readonly bridge），**Phase 23 / SaaS MVP 主线已关闭**。  
 - **本轮 git**：`bb5d17e`（及 `8cae7d4`、`c2a08cc`）已 **push success**。  
 - **新发现风险（本轮）**：无新的代码缺陷级条目；**Phase 24 预期风险**见下节。  
 - **已知边界**：**冻结（MVP）** — `docs/175` + `memory/04` §「Known SaaS MVP boundaries」；**待后续（v1）** — 凭证加密、多实例、Postgres、Admin RBAC。  
@@ -15,7 +15,8 @@
 - **包 1B**：已落地 **`admin-auth.ts` 桥接层**（**已完成**）。  
 - **包 1C**：authorization scaffold — **已完成**。  
 - **包 1D**：RBAC 语义 — **已完成**。  
-- **包 1E**：**tenant principal 已有 env bridge**（`tenant_bridge_env`），**仍无** DB user / 密码 / JWT / session / 审计级登录；map 泄露等同该租户 Admin 面沦陷 — 仅作 dev/ops 过渡。  
+- **包 1E**：tenant **admin** env bridge — **已完成**。  
+- **包 1F**：**tenant_admin + tenant_operator_readonly** 双 bridge 已有，**仍无**真实多用户身份源、密码、JWT、session、登录审计；任一 map 泄露等同对应能力沦陷 — **仅 dev/ops 过渡**。  
 - **数据层迁移**：sql.js → Postgres 需双写/迁移策略，避免租户数据丢失。  
 - **多实例**：内存 session、JSONL 追加、notify 幂等 — 需 sticky 或外置 store。  
 - **凭证**：DB 明文 → KMS/信封加密、轮换与审计面。
