@@ -1,5 +1,14 @@
 # Completed Work
 
+## Phase 24 — controlled PG evidence package ✅
+
+**名称**：`Phase 24 / controlled PG evidence package` — **非** Postgres ready、**非** `go` 已达成。  
+**交付摘要**：完成 `docs/180_phase24_controlled_pg_evidence_runbook.md`，固化收官证据材料：runbook、固定运行记录模板、复核口径（默认链 / 受控链 / `overall_go_not_implied`）。  
+**链路边界**：证据固化仅为材料层，不改业务代码，不改默认 verify 链；默认链稳定性保持不变。  
+**阶段状态**：当前仍为 Phase 24，等待正式收官判断。默认 live 路径仍为 sqljs。  
+
+---
+
 ## Phase 24 — controlled runtime_wired integration verify ✅
 
 **名称**：`Phase 24 / controlled runtime_wired integration verify` — **非** Postgres ready、**非** `go` 已达成。  

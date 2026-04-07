@@ -260,6 +260,7 @@ SaaS 控制面与租户元数据当前落在 **sql.js 内存 SQLite + 单文件�
 - **本刀推进（受控可达性稳定化，≠ Postgres ready）**：在不改默认链路前提下，readiness 增加轻量证据字段（`controlled_reachability` / `reachability_basis`）；verify 输出固定区分 **`default_no_go_ok`**、**`controlled_reachability_ok`**、**`overall_go_not_implied`**。受控链仅在显式开关启用；无 PG/前置不足统一 `skip`，不判失败。  
 - **本刀推进（runtime_wired 窄硬门禁校准，≠ Postgres ready）**：受控验证中仅当前置明确满足（开关+URL+配置合法+受控探测成功）时，`postgres_client_runtime_wired` 必须为 `true`，否则按 **hard fail** 处理；前置不足仍 `skip`。  
 - **本刀推进（受控 PG 实测脚本，≠ 默认链）**：新增受控实测脚本用于覆盖 `controlled_runtime_wired_ok` / `controlled_runtime_wired_hard_fail`，仅显式触发；不挂入默认 `verify:saas-db-postgres-go-no-go` / CI 默认链。  
+- **收官前证据固化（材料层）**：受控实测证据的采集流程、记录模板与复核口径见 **`docs/180_phase24_controlled_pg_evidence_runbook.md`**（仅材料固化，不增加系统能力）。  
 - **本刀推进（repository 极小只读路径 PG 化，≠ Postgres ready）**：`getTenantSettingsJson(tenantId)` 改走 `SaaSDbAdapter.queryOne`，默认 `sqljs` 语义保持不变；`driver=postgres` 且 runtime 不满足时明确报错（不回退 sqljs）；`settings_json` 缺失/坏 JSON/非对象仍兜底 `{}`。  
 - **未完成（仍阻塞生产 Postgres）**：**repository 全量切 Postgres**、**execution 与业务路径全接线**、运维 cutover 硬门槛 — 以 **`npm run saas:db:postgres:go-no-go`** 为准。  
 - **与 multi-instance 关系**：先 **`docs/179`** 收口 **session / JSONL / 单写者** 假设，再推进 Postgres runtime，可降低「多副本 + 文件库」组合风险。
