@@ -1,7 +1,16 @@
 # ADR — Phase 24 / 包 2A — Postgres + migration（仅决策，无实现）
 
 > **状态**：Accepted（**2A = ADR 文档**；**不**含 Postgres runtime、**不**改 sql.js live 路径、**不**动租户 webhook / 现有 auth 实现）。  
-> **真源**：`package.json` **1.7.80+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。
+> **真源**：`package.json` **1.7.81+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。
+
+---
+
+## Phase 24 — 包 2F ✅（Postgres execution contract stub）
+
+- **类型**：**`execution-types.ts`** — `dry_run` | `apply`、**`SaasPostgresMigrationRunResult`** / **`SaasPostgresMigrationEntryResult`**、状态 **`dry_run_only` / `not_wired` / `applied` / `failed`**、错误常量 **`POSTGRES_MIGRATION_EXECUTION_NOT_WIRED`**、**`POSTGRES_LEDGER_PERSISTENCE_NOT_WIRED`**。  
+- **入口**：**`runSaasPostgresMigrations`**（**`execution-contract.ts`**）— **`driver` 非 `postgres` 即 fail-fast**；**`dry_run`** 返回结构化预览（**不执行 SQL**）；**`apply`** 返回 **`status=not_wired`**、**`applied_count=0`**、**不伪成功**。  
+- **CLI**：**`saas-db-migration-bootstrap`** 走 contract；**`--mode=dry-run|apply`**；输出 **`contract_json_*`** 块。  
+- **验证**：`npm run verify:saas-db-migration-execution-contract`。
 
 ---
 
@@ -152,6 +161,7 @@ SaaS 控制面与租户元数据当前落在 **sql.js 内存 SQLite + 单文件�
 | **2C**（已落地 **stub + selection**） | **`PostgresSaaSDbAdapter`**（抛 **`postgres_adapter_not_implemented`**）+ **`CHATFLOW_SAAS_DB_DRIVER`** + **`getSaaSDbDriver()`**；**无 `pg`**、**未**切默认 driver。 |
 | **2D** ✅ | **`src/saas/db-migrations/*`** 注册表 + **`buildSaasDbMigrationPlan`** + **`saas:db:migration:plan` / `bootstrap`**（dry-run）；**`saas_schema_migrations`** 仅常量、**未** DDL 执行。 |
 | **2E** ✅ | **`postgres/*.sql`** 静态 DDL + **registry 绑定** + **SHA-256 checksum**；仍 **无执行**、**无 `pg`**。 |
+| **2F** ✅ | **`runSaasPostgresMigrations`** 契约 + **bootstrap** 接线；**无 SQL**、**无 ledger 写**、**无 `pg`**。 |
 | **后续（执行线）** | 真实 **`pg`**、**migration apply**、**ledger 落库**、**repository 全量**、**CI Postgres**、连接池与运维文档。 |
 
 ---
