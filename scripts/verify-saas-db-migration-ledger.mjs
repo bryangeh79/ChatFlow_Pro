@@ -68,9 +68,7 @@ async function main() {
     env: { ...process.env },
   });
   for (const line of [
-    'saas_migration_bootstrap: dry_run_only',
-    'postgres_migration_execution_not_wired',
-    'ledger_persistence_not_wired',
+    'saas_migration_bootstrap: dry_run',
     'saas_migration_bootstrap: sql_assets_summary',
     'saas_migration_bootstrap: asset id=pg_0001_core_saas_tables',
     'checksum_sha256=',

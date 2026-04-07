@@ -8,7 +8,7 @@ import { getSharedSaaSPostgresPool } from '../db-adapter/postgres-pool';
 import type { SaasMigrationLedgerProvider } from './ledger-contract';
 import type { SaasMigrationLedgerRecord } from './ledger-types';
 import { SAAS_SCHEMA_MIGRATIONS_TABLE } from './registry';
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 
 /** Thrown when an existing ledger row disagrees with the new checksum (never masked as success). */
 export const SAAS_LEDGER_RECORD_CHECKSUM_CONFLICT = 'SAAS_LEDGER_RECORD_CHECKSUM_CONFLICT';
@@ -89,10 +89,17 @@ export class PostgresSaasMigrationLedger implements SaasMigrationLedgerProvider 
     row: Omit<SaasMigrationLedgerRecord, 'status'> & { status?: SaasMigrationLedgerRecord['status'] },
   ): Promise<void> {
     const pool = await this.requirePool();
+    await this.recordAppliedMigrationInTransaction(pool, row);
+  }
+
+  async recordAppliedMigrationInTransaction(
+    client: Pick<PoolClient, 'query'>,
+    row: Omit<SaasMigrationLedgerRecord, 'status'> & { status?: SaasMigrationLedgerRecord['status'] },
+  ): Promise<void> {
     const table = assertLedgerTableName();
     const status = row.status ?? 'applied';
 
-    const existing = await pool.query<{ checksum_sha256: string }>(
+    const existing = await client.query<{ checksum_sha256: string }>(
       `SELECT checksum_sha256 FROM ${table} WHERE migration_id = $1`,
       [row.migration_id],
     );
@@ -106,7 +113,7 @@ export class PostgresSaasMigrationLedger implements SaasMigrationLedgerProvider 
       return;
     }
 
-    await pool.query(
+    await client.query(
       `INSERT INTO ${table} (migration_id, driver, checksum_sha256, applied_at, status) VALUES ($1, $2, $3, $4::timestamptz, $5)`,
       [row.migration_id, row.driver, row.checksum_sha256, row.applied_at, status],
     );

@@ -192,11 +192,12 @@ export async function getPostgresExecutionReadiness(): Promise<PostgresExecution
     driver,
     postgres_client_runtime_wired,
   );
+  const execution_wired = postgres_client_runtime_wired && ledger_persistence_wired && sql_assets_present;
 
   return {
     driver,
     adapter_stub,
-    execution_wired: false,
+    execution_wired,
     ledger_persistence_wired,
     ledger_info,
     sql_assets_present,

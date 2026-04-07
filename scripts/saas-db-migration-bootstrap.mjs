@@ -45,8 +45,6 @@ async function main() {
     runSaasPostgresMigrations,
     listSaasDbMigrations,
     SAAS_SCHEMA_MIGRATIONS_TABLE,
-    POSTGRES_MIGRATION_EXECUTION_NOT_WIRED,
-    POSTGRES_LEDGER_PERSISTENCE_NOT_WIRED,
     seedFakeLedgerFromMigrationIds,
   } = require(pathJoin(root, 'dist', 'src', 'saas', 'db-migrations', 'index.js'));
 
@@ -70,8 +68,11 @@ async function main() {
   const migrations = listSaasDbMigrations();
   let ledger = undefined;
   if (fakeAppliedIds.length > 0) {
+    if (mode === 'apply') {
+      console.error('saas_db_migration_bootstrap_error: fake_applied_not_supported_in_apply_mode');
+      process.exit(1);
+    }
     console.log('saas_migration_bootstrap: fake_ledger_only');
-    console.log('saas_migration_bootstrap: real_ledger_persistence_not_wired');
     ledger = await seedFakeLedgerFromMigrationIds(migrations, fakeAppliedIds);
     console.log(`saas_migration_bootstrap: fake_applied_ids=${fakeAppliedIds.join(',')}`);
   }
@@ -84,15 +85,10 @@ async function main() {
     ledger,
   });
 
-  if (runResult.status === 'dry_run_only') {
-    console.log('saas_migration_bootstrap: dry_run_only');
-  } else {
-    console.log(`saas_migration_bootstrap: run_status=${runResult.status}`);
-  }
-
-  console.log('saas_migration_bootstrap: postgres_migration_execution_not_wired');
-  console.log('saas_migration_bootstrap: ledger_persistence_not_wired');
-  console.log(`saas_migration_bootstrap: ${POSTGRES_LEDGER_PERSISTENCE_NOT_WIRED}`);
+  if (runResult.status === 'dry_run_only') console.log('saas_migration_bootstrap: dry_run');
+  if (runResult.mode === 'apply' && runResult.status === 'applied') console.log('saas_migration_bootstrap: apply_success');
+  if (runResult.mode === 'apply' && runResult.status === 'failed') console.log('saas_migration_bootstrap: apply_failed');
+  console.log(`saas_migration_bootstrap: run_status=${runResult.status}`);
   console.log(`saas_migration_bootstrap: ledger_table_future=${SAAS_SCHEMA_MIGRATIONS_TABLE}`);
   console.log(`saas_migration_bootstrap: app_runtime_driver=${appDriver}`);
   console.log(`saas_migration_bootstrap: contract_mode=${runResult.mode}`);
@@ -101,10 +97,6 @@ async function main() {
   console.log(`saas_migration_bootstrap: applied_count=${runResult.applied_count}`);
   console.log(`saas_migration_bootstrap: skipped_count=${runResult.skipped_count}`);
   console.log(`saas_migration_bootstrap: postgres_adapter_stub_code=${POSTGRES_ADAPTER_NOT_IMPLEMENTED}`);
-
-  if (mode === 'apply') {
-    console.log(`saas_migration_bootstrap: ${POSTGRES_MIGRATION_EXECUTION_NOT_WIRED}`);
-  }
 
   console.log('saas_migration_bootstrap: sql_assets_summary');
   for (const e of runResult.entries) {
@@ -120,10 +112,12 @@ async function main() {
   console.log('');
   console.log(
     fakeAppliedIds.length > 0
-      ? 'Summary: fake in-memory ledger only — no SQL, no real ledger persistence.'
-      : 'Summary: execution contract — no SQL, no real ledger writes.',
+      ? 'Summary: dry-run with fake in-memory ledger only — no real DB writes.'
+      : mode === 'dry_run'
+        ? 'Summary: dry-run preview only; no SQL executed.'
+        : `Summary: apply attempted; status=${runResult.status}.`,
   );
-  console.log('When CHATFLOW_SAAS_DB_DRIVER=postgres, app adapter still throws until pg is wired.');
+  console.log('Default sqljs path remains unchanged unless explicit postgres driver is selected.');
 }
 
 main().catch((e) => {

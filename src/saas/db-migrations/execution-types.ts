@@ -1,6 +1,6 @@
 import type { MigrationLedgerStatus } from './types';
 
-/** How the runner is invoked; `apply` does not execute SQL until pg + ledger are wired. */
+/** How the runner is invoked. */
 export type SaasPostgresMigrationMode = 'dry_run' | 'apply';
 
 /** Aggregate run outcome (ledger + executor state). */
@@ -18,6 +18,10 @@ export type SaasPostgresMigrationEntryExecutionStatus =
 export const POSTGRES_MIGRATION_EXECUTION_NOT_WIRED = 'POSTGRES_MIGRATION_EXECUTION_NOT_WIRED';
 export const POSTGRES_LEDGER_PERSISTENCE_NOT_WIRED = 'POSTGRES_LEDGER_PERSISTENCE_NOT_WIRED';
 export const POSTGRES_LEDGER_CHECKSUM_MISMATCH = 'POSTGRES_LEDGER_CHECKSUM_MISMATCH';
+export const POSTGRES_MIGRATION_RUNTIME_UNWIRED = 'POSTGRES_MIGRATION_RUNTIME_UNWIRED';
+export const POSTGRES_MIGRATION_LEDGER_NOT_READY = 'POSTGRES_MIGRATION_LEDGER_NOT_READY';
+export const POSTGRES_MIGRATION_SQL_EXEC_FAILED = 'POSTGRES_MIGRATION_SQL_EXEC_FAILED';
+export const POSTGRES_MIGRATION_APPLY_FAILED = 'POSTGRES_MIGRATION_APPLY_FAILED';
 
 export interface SaasPostgresMigrationEntryResult {
   id: string;

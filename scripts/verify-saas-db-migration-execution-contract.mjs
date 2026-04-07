@@ -1,5 +1,5 @@
 /**
- * Phase 24 / 2F — Postgres migration execution contract stub (no pg).
+ * Phase 24 — Postgres migration execution wired contract.
  * Requires: npm run build
  */
 
@@ -22,7 +22,8 @@ async function main() {
     runSaasPostgresMigrations,
     listSaasDbMigrations,
     SAAS_SCHEMA_MIGRATIONS_TABLE,
-    POSTGRES_MIGRATION_EXECUTION_NOT_WIRED,
+    POSTGRES_MIGRATION_APPLY_FAILED,
+    POSTGRES_MIGRATION_RUNTIME_UNWIRED,
     POSTGRES_LEDGER_PERSISTENCE_NOT_WIRED,
   } = require(pathJoin(root, 'dist', 'src', 'saas', 'db-migrations', 'index.js'));
 
@@ -69,12 +70,13 @@ async function main() {
     migrations,
     ledgerTable: SAAS_SCHEMA_MIGRATIONS_TABLE,
   });
-  if (app.status !== 'not_wired') fail('apply must be not_wired');
+  if (app.status !== 'failed') fail('apply default must fail without runtime');
   if (app.applied_count !== 0) fail('apply must not pretend applied');
-  if (app.contract_message !== POSTGRES_MIGRATION_EXECUTION_NOT_WIRED) fail('apply contract_message');
+  if (app.contract_message !== POSTGRES_MIGRATION_RUNTIME_UNWIRED) fail('apply contract_message');
   for (const e of app.entries) {
     if (e.execution_status !== 'failed') fail('apply entry execution_status');
-    if (!e.message.includes(POSTGRES_MIGRATION_EXECUTION_NOT_WIRED)) fail('apply entry message');
+    if (!e.message.includes(POSTGRES_MIGRATION_RUNTIME_UNWIRED)) fail('apply entry message');
+    if (!e.message.includes(POSTGRES_MIGRATION_APPLY_FAILED)) fail('apply entry apply_failed');
   }
 
   const { execFileSync } = await import('node:child_process');
@@ -90,8 +92,8 @@ async function main() {
     [pathJoin(root, 'scripts', 'saas-db-migration-bootstrap.mjs'), '--mode=apply'],
     { cwd: root, encoding: 'utf8' },
   );
-  if (!bootApply.includes(POSTGRES_MIGRATION_EXECUTION_NOT_WIRED)) fail('bootstrap apply missing constant');
-  if (!bootApply.includes('"status": "not_wired"')) fail('bootstrap apply status');
+  if (!bootApply.includes('saas_migration_bootstrap: apply_failed')) fail('bootstrap apply marker');
+  if (!bootApply.includes('"status": "failed"')) fail('bootstrap apply status');
   if (bootApply.includes('"applied_count": 1')) fail('bootstrap apply must not show applied');
 
   await new Promise((resolve, reject) => {

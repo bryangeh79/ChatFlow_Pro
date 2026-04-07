@@ -23,7 +23,8 @@ async function main() {
     runSaasPostgresMigrations,
     listSaasDbMigrations,
     SAAS_SCHEMA_MIGRATIONS_TABLE,
-    POSTGRES_MIGRATION_EXECUTION_NOT_WIRED,
+    POSTGRES_MIGRATION_APPLY_FAILED,
+    POSTGRES_MIGRATION_RUNTIME_UNWIRED,
     POSTGRES_LEDGER_CHECKSUM_MISMATCH,
     FakeSaasMigrationLedger,
     seedFakeLedgerFromMigrationIds,
@@ -79,11 +80,12 @@ async function main() {
     ledgerTable: SAAS_SCHEMA_MIGRATIONS_TABLE,
     ledger: partial,
   });
-  if (app.status !== 'not_wired') fail('apply still not_wired');
+  if (app.status !== 'failed') fail('apply default must fail');
   if (app.applied_count !== 0) fail('apply must not increment applied');
   for (const x of app.entries) {
     if (x.execution_status !== 'failed') fail('apply entries failed');
-    if (!x.message.includes(POSTGRES_MIGRATION_EXECUTION_NOT_WIRED)) fail('apply entry not_wired msg');
+    if (!x.message.includes(POSTGRES_MIGRATION_RUNTIME_UNWIRED)) fail('apply entry runtime msg');
+    if (!x.message.includes(POSTGRES_MIGRATION_APPLY_FAILED)) fail('apply entry apply_failed msg');
   }
 
   const boot = execFileSync(
