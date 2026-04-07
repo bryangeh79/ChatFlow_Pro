@@ -1,5 +1,15 @@
 # Completed Work
 
+## Phase 24 — controlled reachability stabilization ✅
+
+**名称**：`Phase 24 / controlled runtime+ledger reachability stabilization` — **非** Postgres ready、**非** `go` 已达成。  
+**交付摘要**：在现有 readiness/metadata 上补轻量证据字段（`controlled_reachability` / `reachability_basis`），并固化 verify 输出：`default_no_go_ok`、`controlled_reachability_ok`、`overall_go_not_implied`。受控链需显式开关启用；无 PG/前置不足统一 `skip`。  
+**默认路径**：默认 live SaaS DB 仍为 sqljs。  
+**语义边界**：默认 NO_GO、受控可达、整体 GO 不被局部门槛替代。  
+**提交**：`chore(saas-db): stabilize controlled postgres reachability signals`（**`db0e024`**，以 `git log origin/main` 为准）。
+
+---
+
 ## Phase 24 — migration execution wired ✅
 
 **名称**：`Phase 24 / migration execution wired` — **非** Postgres ready、**非** `go` 已达成。  
