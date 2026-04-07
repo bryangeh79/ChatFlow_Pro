@@ -1,69 +1,80 @@
 /**
- * SaaS Admin authorization scaffold (Phase 24 / 1C).
- * Declares allowed_roles per route; live identities still only break-glass platform_admin.
+ * SaaS Admin authorization (Phase 24 / 1C scaffold + 1D tenant-scoped RBAC semantics).
+ * Policy table encodes future roles; live source still only break-glass `platform_admin`.
  */
 
 import type { SaasAdminAuthContext, SaasAdminAuthRole } from './admin-auth';
 
 export type { SaasAdminAuthRole };
 
-/** Policy row: HTTP method + path regex + roles that may call it (OR). */
+/** Platform-wide admin surface vs per-tenant resource paths. */
+export type AdminResourceScope = 'platform' | 'tenant_targeted';
+
+/** Policy row: method + path regex + allowed roles + scope for tenant matching rules. */
 export interface AdminRoutePolicy {
   id: string;
   method: string;
   pathPattern: RegExp;
-  /** Today: all routes are `platform_admin` only. Future: add tenant_admin for scoped writes, tenant_operator_readonly for safe GETs. */
+  resource_scope: AdminResourceScope;
+  /**
+   * OR semantics. Live break-glass is only `platform_admin`.
+   * `tenant_admin` / `tenant_operator_readonly` are Phase 24 RBAC semantics until a real tenant principal exists.
+   */
   allowed_roles: readonly SaasAdminAuthRole[];
 }
 
 /**
  * Order: more specific path patterns before generic `/tenants/:slug`.
- * Future split (documented here, not enabled in allowed_roles yet):
- * - `PUT .../credentials`, `PUT .../faq`, `PUT .../settings` → later `tenant_admin` when tenant-scoped auth exists.
- * - `GET .../faq`, `GET .../tenants/:slug` → later `tenant_operator_readonly` for read-only ops.
- * - `GET|POST /tenants` (platform list/create) → stay `platform_admin` only.
+ * Live principal: break-glass env token → `platform_admin` / `scope_type: platform` only.
  */
 export const ADMIN_ROUTE_POLICIES: readonly AdminRoutePolicy[] = [
   {
     id: 'admin_tenant_settings_put',
     method: 'PUT',
     pathPattern: /^\/saas\/v1\/admin\/tenants\/[^/]+\/settings$/,
-    allowed_roles: ['platform_admin'],
+    resource_scope: 'tenant_targeted',
+    allowed_roles: ['platform_admin', 'tenant_admin'],
   },
   {
     id: 'admin_tenant_faq_put',
     method: 'PUT',
     pathPattern: /^\/saas\/v1\/admin\/tenants\/[^/]+\/faq$/,
-    allowed_roles: ['platform_admin'],
+    resource_scope: 'tenant_targeted',
+    allowed_roles: ['platform_admin', 'tenant_admin'],
   },
   {
     id: 'admin_tenant_faq_get',
     method: 'GET',
     pathPattern: /^\/saas\/v1\/admin\/tenants\/[^/]+\/faq$/,
-    allowed_roles: ['platform_admin'],
+    resource_scope: 'tenant_targeted',
+    allowed_roles: ['platform_admin', 'tenant_admin', 'tenant_operator_readonly'],
   },
   {
     id: 'admin_tenant_credentials_put',
     method: 'PUT',
     pathPattern: /^\/saas\/v1\/admin\/tenants\/[^/]+\/credentials$/,
-    allowed_roles: ['platform_admin'],
+    resource_scope: 'tenant_targeted',
+    allowed_roles: ['platform_admin', 'tenant_admin'],
   },
   {
     id: 'admin_tenant_get',
     method: 'GET',
     pathPattern: /^\/saas\/v1\/admin\/tenants\/[^/]+$/,
-    allowed_roles: ['platform_admin'],
+    resource_scope: 'tenant_targeted',
+    allowed_roles: ['platform_admin', 'tenant_admin', 'tenant_operator_readonly'],
   },
   {
     id: 'admin_tenants_list_get',
     method: 'GET',
     pathPattern: /^\/saas\/v1\/admin\/tenants$/,
+    resource_scope: 'platform',
     allowed_roles: ['platform_admin'],
   },
   {
     id: 'admin_tenants_create_post',
     method: 'POST',
     pathPattern: /^\/saas\/v1\/admin\/tenants$/,
+    resource_scope: 'platform',
     allowed_roles: ['platform_admin'],
   },
 ] as const;
@@ -84,9 +95,36 @@ export function isRoleAllowedForAdminPolicy(
   return (policy.allowed_roles as readonly SaasAdminAuthRole[]).includes(role);
 }
 
+export function isAdminRouteTenantScoped(policy: AdminRoutePolicy): boolean {
+  return policy.resource_scope === 'tenant_targeted';
+}
+
+/** Slug segment for tenant-targeted admin paths; `null` for platform routes or non-matching paths. */
+export function resolveAdminRouteTargetTenantSlug(pathname: string): string | null {
+  const m = pathname.match(/^\/saas\/v1\/admin\/tenants\/([^/]+)(?:\/(credentials|faq|settings))?$/);
+  if (!m) return null;
+  try {
+    return decodeURIComponent(m[1]);
+  } catch {
+    return m[1];
+  }
+}
+
+/** Whether a tenant-bound principal's slug matches the route target (platform_admin always matches when role already allowed). */
+export function doesAdminScopeMatchRouteTarget(
+  context: SaasAdminAuthContext,
+  targetSlug: string,
+): boolean {
+  if (context.role === 'platform_admin') return true;
+  if (context.scope_type !== 'tenant' || context.tenant_slug == null || context.tenant_slug === '') {
+    return false;
+  }
+  return context.tenant_slug === targetSlug;
+}
+
 /**
- * After authentication succeeds: if this path is a declared admin route, enforce allowed_roles.
- * Unlisted paths under `/saas/v1/admin/` fall through (typically 404) without a 403.
+ * After authentication: enforce allowed_roles + tenant scope for tenant_targeted routes.
+ * Unlisted paths under `/saas/v1/admin/` fall through without 403 here.
  */
 export function authorizeAdminRouteAfterAuth(
   method: string,
@@ -95,6 +133,21 @@ export function authorizeAdminRouteAfterAuth(
 ): { ok: true } | { ok: false; reason: 'forbidden' } {
   const policy = matchAdminRoutePolicy(method, pathname);
   if (!policy) return { ok: true };
-  if (!isRoleAllowedForAdminPolicy(policy, context.role)) return { ok: false, reason: 'forbidden' };
+
+  if (!isRoleAllowedForAdminPolicy(policy, context.role)) {
+    return { ok: false, reason: 'forbidden' };
+  }
+
+  if (policy.resource_scope === 'platform') {
+    return { ok: true };
+  }
+
+  const targetSlug = resolveAdminRouteTargetTenantSlug(pathname);
+  if (!targetSlug) return { ok: false, reason: 'forbidden' };
+
+  if (!doesAdminScopeMatchRouteTarget(context, targetSlug)) {
+    return { ok: false, reason: 'forbidden' };
+  }
+
   return { ok: true };
 }

@@ -2,7 +2,7 @@
 
 ## 战报顶栏（2026-04-07）
 
-- **版本 / Phase**：**1.7.69**；**Phase 24** 当前（**1C** authz scaffold），**Phase 23 / SaaS MVP 主线已关闭**。  
+- **版本 / Phase**：**1.7.70**；**Phase 24** 当前（**1D** tenant RBAC semantics），**Phase 23 / SaaS MVP 主线已关闭**。  
 - **本轮 git**：`bb5d17e`（及 `8cae7d4`、`c2a08cc`）已 **push success**。  
 - **新发现风险（本轮）**：无新的代码缺陷级条目；**Phase 24 预期风险**见下节。  
 - **已知边界**：**冻结（MVP）** — `docs/175` + `memory/04` §「Known SaaS MVP boundaries」；**待后续（v1）** — 凭证加密、多实例、Postgres、Admin RBAC。  
@@ -13,7 +13,8 @@
 - **认证与授权**：单一 `CHATFLOW_SAAS_ADMIN_TOKEN` 不适多用户托管；误配可导致越权或锁死运维。  
 - **收口（Phase 24 包 1A）**：迁移路径与验收见 **`docs/176_phase24_saas_admin_auth_rbac_adr.md`**；**实现落地前** 仍为 **open operational risk** — 须限制 token 分发面、rotation 与 break-glass 流程；落地后改为跟踪 RBAC 漏配与审计缺口。  
 - **包 1B**：已落地 **`admin-auth.ts` 桥接层**（**已完成**）。  
-- **包 1C**：**authorization scaffold**（`admin-authorization.ts`）已接路由，**真实 tenant user / 成员 RBAC 仍未落地**；`tenant_admin` / `tenant_operator_readonly` 仅为策略与类型预留；外部仍 break-glass **单 token** 等同 **platform_admin**。  
+- **包 1C**：authorization scaffold — **已完成**。  
+- **包 1D**：**RBAC 语义已落位**（策略 `resource_scope` + slug 对齐 + 合成 principal 验证），**真实 tenant user / 独立 auth source 仍未落地**；现网仍 break-glass **单 token** → **`platform_admin` / `scope_type: platform`**。  
 - **数据层迁移**：sql.js → Postgres 需双写/迁移策略，避免租户数据丢失。  
 - **多实例**：内存 session、JSONL 追加、notify 幂等 — 需 sticky 或外置 store。  
 - **凭证**：DB 明文 → KMS/信封加密、轮换与审计面。

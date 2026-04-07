@@ -1,6 +1,5 @@
 /**
- * Phase 24 / 1C — pure checks on admin authorization policy table (no server, no test backdoors).
- * Run after: npm run build
+ * Phase 24 — policy table shape + routing match (pure). Run after: npm run build
  */
 
 import { createRequire } from 'node:module';
@@ -54,17 +53,29 @@ function main() {
   }
 
   for (const p of ADMIN_ROUTE_POLICIES) {
+    if (!p.resource_scope || !['platform', 'tenant_targeted'].includes(p.resource_scope)) {
+      console.error('policy missing resource_scope', p.id);
+      process.exit(1);
+    }
     if (!isRoleAllowedForAdminPolicy(p, 'platform_admin')) {
       console.error('platform_admin must be allowed for', p.id);
       process.exit(1);
     }
-    if (isRoleAllowedForAdminPolicy(p, 'tenant_admin')) {
-      console.error('tenant_admin must be denied for policy in 1C', p.id);
-      process.exit(1);
+    if (p.resource_scope === 'platform') {
+      if (isRoleAllowedForAdminPolicy(p, 'tenant_admin') || isRoleAllowedForAdminPolicy(p, 'tenant_operator_readonly')) {
+        console.error('platform route must not allow tenant roles', p.id);
+        process.exit(1);
+      }
     }
     if (p.method === 'PUT' && isRoleAllowedForAdminPolicy(p, 'tenant_operator_readonly')) {
       console.error('tenant_operator_readonly must be denied on PUT', p.id);
       process.exit(1);
+    }
+    if (p.resource_scope === 'tenant_targeted' && p.method === 'GET') {
+      if (!isRoleAllowedForAdminPolicy(p, 'tenant_operator_readonly')) {
+        console.error('tenant-targeted GET must allow tenant_operator_readonly', p.id);
+        process.exit(1);
+      }
     }
   }
 
@@ -73,7 +84,7 @@ function main() {
       ok: true,
       policies: ADMIN_ROUTE_POLICIES.length,
       platform_admin_all: true,
-      tenant_admin_all_denied: true,
+      platform_routes_platform_only: true,
       readonly_put_denied: true,
     }),
   );
