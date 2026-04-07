@@ -175,8 +175,8 @@ export async function replaceTenantFaqEntries(
 }
 
 export async function getTenantSettingsJson(tenantId: string): Promise<Record<string, unknown>> {
-  const db = await getSaaSDatabase();
-  const row = stmtGet(db, 'SELECT settings_json FROM tenant_settings WHERE tenant_id = ?', [
+  const adapter = await getSaasDbAdapter();
+  const row = await adapter.queryOne('SELECT settings_json FROM tenant_settings WHERE tenant_id = ?', [
     tenantId,
   ]);
   if (!row) return {};

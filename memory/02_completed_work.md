@@ -1,5 +1,14 @@
 # Completed Work
 
+## Phase 24 — tenant_settings read path adapterization ✅
+
+**名称**：`Phase 24 / tenant_settings read path adapterization` — **非** Postgres ready、**非** `go` 已达成。  
+**交付摘要**：仅 `getTenantSettingsJson(tenantId)` 切到 `SaaSDbAdapter.queryOne` 读取（`SELECT settings_json FROM tenant_settings WHERE tenant_id = ?`），实现 `tenant_settings` 单一只读入口 adapter 化。  
+**兼容语义**：`settings_json` 缺失 / 坏 JSON / 非对象，仍兜底 `{}`；默认 live 路径仍为 sqljs。  
+**边界口径**：整体 `go/no-go` 仍按完整门禁判定，不因单一路径读能力前移而自动变为 GO。  
+
+---
+
 ## Phase 24 — controlled reachability stabilization ✅
 
 **名称**：`Phase 24 / controlled runtime+ledger reachability stabilization` — **非** Postgres ready、**非** `go` 已达成。  

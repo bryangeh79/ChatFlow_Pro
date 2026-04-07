@@ -111,6 +111,7 @@ async function main() {
   await runVerifyScript('verify-saas-db-migration-ledger-contract.mjs');
   await runVerifyScript('verify-postgres-pool-runtime-wire.mjs');
   await runVerifyScript('verify-postgres-ledger-persistence.mjs');
+  await runVerifyScript('verify-tenant-settings-read-path.mjs');
 
   console.log('verify-saas-db-postgres-readiness: ok');
 }
