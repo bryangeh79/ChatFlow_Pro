@@ -1,8 +1,8 @@
 # ADR — Phase 24 / SaaS Admin Auth & RBAC（最小落地）
 
-> **状态**：Accepted；**包 1H** 已接入 **bridge token hash-at-rest**；仍为 **dev/ops 过渡**，**非**产品化登录  
+> **状态**：Accepted；**包 1I** 已接入 **principal 审计摘要 + rotation（`rotated`）钩子**；仍为 **dev/ops 过渡**，**非**产品化登录  
 > **范围**：SaaS **控制面**（`/saas/*` Admin API + Admin UI），**非** MVP 功能补完  
-> **真源**：`package.json` **1.7.74+**（Phase 24 小步）；SaaS MVP **sealed**（`docs/175`）；本 ADR 属于 **Phase 24 — SaaS v1 Hardening**
+> **真源**：`package.json` **1.7.75+**（Phase 24 小步）；SaaS MVP **sealed**（`docs/175`）；本 ADR 属于 **Phase 24 — SaaS v1 Hardening**
 
 ---
 
@@ -72,6 +72,16 @@
 
 ---
 
+## Phase 24 — 包 1I（principal audit trail + rotation hook）
+
+- **目的**：在 **hash-at-rest** 之上增加 **可验收的控制面审计摘要**；**不**做 SIEM、**不**做登录审计产品、**不**做 KMS/轮换策略引擎。
+- **表**：`tenant_admin_principal_audit_logs` — 字段含 `tenant_id`、`principal_role`、`action`（`created` | `updated` | `disabled` | `enabled` | `rotated` | `deleted`）、`actor_*`（来源/角色/scope/slug）、`target_display_name`、`target_is_enabled`、`token_state`、`ts_iso`。**不**存明文 token、**不**存 hash。
+- **写入**：`PUT .../principals` **replace 前后 diff** — 同 secret（hash/legacy 匹配）→ 仅元数据则 `updated` / `enabled` / `disabled`；同 role 换 secret → `rotated`；新 role 行 → `created`；移除 → `deleted`。
+- **查询**：`GET /saas/v1/admin/tenants/:slug/principals/audit?limit=`（默认 50，上限 200），**仅 `platform_admin`**，新→旧。
+- **验证**：`npm run verify:saas-admin-principal-audit`。
+
+---
+
 ## 1. 背景
 
 - 多租户 SaaS MVP 已交付：**租户 Webhook 运行时**（`/webhooks/t/...`）与 **Legacy**（`/webhooks/<channel>`）双轨并存；租户路径验签 / hub verify **不回退**进程 `env`（`docs/175`）。
@@ -88,7 +98,7 @@
 | **`/saas/v1/health`** | **不**校验 Bearer；返回 `admin_configured: Boolean(breakGlassAdminToken())` |
 | **`GET /saas/admin`** | 静态返回 `public/saas-admin.html`，**无**服务端会话 gate |
 | **Admin UI** | `public/saas-admin.html`：用户粘贴 token，`fetch(..., { headers: { Authorization: 'Bearer ' + token } })` 调所有 admin REST |
-| **数据模型** | `src/saas/db.ts`：`tenant_admin_principals` 含 **`bridge_token_hash`** + 遗留 **`bridge_token`**（新行仅占位）；另 `tenants`、`tenant_credentials`、`tenant_faq_entries`、`tenant_settings` |
+| **数据模型** | `src/saas/db.ts`：`tenant_admin_principals` + **`tenant_admin_principal_audit_logs`**（摘要审计）；另 `tenants`、`tenant_credentials`、`tenant_faq_entries`、`tenant_settings` |
 | **CI / 脚本** | 多个 `verify:*` 与 `tenant-boundary-verify` 使用 env 中的 `CHATFLOW_SAAS_ADMIN_TOKEN` 调用 Admin API（与实现演进需后续对齐，不在本 ADR 包内改脚本） |
 
 ## 3. 为什么先做 Auth / RBAC 而不是 Postgres

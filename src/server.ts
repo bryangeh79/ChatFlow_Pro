@@ -125,6 +125,7 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
       pathname,
       bodyText,
       req.headers.authorization,
+      url.searchParams,
     );
     if (adminResult) {
       const ct = adminResult.contentType ?? 'application/json';

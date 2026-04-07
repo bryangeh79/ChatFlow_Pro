@@ -88,6 +88,23 @@ CREATE TABLE IF NOT EXISTS tenant_admin_principals (
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS tenant_admin_principal_audit_logs (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  principal_role TEXT NOT NULL CHECK (principal_role IN ('tenant_admin', 'tenant_operator_readonly')),
+  action TEXT NOT NULL CHECK (action IN ('created', 'updated', 'disabled', 'enabled', 'rotated', 'deleted')),
+  actor_auth_source TEXT NOT NULL,
+  actor_role TEXT NOT NULL,
+  actor_scope_type TEXT NOT NULL,
+  actor_tenant_slug TEXT,
+  target_display_name TEXT,
+  target_is_enabled INTEGER NOT NULL,
+  token_state TEXT NOT NULL CHECK (token_state IN ('hash_at_rest', 'legacy_plaintext_at_rest')),
+  ts_iso TEXT NOT NULL,
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_tap_audit_tenant_ts ON tenant_admin_principal_audit_logs(tenant_id, ts_iso DESC);
 `;
 
 function applyTenantPrincipalHashColumnMigration(db: SqlJsDatabase): void {

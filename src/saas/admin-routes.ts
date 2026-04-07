@@ -5,6 +5,7 @@ import {
   getTenantBySlug,
   listTenants,
   listTenantAdminPrincipals,
+  listTenantPrincipalAuditLogs,
   loadTenantFaqEntries,
   mergeTenantCredentials,
   mergeTenantSettings,
@@ -14,7 +15,9 @@ import {
 import type { TenantPrincipalRole } from './repository';
 import { getSaaSDbPathForDisplay } from './db';
 import { breakGlassAdminToken, requireSaasAdmin } from './admin-auth';
+import type { SaasAdminAuthContext } from './admin-auth';
 import { authorizeAdminRouteAfterAuth } from './admin-authorization';
+import type { PrincipalReplaceActorFields } from './principal-audit';
 
 function unauthorized(): { status: number; body: unknown } {
   return { status: 401, body: { ok: false, error: 'unauthorized' } };
@@ -32,11 +35,29 @@ function parseJson(text: string): unknown {
   }
 }
 
+function toPrincipalActor(ctx: SaasAdminAuthContext): PrincipalReplaceActorFields {
+  return {
+    actor_auth_source: ctx.auth_source,
+    actor_role: ctx.role,
+    actor_scope_type: ctx.scope_type,
+    actor_tenant_slug: ctx.tenant_slug ?? null,
+  };
+}
+
+function parseAuditLogLimit(searchParams: URLSearchParams | undefined): number {
+  const raw = searchParams?.get('limit');
+  if (raw == null || raw === '') return 50;
+  const n = parseInt(raw, 10);
+  if (!Number.isFinite(n) || n < 1) return 50;
+  return Math.min(n, 200);
+}
+
 export async function handleSaaSAdminRequest(
   method: string,
   pathname: string,
   bodyText: string,
   authHeader: string | undefined,
+  searchParams?: URLSearchParams,
 ): Promise<{ status: number; body: unknown; contentType?: string } | null> {
   if (!pathname.startsWith('/saas/')) {
     return null;
@@ -63,11 +84,13 @@ export async function handleSaaSAdminRequest(
     };
   }
 
+  let saasAdminContext: SaasAdminAuthContext | undefined;
   if (pathname.startsWith('/saas/v1/admin/')) {
     const authResult = await requireSaasAdmin(authHeader);
     if (!authResult.ok) return unauthorized();
     const authz = authorizeAdminRouteAfterAuth(method, pathname, authResult.context);
     if (!authz.ok) return forbidden();
+    saasAdminContext = authResult.context;
   }
 
   if (pathname === '/saas/v1/admin/tenants' && method === 'GET') {
@@ -159,6 +182,16 @@ export async function handleSaaSAdminRequest(
     return { status: 200, body: { ok: true } };
   }
 
+  const principalsAuditPath = pathname.match(/^\/saas\/v1\/admin\/tenants\/([^/]+)\/principals\/audit$/);
+  if (principalsAuditPath && method === 'GET') {
+    const slug = principalsAuditPath[1];
+    const tenant = await getTenantBySlug(slug);
+    if (!tenant) return { status: 404, body: { ok: false, error: 'tenant_not_found' } };
+    const limit = parseAuditLogLimit(searchParams);
+    const entries = await listTenantPrincipalAuditLogs(tenant.id, limit);
+    return { status: 200, body: { ok: true, entries } };
+  }
+
   const principalsPath = pathname.match(/^\/saas\/v1\/admin\/tenants\/([^/]+)\/principals$/);
   if (principalsPath && method === 'GET') {
     const slug = principalsPath[1];
@@ -207,8 +240,11 @@ export async function handleSaaSAdminRequest(
           : String(o.display_name).trim() || undefined;
       items.push({ role, bridge_token, is_enabled, display_name });
     }
+    if (!saasAdminContext) {
+      return { status: 401, body: { ok: false, error: 'unauthorized' } };
+    }
     try {
-      await replaceTenantAdminPrincipals(tenant.id, items);
+      await replaceTenantAdminPrincipals(tenant.id, items, toPrincipalActor(saasAdminContext));
     } catch {
       return { status: 409, body: { ok: false, error: 'principal_persist_conflict' } };
     }

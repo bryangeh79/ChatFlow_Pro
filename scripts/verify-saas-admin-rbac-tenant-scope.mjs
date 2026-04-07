@@ -72,6 +72,7 @@ function main() {
     ['GET', '/saas/v1/admin/tenants/acme'],
     ['GET', '/saas/v1/admin/tenants/other-corp'],
     ['GET', '/saas/v1/admin/tenants/acme/principals'],
+    ['GET', '/saas/v1/admin/tenants/acme/principals/audit'],
     ['PUT', '/saas/v1/admin/tenants/acme/principals'],
     ['PUT', '/saas/v1/admin/tenants/acme/credentials'],
     ['PUT', '/saas/v1/admin/tenants/other-corp/credentials'],
@@ -89,6 +90,7 @@ function main() {
   mustDeny(tenantAdminAcme, 'POST', '/saas/v1/admin/tenants');
   mustAllow(tenantAdminAcme, 'GET', '/saas/v1/admin/tenants/acme');
   mustDeny(tenantAdminAcme, 'GET', '/saas/v1/admin/tenants/acme/principals');
+  mustDeny(tenantAdminAcme, 'GET', '/saas/v1/admin/tenants/acme/principals/audit');
   mustDeny(tenantAdminAcme, 'PUT', '/saas/v1/admin/tenants/acme/principals');
   mustDeny(tenantAdminAcme, 'GET', '/saas/v1/admin/tenants/other-corp');
   mustAllow(tenantAdminAcme, 'PUT', '/saas/v1/admin/tenants/acme/credentials');
@@ -102,6 +104,7 @@ function main() {
   mustDeny(readonlyAcme, 'POST', '/saas/v1/admin/tenants');
   mustAllow(readonlyAcme, 'GET', '/saas/v1/admin/tenants/acme');
   mustDeny(readonlyAcme, 'GET', '/saas/v1/admin/tenants/acme/principals');
+  mustDeny(readonlyAcme, 'GET', '/saas/v1/admin/tenants/acme/principals/audit');
   mustDeny(readonlyAcme, 'PUT', '/saas/v1/admin/tenants/acme/principals');
   mustDeny(readonlyAcme, 'GET', '/saas/v1/admin/tenants/other-corp');
   mustDeny(readonlyAcme, 'PUT', '/saas/v1/admin/tenants/acme/credentials');
