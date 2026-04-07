@@ -5,7 +5,7 @@
 - **版本**：`package.json` **1.7.90**（**Pro_v1.07.90**）— Phase 24：**3A ✅**；**3B ✅**；**3C ✅** — **`event_type` + `idempotency_key` 契约**（`docs/179` §9、`verify:phase24-3c-jsonl-notify-contract`），**仍** at-least-once / **非** MI-ready。**`go/no-go` 仍为 `NO_GO`**。SaaS MVP 仍 **sealed**。  
 - **当前 Phase**：**24 — SaaS v1 Hardening**（**当前主线**）。  
 - **已关闭**：**Phase 23**（SaaS MVP Final Closure）— **主线 closed**，后续 **不算 MVP 扩功能**。  
-- **本轮 git / push**：**以 `git log origin/main` 为准**；**3B** 骨架 **`9f76785`** `feat(phase-24): add session store abstraction skeleton`。  
+- **本轮 git / push**：**以 `git log origin/main` 为准**；**3C** **`30bdc57`**；**3B** **`9f76785`**。  
 - **下一阶段建议**（24 拆包）：① 租户认证/RBAC ② Postgres+migration ③ 多实例 session/store ④ 凭证 KMS/轮换/审计。  
 - **新发现风险**：本轮无新增 P0；24 将引入 **规模/合规/运维复杂度**，需按包写风险条目入 **`memory/04`**。  
 - **已知边界**：**冻结** — idle GET 200（A）、hub verify 租户 token、`faq.fallback_enabled` partial、slug/idle 信息面。**待 24** — 明文凭证、内存 session、sql.js。

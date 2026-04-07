@@ -6,7 +6,7 @@
 
 ## 1. 当前项目一句话状态
 
-**ChatFlow Pro**：七通道统一入站 + 出站、Legacy `/webhooks/:channel` 与 **多租户** `/webhooks/t/:slug/:channel` 并存；**多租户 SaaS MVP 已封板**（Phase 23 关闭），`package.json` **1.7.90**（以仓库为准）。**Phase 24**：**Postgres Foundation 已封**（**`go/no-go` 仍为 `NO_GO`**）；**3A** `docs/179`；**3B** **session store abstraction skeleton completed**（**`SessionStore` / `getSessionStore()`**），**默认 live 仍 in-memory**，**勿表述为 multi-instance ready**。下一：**3C** 小步 — **notify / JSONL 幂等键与 `request_id`**（`docs/179`），**不** 开外置队列大包。
+**ChatFlow Pro**：七通道统一入站 + 出站、Legacy `/webhooks/:channel` 与 **多租户** `/webhooks/t/:slug/:channel` 并存；**多租户 SaaS MVP 已封板**（Phase 23 关闭），`package.json` **1.7.90**（以仓库为准）。**Phase 24**：**Postgres Foundation 已封**（**`go/no-go` 仍为 `NO_GO`**）；**3A** `docs/179`；**3B** **SessionStore 骨架**；**3C** ✅ **JSONL / notify `event_type` + `idempotency_key` 契约已收口**（`docs/179` §9）。**默认 live 仍 in-memory**；**仍非 multi-instance ready**；**未** 开工 Redis/外置队列。下一：**Postgres 执行线**（`docs/177`）。
 
 ---
 
@@ -24,8 +24,9 @@
 
 1. **Phase 24 / Auth-RBAC Foundation（1A–1J）** — **子里程碑已封**（`docs/176` + `verify:saas-admin-*`）。  
 2. **Phase 24 / Postgres Foundation（2A–2M）** — **checkpoint 已封**；**`go/no-go` 仍为 `NO_GO`**。  
-3. **Phase 24 / 包 3B** — **session store 抽象骨架**（`getSessionStore()`，**默认 in-memory**）；**非** MI-ready。  
-4. 更早：**Phase 23 关闭**、**Phase 24 开 v1 Hardening** — 仍见 `memory/02` 与 `git log`。
+3. **Phase 24 / 包 3B** — **session store 抽象骨架**（**默认 in-memory**）；**非** MI-ready。  
+4. **Phase 24 / 包 3C** — **JSONL / notify 契约收口**（**仍** at-least-once，**非** MI-ready）。  
+5. 更早：**Phase 23 关闭**、**Phase 24 开 v1 Hardening** — 仍见 `memory/02` 与 `git log`。
 
 **Push**：以 **`git log origin/main`** 为准。
 
@@ -33,9 +34,9 @@
 
 ## 4. 下一步唯一优先动作
 
-**Phase 24 包 3C**：按 **`docs/179`** 先做 **JSONL + lead/handoff notify 的幂等键 / `request_id` 契约**（**最小切口**）；**3B 已完成**（**仍 in-memory**，**非** multi-instance）。  
+**Phase 24 — Postgres 执行线**：按 **`docs/177`** 逐项接线（**`npm run saas:db:postgres:go-no-go` 仍为 `no_go`**）；**3C 已交付**（**`docs/179` §9** + **`verify:phase24-3c-jsonl-notify-contract`**）。**不** 在本优先档并行开 Redis/队列。
 
-**Postgres**：**`npm run saas:db:postgres:go-no-go`** — **仍为 `no_go`**。
+**集成注意**：下游若对 lead/handoff **notify body** 做 **严格 JSON schema**，需 **放宽** 以接受 **`event_type` / `idempotency_key`** 等新增字段。
 
 **合并门禁（不变）**：**T0** `npm run build` + **T1** `npm run staging:docker-smoke`（或 CI `docker-smoke` 绿）。
 

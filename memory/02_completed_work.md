@@ -1,12 +1,21 @@
 # Completed Work
 
+## Phase 24 — 包 3C ✅ JSONL / notify 契约收口
+
+**名称**：`Phase 24 / 包 3C` — **输出契约**；**非** multi-instance ready、**非** Redis、**非** 队列。  
+**交付摘要**：**`event_type` + `idempotency_key`**（`src/shared/outbound-idempotency.ts`）；Lead JSONL 与 lead notify **同源**；Handoff notify + assignment JSONL **字段口径对齐 docs/179 §9**；**`verify:phase24-3c-jsonl-notify-contract`**（先 `npm run build`）。  
+**明确不是**：消除重复 POST、外置 sink、MI-safe — **仍** at-least-once。  
+**提交**：`feat(phase-24): 3C JSONL/notify idempotency_key + event_type contract`（`30bdc57`，以 `git log` 为准）。  
+**下一**：**Postgres 执行线**（`docs/177`，**仍 `NO_GO`**）。
+
+---
+
 ## Phase 24 — 包 3B ✅ session store abstraction skeleton
 
 **名称**：`Phase 24 / 包 3B` — **非** multi-instance、**非** Redis。  
 **交付摘要**：**`SessionStore` + `getSessionStore()`**；**`InMemorySessionStore`** 实现不变（TTL / 上限 / cleanup）；**默认 live 仍 in-memory**；**`verify:session-store-abstraction`**。  
 **明确不是**：多副本安全、外置 session、JSONL 改造 — **仍为单进程语义**。  
-**提交**：`feat(phase-24): add session store abstraction skeleton`（`9f76785`，以 `git log` 为准）。  
-**下一小步**：**3C** — `docs/179` 下 **notify / JSONL 幂等键** 契约，**不** 开大包。
+**提交**：`feat(phase-24): add session store abstraction skeleton`（`9f76785`，以 `git log` 为准）。
 
 ---
 
@@ -15,7 +24,7 @@
 **名称**：`Phase 24 / Postgres Foundation checkpoint`  
 **交付摘要**：**2A–2M** — Postgres+migration **ADR**（`docs/177`）；**SaaSDbAdapter** 选择 + **SqlJs** 实现 + **Postgres stub**；**db-migrations** registry、**postgres/*.sql**、checksum、**execution contract**、**fake ledger**；**client gate + 动态 `pg` loader**；**connection config**；**optional TCP probe**；**go/no-go**（`postgres-readiness-boundary.ts` + CLI + verify）。  
 **明确未完成**：**real Postgres runtime**、**ledger 落库**、**migration apply**、**repository 全量 postgres** — **`evaluatePostgresGoNoGo()` 仍为 `no_go`**；**勿误读为可切生产 DB**。  
-**与 `docs/179` 衔接**：**3A ✅** ADR；**3B ✅** 见上节（**默认 live 仍 in-memory**，**非** multi-instance ready）；**下一**：**3C** 仅 **`docs/179`** 下 **JSONL / notify 幂等键与 `request_id`** 最小切口，**不** 开外置队列大包。  
+**与 `docs/179` 衔接**：**3A ✅** ADR；**3B ✅**；**3C ✅** JSONL/notify **契约**（见上「包 3C」）；**live 仍非 MI-ready**；**下一**：**Postgres runtime**（**`go/no-go` 仍为 `no_go`**）。  
 **封板提交**：`chore(phase-24): seal postgres foundation checkpoint`（以 `git log` 为准）。
 
 ---
