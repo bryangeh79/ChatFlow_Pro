@@ -4,11 +4,14 @@ import {
   createTenant,
   getTenantBySlug,
   listTenants,
+  listTenantAdminPrincipals,
   loadTenantFaqEntries,
   mergeTenantCredentials,
   mergeTenantSettings,
+  replaceTenantAdminPrincipals,
   replaceTenantFaqEntries,
 } from './repository';
+import type { TenantPrincipalRole } from './repository';
 import { getSaaSDbPathForDisplay } from './db';
 import { breakGlassAdminToken, requireSaasAdmin } from './admin-auth';
 import { authorizeAdminRouteAfterAuth } from './admin-authorization';
@@ -61,7 +64,7 @@ export async function handleSaaSAdminRequest(
   }
 
   if (pathname.startsWith('/saas/v1/admin/')) {
-    const authResult = requireSaasAdmin(authHeader);
+    const authResult = await requireSaasAdmin(authHeader);
     if (!authResult.ok) return unauthorized();
     const authz = authorizeAdminRouteAfterAuth(method, pathname, authResult.context);
     if (!authz.ok) return forbidden();
@@ -153,6 +156,62 @@ export async function handleSaaSAdminRequest(
       return { status: 400, body: { ok: false, error: 'settings_object_required' } };
     }
     await mergeTenantSettings(tenant.id, parsed.settings);
+    return { status: 200, body: { ok: true } };
+  }
+
+  const principalsPath = pathname.match(/^\/saas\/v1\/admin\/tenants\/([^/]+)\/principals$/);
+  if (principalsPath && method === 'GET') {
+    const slug = principalsPath[1];
+    const tenant = await getTenantBySlug(slug);
+    if (!tenant) return { status: 404, body: { ok: false, error: 'tenant_not_found' } };
+    const principals = await listTenantAdminPrincipals(tenant.id);
+    return { status: 200, body: { ok: true, principals } };
+  }
+
+  if (principalsPath && method === 'PUT') {
+    const slug = principalsPath[1];
+    const tenant = await getTenantBySlug(slug);
+    if (!tenant) return { status: 404, body: { ok: false, error: 'tenant_not_found' } };
+    const parsed = parseJson(bodyText) as { principals?: unknown } | null;
+    if (!parsed || !Array.isArray(parsed.principals)) {
+      return { status: 400, body: { ok: false, error: 'principals_array_required' } };
+    }
+    const items: Array<{
+      role: TenantPrincipalRole;
+      bridge_token: string;
+      is_enabled: boolean;
+      display_name?: string;
+    }> = [];
+    const seenTokens = new Set<string>();
+    for (const row of parsed.principals) {
+      if (typeof row !== 'object' || row === null) {
+        return { status: 400, body: { ok: false, error: 'invalid_principal_row' } };
+      }
+      const o = row as Record<string, unknown>;
+      const role = o.role;
+      if (role !== 'tenant_admin' && role !== 'tenant_operator_readonly') {
+        return { status: 400, body: { ok: false, error: 'invalid_principal_role' } };
+      }
+      const bridge_token = typeof o.bridge_token === 'string' ? o.bridge_token.trim() : '';
+      if (!bridge_token) {
+        return { status: 400, body: { ok: false, error: 'bridge_token_required' } };
+      }
+      if (seenTokens.has(bridge_token)) {
+        return { status: 400, body: { ok: false, error: 'duplicate_bridge_token' } };
+      }
+      seenTokens.add(bridge_token);
+      const is_enabled = o.is_enabled === true || o.is_enabled === 1;
+      const display_name =
+        o.display_name === undefined || o.display_name === null
+          ? undefined
+          : String(o.display_name).trim() || undefined;
+      items.push({ role, bridge_token, is_enabled, display_name });
+    }
+    try {
+      await replaceTenantAdminPrincipals(tenant.id, items);
+    } catch {
+      return { status: 409, body: { ok: false, error: 'principal_persist_conflict' } };
+    }
     return { status: 200, body: { ok: true } };
   }
 

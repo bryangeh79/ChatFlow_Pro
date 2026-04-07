@@ -29,6 +29,20 @@ export interface AdminRoutePolicy {
  */
 export const ADMIN_ROUTE_POLICIES: readonly AdminRoutePolicy[] = [
   {
+    id: 'admin_tenant_principals_put',
+    method: 'PUT',
+    pathPattern: /^\/saas\/v1\/admin\/tenants\/[^/]+\/principals$/,
+    resource_scope: 'tenant_targeted',
+    allowed_roles: ['platform_admin'],
+  },
+  {
+    id: 'admin_tenant_principals_get',
+    method: 'GET',
+    pathPattern: /^\/saas\/v1\/admin\/tenants\/[^/]+\/principals$/,
+    resource_scope: 'tenant_targeted',
+    allowed_roles: ['platform_admin'],
+  },
+  {
     id: 'admin_tenant_settings_put',
     method: 'PUT',
     pathPattern: /^\/saas\/v1\/admin\/tenants\/[^/]+\/settings$/,
@@ -101,7 +115,7 @@ export function isAdminRouteTenantScoped(policy: AdminRoutePolicy): boolean {
 
 /** Slug segment for tenant-targeted admin paths; `null` for platform routes or non-matching paths. */
 export function resolveAdminRouteTargetTenantSlug(pathname: string): string | null {
-  const m = pathname.match(/^\/saas\/v1\/admin\/tenants\/([^/]+)(?:\/(credentials|faq|settings))?$/);
+  const m = pathname.match(/^\/saas\/v1\/admin\/tenants\/([^/]+)(?:\/(credentials|faq|settings|principals))?$/);
   if (!m) return null;
   try {
     return decodeURIComponent(m[1]).trim().toLowerCase();

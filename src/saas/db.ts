@@ -75,6 +75,18 @@ CREATE TABLE IF NOT EXISTS tenant_settings (
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS tenant_admin_principals (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('tenant_admin', 'tenant_operator_readonly')),
+  bridge_token TEXT NOT NULL UNIQUE,
+  is_enabled INTEGER NOT NULL DEFAULT 1,
+  display_name TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
 `;
 
 export async function getSaaSDatabase(): Promise<SqlJsDatabase> {

@@ -2,7 +2,7 @@
 
 ## 战报顶栏（2026-04-07 — 下一聊天室）
 
-- **版本**：`package.json` **1.7.72**（**Pro_v1.07.72**）— Phase 24 **1F** readonly bridge；SaaS MVP 仍 **sealed**。  
+- **版本**：`package.json` **1.7.73**（**Pro_v1.07.73**）— Phase 24 **1G** DB-backed tenant principal bridge；SaaS MVP 仍 **sealed**。  
 - **当前 Phase**：**24 — SaaS v1 Hardening**（**当前主线**）。  
 - **已关闭**：**Phase 23**（SaaS MVP Final Closure）— **主线 closed**，后续 **不算 MVP 扩功能**。  
 - **本轮 git / push**：`c2a08cc` → `8cae7d4` → `bb5d17e` 已上 **`main`**，**push success**。  
@@ -19,7 +19,7 @@
   - **Phase 22C** — SaaS 行为全面接管（已完成，**Pro_v1.07.65**）
   - **Phase 22D** — SaaS / Legacy 收口（主目标已完成，**Pro_v1.07.67**）
   - **Phase 22E** — CI / 文档 / 边界说明收尾（**✅ 已收口**，见下节）
-- **当前版本（package.json）**：**1.7.72**（**Pro_v1.07.72**）— Phase 24 **1F**；SaaS MVP 封板语义不变。
+- **当前版本（package.json）**：**1.7.73**（**Pro_v1.07.73**）— Phase 24 **1G**；SaaS MVP 封板语义不变。
 - **任务归属（Phase 24）**：**租户认证 / RBAC**；**Postgres + migration**；**多实例下 session / store 收口**；**凭证安全**（加密、轮换、审计）。拆包顺序由规划与风险决定，**不**在本文件预写死交付日。
 - **提交标注约定**（历史）：22D/22E/23 前缀仍见于已合并提交；**Phase 24**：`feat(phase-24):` · `chore(phase-24):` · `docs(phase-24):`。
 - Previous major milestone in this log: **Phase 16.2** - HTTP access observability enhanced (`X-Request-Id`, optional `CHATFLOW_HTTP_ACCESS_LOG`, webhook `phases_ms`, verification type narrowing)
@@ -264,7 +264,8 @@
 - **包 1C**：**Authorization scaffold** — **已完成**。  
 - **包 1D**：Tenant-scoped RBAC **语义** — **已完成**。  
 - **包 1E**：Tenant **admin** bridge — **已完成**。  
-- **包 1F（当前）**：Tenant **readonly** bridge — `CHATFLOW_SAAS_TENANT_READONLY_TOKENS` 产出 **`tenant_operator_readonly`**；优先级 break-glass → admin map → readonly map。验证：加 **`verify:saas-admin-tenant-readonly-bridge`**。  
+- **包 1F**：Tenant **readonly** bridge — **已完成**（`CHATFLOW_SAAS_TENANT_READONLY_TOKENS`）。  
+- **包 1G（当前）**：**DB-backed tenant principal** — 表 `tenant_admin_principals`；鉴权 break-glass → **DB** → env admin map → env readonly map；**仅 `platform_admin`** 可 `GET|PUT .../tenants/:slug/principals`；验证 **`verify:saas-admin-db-principal-bridge`**。  
 - **未开始**：真实多用户身份源、密码、JWT、session、登录审计；**不**开 Postgres、不**动 webhook 主链与 legacy。
 
 **建议方向（立项时拆包）**：

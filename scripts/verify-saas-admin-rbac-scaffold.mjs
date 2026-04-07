@@ -17,6 +17,8 @@ const {
 } = authz;
 
 const EXPECTED_POLICY_IDS = [
+  'admin_tenant_principals_put',
+  'admin_tenant_principals_get',
   'admin_tenant_settings_put',
   'admin_tenant_faq_put',
   'admin_tenant_faq_get',
@@ -30,6 +32,8 @@ const SAMPLES = [
   ['GET', '/saas/v1/admin/tenants', 'admin_tenants_list_get'],
   ['POST', '/saas/v1/admin/tenants', 'admin_tenants_create_post'],
   ['GET', '/saas/v1/admin/tenants/acme', 'admin_tenant_get'],
+  ['GET', '/saas/v1/admin/tenants/acme/principals', 'admin_tenant_principals_get'],
+  ['PUT', '/saas/v1/admin/tenants/acme/principals', 'admin_tenant_principals_put'],
   ['PUT', '/saas/v1/admin/tenants/acme/credentials', 'admin_tenant_credentials_put'],
   ['GET', '/saas/v1/admin/tenants/acme/faq', 'admin_tenant_faq_get'],
   ['PUT', '/saas/v1/admin/tenants/acme/faq', 'admin_tenant_faq_put'],
@@ -72,6 +76,7 @@ function main() {
       process.exit(1);
     }
     if (p.resource_scope === 'tenant_targeted' && p.method === 'GET') {
+      if (p.id === 'admin_tenant_principals_get') continue;
       if (!isRoleAllowedForAdminPolicy(p, 'tenant_operator_readonly')) {
         console.error('tenant-targeted GET must allow tenant_operator_readonly', p.id);
         process.exit(1);

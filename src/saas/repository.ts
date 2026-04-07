@@ -183,6 +183,91 @@ export async function getTenantSettingsJson(tenantId: string): Promise<Record<st
   }
 }
 
+/** Phase 24 / 1G — DB-backed tenant admin / readonly bridge principals (plaintext token; transition only). */
+export type TenantPrincipalRole = 'tenant_admin' | 'tenant_operator_readonly';
+
+export interface TenantPrincipalRow {
+  id: string;
+  tenant_id: string;
+  role: TenantPrincipalRole;
+  bridge_token: string;
+  is_enabled: boolean;
+  display_name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function findEnabledPrincipalByBridgeToken(
+  token: string,
+): Promise<{ tenant_id: string; tenant_slug: string; role: TenantPrincipalRole } | null> {
+  const db = await getSaaSDatabase();
+  const row = stmtGet(
+    db,
+    `SELECT p.tenant_id, p.role, t.slug AS tenant_slug
+     FROM tenant_admin_principals p
+     INNER JOIN tenants t ON t.id = p.tenant_id
+     WHERE p.bridge_token = ? AND p.is_enabled = 1`,
+    [token],
+  );
+  if (!row) return null;
+  const role = String(row.role);
+  if (role !== 'tenant_admin' && role !== 'tenant_operator_readonly') return null;
+  return {
+    tenant_id: String(row.tenant_id),
+    tenant_slug: String(row.tenant_slug).trim().toLowerCase(),
+    role,
+  };
+}
+
+export async function listTenantAdminPrincipals(tenantId: string): Promise<TenantPrincipalRow[]> {
+  const db = await getSaaSDatabase();
+  const rows = stmtAll(
+    db,
+    `SELECT id, tenant_id, role, bridge_token, is_enabled, display_name, created_at, updated_at
+     FROM tenant_admin_principals WHERE tenant_id = ? ORDER BY created_at ASC`,
+    [tenantId],
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    role: String(r.role) as TenantPrincipalRole,
+    bridge_token: String(r.bridge_token),
+    is_enabled: Number(r.is_enabled) !== 0,
+    display_name: r.display_name == null ? null : String(r.display_name),
+    created_at: String(r.created_at),
+    updated_at: String(r.updated_at),
+  }));
+}
+
+export async function replaceTenantAdminPrincipals(
+  tenantId: string,
+  items: Array<{
+    role: TenantPrincipalRole;
+    bridge_token: string;
+    is_enabled: boolean;
+    display_name?: string;
+  }>,
+): Promise<void> {
+  const db = await getSaaSDatabase();
+  db.run('DELETE FROM tenant_admin_principals WHERE tenant_id = ?', [tenantId]);
+  for (const it of items) {
+    const id = randomUUID();
+    db.run(
+      `INSERT INTO tenant_admin_principals (id, tenant_id, role, bridge_token, is_enabled, display_name, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      [
+        id,
+        tenantId,
+        it.role,
+        it.bridge_token.trim(),
+        it.is_enabled ? 1 : 0,
+        it.display_name?.trim() || null,
+      ],
+    );
+  }
+  persistSaaSDatabase();
+}
+
 export async function mergeTenantSettings(
   tenantId: string,
   patch: Record<string, unknown>,
