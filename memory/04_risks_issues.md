@@ -2,7 +2,7 @@
 
 ## 战报顶栏（2026-04-07）
 
-- **版本 / Phase**：**1.7.78**；**Phase 24** — **Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**包 2A/2B/2C ✅**（2C = Postgres **stub** + driver 选择，**默认 sqljs**）；**下一 2C+** 真 pg / 迁移；**Phase 23 / SaaS MVP 主线已关闭**。  
+- **版本 / Phase**：**1.7.79**；**Phase 24** — **Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**包 2A–2D ✅**（2D = migration **registry + dry-run CLI**，**无** SQL 执行 / **无** ledger 落库）；**下一** 真 **`pg`** / apply / CI；**Phase 23 / SaaS MVP 主线已关闭**。  
 - **本轮 git**：以 `git log origin/main` 为准。  
 - **新发现风险（本轮）**：**Postgres 迁移线**见下节「Phase 24 — Postgres 迁移线（2A+）」；其余见 **Phase 24 预期风险**。  
 - **已知边界**：**冻结（MVP）** — `docs/175` + `memory/04` §「Known SaaS MVP boundaries」；**待后续（v1）** — 凭证 KMS、多实例 store、**sql.js→Postgres（2B/2C）**。  
@@ -26,7 +26,8 @@
 
 ## Phase 24 — Postgres 迁移线（2A+，ADR：`docs/177_phase24_postgres_migration_adr.md`）
 
-- **Postgres adapter（2C）**：**仅为 stub** — 设 `CHATFLOW_SAAS_DB_DRIVER=postgres` 时 **任何 DB 调用即抛** `postgres_adapter_not_implemented`；**未**接 `pg`、**无** migration、**无** CI Postgres runtime — **勿当可跑生产后端**。  
+- **Migration 机制（2D）**：**registry + inspect CLI 已有**，但 **`saas_schema_migrations` 表未建**、**无 migrate apply**、**无** 与真实 DB 的 checksum/审计 — **勿误以为迁移已可上线执行**。  
+- **Postgres adapter（2C）**：**仅为 stub** — 设 `CHATFLOW_SAAS_DB_DRIVER=postgres` 时 **任何 DB 调用即抛** `postgres_adapter_not_implemented`；**未**接 `pg`、**无** CI Postgres runtime — **勿当可跑生产后端**。  
 - **adapter 过渡期（2B+）**：**repository 双路径** — principals/audit 走 **`SaaSDbAdapter`**，其余表仍 **`getSaaSDatabase` + stmt**；新增功能若接错路径易出现 **持久化语义不一致**（忘记 `persistIfNeeded` / 混用连接）— **扩表时必须跟 adapter 模式或显式文档例外**。  
 - **数据迁移 / 一致性**：单文件 SQLite（sql.js）→ 托管 Postgres 需 **显式导出/导入或双写窗口**；多租户表外键与索引需 **一次性校验**，避免部分表成功导致 **orphan** 或 **unique 冲突**。  
 - **回滚**：若生产已切 Postgres 而应用回滚到仅 sql.js 版本，**数据分叉** — 需 **迁移前快照**、**可重复迁移脚本**、**环境变量明确 backend**（避免静默写错库）。  

@@ -1,7 +1,16 @@
 # ADR — Phase 24 / 包 2A — Postgres + migration（仅决策，无实现）
 
 > **状态**：Accepted（**2A = ADR 文档**；**不**含 Postgres runtime、**不**改 sql.js live 路径、**不**动租户 webhook / 现有 auth 实现）。  
-> **真源**：`package.json` **1.7.78+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。
+> **真源**：`package.json` **1.7.79+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。
+
+---
+
+## Phase 24 — 包 2D ✅（migration ledger + bootstrap dry-run CLI）
+
+- **代码**：`src/saas/db-migrations/*` — **`SaasDbMigrationDef`** 注册表（**代码真源**）、**`buildSaasDbMigrationPlan()`**（`status` 仅 CLI 计算 **`pending_no_ledger`**）、未来落库表名常量 **`saas_schema_migrations`**（**本阶段不创建、不写入**）。  
+- **CLI**：`npm run saas:db:migration:plan`（JSON/text 计划）、`npm run saas:db:migration:bootstrap`（**dry-run 摘要**，明示 **postgres 执行未接线** / **ledger 未持久化**）。  
+- **禁止**：本包 **不**执行 SQL、**不**引入 `pg`、**不**切默认 driver。  
+- **验证**：`npm run verify:saas-db-migration-ledger`。
 
 ---
 
@@ -131,7 +140,8 @@ SaaS 控制面与租户元数据当前落在 **sql.js 内存 SQLite + 单文件�
 |----|-----------|
 | **2B** ✅ | **SaaSDbAdapter** + **SqlJsSaaSDbAdapter**；principals/audit 经 **`getSaasDbAdapter()`**；默认 sql.js。 |
 | **2C**（已落地 **stub + selection**） | **`PostgresSaaSDbAdapter`**（抛 **`postgres_adapter_not_implemented`**）+ **`CHATFLOW_SAAS_DB_DRIVER`** + **`getSaaSDbDriver()`**；**无 `pg`**、**未**切默认 driver。 |
-| **2C+（后续）** | 真实 **`pg`**、**repository 全量**、**migration CLI**、**CI Postgres**、连接池与运维文档。 |
+| **2D** ✅ | **`src/saas/db-migrations/*`** 注册表 + **`buildSaasDbMigrationPlan`** + **`saas:db:migration:plan` / `bootstrap`**（dry-run）；**`saas_schema_migrations`** 仅常量、**未** DDL 执行。 |
+| **后续（执行线）** | 真实 **`pg`**、**migration apply**、**ledger 落库**、**repository 全量**、**CI Postgres**、连接池与运维文档。 |
 
 ---
 
