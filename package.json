@@ -41,6 +41,7 @@
     "verify:saas-db-postgres-probe-gate": "node scripts/verify-saas-db-postgres-probe-gate.mjs",
     "verify:saas-db-postgres-go-no-go": "node scripts/verify-saas-db-postgres-go-no-go.mjs",
     "verify:postgres-pool-runtime-wire": "node scripts/verify-postgres-pool-runtime-wire.mjs",
+    "verify:postgres-runtime-wired-controlled-integration": "node scripts/verify-postgres-runtime-wired-controlled-integration.mjs",
     "verify:postgres-ledger-persistence": "node scripts/verify-postgres-ledger-persistence.mjs",
     "verify:tenant-settings-read-path": "node scripts/verify-tenant-settings-read-path.mjs",
     "saas:db:migration:plan": "node scripts/saas-db-migration-plan.mjs",

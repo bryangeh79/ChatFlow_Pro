@@ -6,6 +6,7 @@
 - **本轮 git**：以 `git log origin/main` 为准。  
 - **新风险（tenant_settings 只读 adapter 化）**：repository 过渡期双路径仍在；若后续误把写路径与此读路径混改，可能引入 sqljs/pg 语义不一致。当前已锁定为单函数只读改动。  
 - **新风险（runtime_wired 窄硬门禁）**：受控前置判定若定义不严谨，可能出现误 hard fail 或误 skip；本刀已约束为“前置满足才硬失败，前置不足只 skip”。  
+- **新风险（受控实测脚本）**：若将专用实测脚本误挂入默认链，可能影响无 PG 环境稳定性；本刀已隔离为显式命令触发。  
 - **新发现风险（本轮）**：**Postgres 迁移线**见下节「Phase 24 — Postgres 迁移线（2A+）」；其余见 **Phase 24 预期风险**。  
 - **已知边界**：**冻结（MVP）** — `docs/175` + `memory/04` §「Known SaaS MVP boundaries」；**待后续（v1）** — 凭证 KMS、多实例 store、**sql.js→Postgres（2B/2C）**。  
 - **勿再当 backlog**：非主链路 channel send / handoff suppress（Phase 23 已审计 **covered**）。

@@ -11,6 +11,7 @@
 - **下一阶段建议**（24 拆包）：① 租户认证/RBAC ② Postgres 线余下（**controlled reachability stabilization 已交付**；下一建议最小切口：**repository 某一极小路径 PG 化**；**未开工**）③ 多实例 session/store ④ 凭证 KMS/轮换/审计。  
 - **本轮落地（最小切口）**：`tenant_settings` 单一只读入口已 adapter 化（仅 `getTenantSettingsJson`）；坏 JSON / 非对象 / 缺失仍兜底 `{}`；默认 live 路径仍 `sqljs`，整体 go/no-go 仍按完整门禁为 `NO_GO`。  
 - **本轮校准（窄硬门禁）**：受控 PG 分支下，当前置满足时 `postgres_client_runtime_wired` 必须达成；未达成按 hard fail，前置不足维持 skip。  
+- **本轮补强（受控实测）**：新增专用实测脚本覆盖 `controlled_runtime_wired_ok/hard_fail`；默认 verify 链与 CI 默认链保持不变。  
 - **新发现风险**：本轮无新增 P0；24 将引入 **规模/合规/运维复杂度**，需按包写风险条目入 **`memory/04`**。  
 - **已知边界**：**冻结** — idle GET 200（A）、hub verify 租户 token、`faq.fallback_enabled` partial、slug/idle 信息面。**待 24** — 明文凭证、内存 session、sql.js。
 

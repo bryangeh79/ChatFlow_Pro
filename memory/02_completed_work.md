@@ -1,5 +1,14 @@
 # Completed Work
 
+## Phase 24 — controlled runtime_wired integration verify ✅
+
+**名称**：`Phase 24 / controlled runtime_wired integration verify` — **非** Postgres ready、**非** `go` 已达成。  
+**交付摘要**：新增专用受控实测脚本 `verify:postgres-runtime-wired-controlled-integration`，覆盖 `controlled_runtime_wired_ok` 与 `controlled_runtime_wired_hard_fail` 分支，并保留前置不足 `skip`。  
+**链路边界**：该脚本为可选验证路径，**不属于默认** `verify:saas-db-postgres-go-no-go` / CI 默认链；默认链稳定性未受影响。  
+**默认路径**：默认 live SaaS DB 仍为 sqljs。  
+
+---
+
 ## Phase 24 — runtime_wired hard gate calibration ✅
 
 **名称**：`Phase 24 / controlled runtime_wired hard gate calibration` — **非** Postgres ready、**非** `go` 已达成。  
