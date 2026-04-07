@@ -1,5 +1,14 @@
 # Completed Work
 
+## Phase 25 — tenant credential entrypoint boundary sealed ✅
+
+**名称**：`Phase 25 / tenant credential entrypoint boundary`。  
+**交付摘要**：完成凭据读取分流；`getTenantCredentials()` 收敛为兼容壳（委托 outbound 入口）；`repository.ts` 补入口职责文档与弃用标注；新增并接入 `verify:tenant-credentials-entrypoint-boundary`。  
+**验证结果**：`npm run build`、`npm run verify:tenant-credentials-entrypoint-boundary`、`npm run verify:saas-db-postgres-go-no-go` 全部通过。  
+**边界口径**：默认 live 路径仍为 sqljs，整体 go/no-go 仍为 `NO_GO`。  
+
+---
+
 ## Phase 25 — first minimal repository read-path slice ✅
 
 **名称**：`Phase 25 / listTenants read-path adapterization`。  

@@ -7,7 +7,7 @@ import {
   sendWebhookGetVerifyResponse,
   verifyMetaStyleWebhookGet,
 } from '../config/webhook-verify';
-import { getTenantBySlug, getTenantCredentials, loadTenantFaqEntries } from './repository';
+import { getTenantBySlugForWebhook, getTenantCredentialsForWebhook, loadTenantFaqEntries } from './repository';
 import { loadTenantRuntimeSettingsForTenantRequest } from './tenant-runtime-settings';
 import { matchTenantWebhookPath } from './webhook-path';
 import { runWithTenantContext } from './tenant-context';
@@ -79,7 +79,7 @@ async function getTenantWebhookVerifyTokenOnly(
   tenantId: string,
   credentialKey: string,
 ): Promise<string | undefined> {
-  const creds = await getTenantCredentials(tenantId);
+  const creds = await getTenantCredentialsForWebhook(tenantId);
   return creds.get(credentialKey)?.trim() || undefined;
 }
 
@@ -152,7 +152,7 @@ export async function tryHandleTenantWebhook(args: {
   const m = matchTenantWebhookPath(args.pathname);
   if (!m) return false;
 
-  const tenant = await getTenantBySlug(m.slug);
+  const tenant = await getTenantBySlugForWebhook(m.slug);
   if (!tenant) {
     args.res.writeHead(404, { 'content-type': 'application/json' });
     args.res.end(JSON.stringify({ ok: false, error: 'tenant_not_found' }));

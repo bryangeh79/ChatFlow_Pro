@@ -44,9 +44,26 @@ function stmtGet(
   return row;
 }
 
+/**
+ * Admin-facing tenant lookup entrypoint.
+ * Webhook path should use getTenantBySlugForWebhook() to keep boundary explicit.
+ */
 export async function getTenantBySlug(slug: string): Promise<TenantRow | null> {
-  const db = await getSaaSDatabase();
-  const row = stmtGet(db, 'SELECT id, slug, name, created_at FROM tenants WHERE slug = ?', [slug]);
+  const adapter = await getSaasDbAdapter();
+  const row = await adapter.queryOne('SELECT id, slug, name, created_at FROM tenants WHERE slug = ?', [slug]);
+  if (!row) return null;
+  return {
+    id: String(row.id),
+    slug: String(row.slug),
+    name: String(row.name),
+    created_at: String(row.created_at),
+  };
+}
+
+/** Webhook-only tenant slug lookup entrypoint (decoupled from admin path). */
+export async function getTenantBySlugForWebhook(slug: string): Promise<TenantRow | null> {
+  const adapter = await getSaasDbAdapter();
+  const row = await adapter.queryOne('SELECT id, slug, name, created_at FROM tenants WHERE slug = ?', [slug]);
   if (!row) return null;
   return {
     id: String(row.id),
@@ -57,14 +74,14 @@ export async function getTenantBySlug(slug: string): Promise<TenantRow | null> {
 }
 
 export async function createTenant(slug: string, name: string): Promise<TenantRow> {
-  const db = await getSaaSDatabase();
+  const adapter = await getSaasDbAdapter();
   const id = randomUUID();
-  db.run('INSERT INTO tenants (id, slug, name) VALUES (?, ?, ?)', [id, slug, name]);
-  db.run(
+  await adapter.execute('INSERT INTO tenants (id, slug, name) VALUES (?, ?, ?)', [id, slug, name]);
+  await adapter.execute(
     'INSERT OR REPLACE INTO tenant_settings (tenant_id, settings_json, updated_at) VALUES (?, ?, datetime(\'now\'))',
     [id, '{}'],
   );
-  persistSaaSDatabase();
+  await adapter.persistIfNeeded();
   const row = await getTenantBySlug(slug);
   if (!row) throw new Error('tenant_create_failed');
   return row;
@@ -84,8 +101,30 @@ export async function listTenants(): Promise<TenantRow[]> {
   }));
 }
 
-/** Returns credential map (keys are env-style names, e.g. TELEGRAM_BOT_TOKEN). */
+/**
+ * Compatibility shim: keep for legacy callers.
+ * New call sites should use getTenantCredentialsForWebhook/getTenantCredentialsForOutbound explicitly.
+ * @deprecated Prefer explicit entrypoints by chain (webhook or outbound).
+ */
 export async function getTenantCredentials(tenantId: string): Promise<Map<string, string>> {
+  return getTenantCredentialsForOutbound(tenantId);
+}
+
+/** Webhook verify/signature credential lookup entrypoint. */
+export async function getTenantCredentialsForWebhook(tenantId: string): Promise<Map<string, string>> {
+  const db = await getSaaSDatabase();
+  const rows = stmtAll(db, 'SELECT key, value FROM tenant_credentials WHERE tenant_id = ?', [
+    tenantId,
+  ]);
+  const m = new Map<string, string>();
+  for (const r of rows) {
+    m.set(String(r.key), String(r.value));
+  }
+  return m;
+}
+
+/** Outbound channel send-config credential lookup entrypoint. */
+export async function getTenantCredentialsForOutbound(tenantId: string): Promise<Map<string, string>> {
   const db = await getSaaSDatabase();
   const rows = stmtAll(db, 'SELECT key, value FROM tenant_credentials WHERE tenant_id = ?', [
     tenantId,
@@ -497,11 +536,11 @@ export async function mergeTenantSettings(
 ): Promise<void> {
   const current = await getTenantSettingsJson(tenantId);
   const next = { ...current, ...patch };
-  const db = await getSaaSDatabase();
-  db.run(
+  const adapter = await getSaasDbAdapter();
+  await adapter.execute(
     `INSERT OR REPLACE INTO tenant_settings (tenant_id, settings_json, updated_at)
      VALUES (?, ?, datetime('now'))`,
     [tenantId, JSON.stringify(next)],
   );
-  persistSaaSDatabase();
+  await adapter.persistIfNeeded();
 }

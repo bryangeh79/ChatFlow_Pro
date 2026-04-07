@@ -1,5 +1,11 @@
 # Project Status
 
+## Phase 25 收口提交（本组）
+
+- 收口目标：凭据读取分流、`getTenantCredentials()` 兼容壳收敛、`repository.ts` 入口职责文档化/弃用标注、`verify:tenant-credentials-entrypoint-boundary`。
+- 本组状态：已完成并通过最小验证（`build`、`verify:tenant-credentials-entrypoint-boundary`、`verify:saas-db-postgres-go-no-go`）。
+- 版本保持：`1.7.90 / Pro_v1.07.90`（未升 patch）。
+
 ## 战报固化（2026-04-07 — 下一聊天室）
 
 | 项 | 值 |

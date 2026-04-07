@@ -1,5 +1,11 @@
 # Handoff for New Chat（下一聊天室可直接接手）
 
+## Phase 25 本组已收口（最小同步）
+
+- 已完成并待沿主线继续：tenant credential entrypoint boundary（凭据读取分流、`getTenantCredentials()` 兼容壳收敛、`repository.ts` 入口职责文档化/弃用标注、`verify:tenant-credentials-entrypoint-boundary`）。
+- 最小验证均通过：`npm run build`、`npm run verify:tenant-credentials-entrypoint-boundary`、`npm run verify:saas-db-postgres-go-no-go`。
+- 版本口径不变：`1.7.90 / Pro_v1.07.90`；整体 go/no-go 口径仍 `NO_GO`。
+
 > **先读**：`memory/01_project_status.md`（真源）→ 本文件 → `memory/03_next_phase_plan.md`（Phase 24 节）→ **`docs/175_pro_saas_multitenant_mvp.md`** → **`docs/179_phase24_multi_instance_session_store_adr.md`**（多实例 session/store 决策）。
 
 ---

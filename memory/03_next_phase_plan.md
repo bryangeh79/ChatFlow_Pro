@@ -1,5 +1,12 @@
 # Next Phase Plan
 
+## Phase 25 本组收口（不扩新切口）
+
+- 本组已收口：tenant credential entrypoint boundary（分流 + 兼容壳 + repository 入口职责标注 + verify 脚本）。
+- 当前版本：`1.7.90 / Pro_v1.07.90`。
+- 当前门禁：`verify:saas-db-postgres-go-no-go` 通过，整体判定口径仍为 `NO_GO`。
+- 下一步仅一项：按既定主线继续推进 Postgres 执行线的最小剩余切口（不并行扩面）。
+
 ## 战报顶栏（2026-04-07 — 下一聊天室）
 
 - **版本**：`package.json` **1.7.90**（**Pro_v1.07.90**）— Phase 24：**3A ✅**；**3B ✅**；**3C ✅** — **`event_type` + `idempotency_key` 契约**（`docs/179` §9、`verify:phase24-3c-jsonl-notify-contract`），**仍** at-least-once / **非** MI-ready。**Postgres 线**：共享 **Pool** + **`PostgresSaaSDbAdapter`** + **`saas_schema_migrations` 真实 ledger** + **migration execution wired**（apply 真实执行；**`execution_wired`** 基于 runtime+ledger+assets）；**默认 sqljs 不变**；**`evaluatePostgresGoNoGo()` 仍为 `NO_GO`**。SaaS MVP 仍 **sealed**。  
