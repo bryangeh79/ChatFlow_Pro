@@ -15,6 +15,8 @@ export interface HandoffNotifyPayload {
   assign_reason?: string;
   online_agents_count?: number;
   assignment_log_id?: string;
+  /** Phase 24 / 3C — deterministic key for downstream at-least-once consumers. */
+  idempotency_key: string;
 }
 
 /**

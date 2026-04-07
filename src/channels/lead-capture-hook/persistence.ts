@@ -4,6 +4,10 @@ import * as path from 'path';
 import { scheduleLeadCaptureNotify } from './notify-outbound';
 import type { CapturedLeadRecord } from './captured-lead-record';
 import { appendJsonlRecord } from '../../shared/jsonl-persistence';
+import {
+  buildLeadCapturedIdempotencyKey,
+  LEAD_CAPTURED_EVENT_TYPE,
+} from '../../shared/outbound-idempotency';
 
 export type { CapturedLeadRecord } from './captured-lead-record';
 
@@ -22,6 +26,7 @@ export function appendCapturedLeadRecord(
     const filePath = path.join(dataDir, 'local-captured-leads.jsonl');
     
     const record: CapturedLeadRecord = {
+      event_type: LEAD_CAPTURED_EVENT_TYPE,
       session_id: session.session_id,
       channel: session.channel,
       collected_fields: session.lead_capture_state.collected_fields || {},
@@ -30,6 +35,11 @@ export function appendCapturedLeadRecord(
       captured_at: new Date().toISOString(),
       request_id: traceContext?.request_id || undefined,
       message_trace_id: traceContext?.message_trace_id || undefined,
+      idempotency_key: buildLeadCapturedIdempotencyKey({
+        sessionId: session.session_id,
+        requestId: traceContext?.request_id,
+        messageId: message.message_id,
+      }),
     };
 
     // 使用共享的 JSONL 持久化工具

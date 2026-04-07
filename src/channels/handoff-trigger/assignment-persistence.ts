@@ -5,6 +5,10 @@
 import * as path from 'path';
 import type { HandoffAssignmentRecord } from './assignment-record';
 import { appendJsonlRecord } from '../../shared/jsonl-persistence';
+import {
+  buildHandoffAssignmentIdempotencyKey,
+  HANDOFF_ASSIGNMENT_LOGGED_EVENT_TYPE,
+} from '../../shared/outbound-idempotency';
 
 /**
  * Generate a short assignment log ID
@@ -33,6 +37,7 @@ function simpleStringHash(str: string): number {
  * Append handoff assignment record to JSONL file
  * Only appends when it's a new assignment (assign_reason !== 'none')
  * Idempotent: won't duplicate records for same session
+ * @returns `assignment_log_id` when a row was appended; otherwise `undefined`
  */
 export function appendHandoffAssignmentRecord(
   sessionId: string,
@@ -43,17 +48,19 @@ export function appendHandoffAssignmentRecord(
   requestId?: string,
   tagHits?: string[],
   onlineAgentsCount?: number,
-): void {
+): string | undefined {
   try {
     // Only log actual assignments, not "none" reasons
     if (assignReason === 'none' || !assignedOwnerId) {
-      return;
+      return undefined;
     }
     
     const dataDir = path.join(process.cwd(), 'data');
     const filePath = path.join(dataDir, 'handoff-assignments.jsonl');
-    
+
+    const assignmentLogId = generateAssignmentLogId(sessionId);
     const record: HandoffAssignmentRecord = {
+      event_type: HANDOFF_ASSIGNMENT_LOGGED_EVENT_TYPE,
       ts_iso: new Date().toISOString(),
       session_id: sessionId,
       channel,
@@ -63,7 +70,8 @@ export function appendHandoffAssignmentRecord(
       request_id: requestId || undefined,
       tag_hits: tagHits?.length ? tagHits : undefined,
       online_agents_count: onlineAgentsCount,
-      assignment_log_id: generateAssignmentLogId(sessionId),
+      assignment_log_id: assignmentLogId,
+      idempotency_key: buildHandoffAssignmentIdempotencyKey(assignmentLogId),
     };
 
     // Use shared JSONL persistence utility
@@ -73,9 +81,11 @@ export function appendHandoffAssignmentRecord(
     if (process.env.NODE_ENV === 'development') {
       console.debug(`[HandoffAssignment] Record appended: ${sessionId} -> ${assignedOwnerId}`);
     }
+    return assignmentLogId;
   } catch (error) {
     // Silent failure, doesn't affect main flow
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`[HandoffAssignment] Failed to append record: ${errorMessage}`);
+    return undefined;
   }
 }

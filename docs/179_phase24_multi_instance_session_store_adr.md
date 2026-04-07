@@ -130,11 +130,38 @@
 
 ---
 
-## 9. 幂等与 `request_id`
+## 9. 幂等与 `request_id`（Phase 24 / **包 3C** 已落地字段）
 
-- **已有字段**：`CapturedLeadRecord` / handoff notify payload 可带 **`request_id`**（来自 HTTP **`X-Request-Id`** 链路）。  
-- **建议契约**：下游将 **`(tenant_id, session_id, event_type, request_id)`** 或 **`message_id`**（若稳定）作为 **幂等键**；**至少一次** POST **必须** 可安全重放。  
-- **JSONL**：行级 **uuid** 或 **确定性 hash** 可在 3B 引入，**3A 仅提议**。
+**语义（不变）**：Lead / Handoff HTTP notify 仍为 **fire-and-forget**、**at-least-once**；**不** 因本包声称 **multi-instance safe** 或消除重复投递。下游应 **可选** 使用下列字段做去重。
+
+### 9.1 `event_type`（JSONL 行 / 与 notify 对齐）
+
+| 载体 | 字段名 | 固定值 |
+|------|--------|--------|
+| Lead JSONL + lead notify body（同源） | `event_type` | **`lead_captured`** |
+| Handoff HTTP notify | `event`（沿用既有字段） | **`handoff_pending`** |
+| Handoff assignment JSONL | `event_type` | **`handoff_assignment_logged`** |
+
+### 9.2 `idempotency_key`（单点实现：`src/shared/outbound-idempotency.ts`）
+
+- **Lead**（JSONL 与 `CHATFLOW_LEAD_NOTIFY_URL` POST body 一致）：  
+  `lead_captured:<session_id>:(request_id ?? message_id ?? no_http_request_id)`  
+  - 常量 **`no_http_request_id`**：当 **`request_id` 与 `message_id` 皆缺** 时使用 — **弱幂等**，仅保证契约可读。
+- **Handoff notify**（`CHATFLOW_HANDOFF_NOTIFY_URL` POST body）：  
+  `handoff_pending:<session_id>:(request_id ?? no_http_request_id)`  
+  - **不** 在本包强行透传 `tenant_id`；多租户边界仍由既有 session / 部署模型决定。
+- **Handoff assignment JSONL**（`data/handoff-assignments.jsonl`）：  
+  `handoff_assignment:<assignment_log_id>`  
+  - `assignment_log_id` 为该行生成之短 ID，与 **同轮** notify 的 `assignment_log_id` 对齐（当本轮确有 JSONL 落盘时）。
+
+### 9.3 `request_id`
+
+- 仍来自 HTTP **`X-Request-Id`** → `traceContext.request_id`（与 Phase 16 链路一致）。  
+- **缺失时**：Lead 可回落到 `message_id`；再缺则落入 **`no_http_request_id`**（见上）。
+
+### 9.4 验证
+
+- `npm run build` 后：`npm run verify:phase24-3c-jsonl-notify-contract`（锁公式与边界，无外部端口）。
 
 ---
 

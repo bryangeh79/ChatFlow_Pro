@@ -2,7 +2,7 @@
 
 ## 战报顶栏（2026-04-07）
 
-- **版本 / Phase**：**1.7.90**；**Phase 24** — **仍 `no_go`**；**3A ✅** **`docs/179`**；**3B** — **`SessionStore` 抽象已落地**，**后端仍仅 in-memory**（**非**多实例 / **无** Redis）；**下一 3C** JSONL-notify；**Phase 23 / SaaS MVP 主线已关闭**。  
+- **版本 / Phase**：**1.7.90**；**Phase 24** — **仍 `no_go`**；**3A ✅** **`docs/179`**；**3B** — **`SessionStore` 抽象**，**in-memory**；**3C ✅** — JSONL/notify **`idempotency_key` 契约**（**不**消除重复 POST、**非** MI-safe）；**Phase 23 / SaaS MVP 主线已关闭**。  
 - **本轮 git**：以 `git log origin/main` 为准。  
 - **新发现风险（本轮）**：**Postgres 迁移线**见下节「Phase 24 — Postgres 迁移线（2A+）」；其余见 **Phase 24 预期风险**。  
 - **已知边界**：**冻结（MVP）** — `docs/175` + `memory/04` §「Known SaaS MVP boundaries」；**待后续（v1）** — 凭证 KMS、多实例 store、**sql.js→Postgres（2B/2C）**。  
@@ -28,7 +28,7 @@
 
 - **3A（ADR）**：已固定 **单实例假设清单**、**sticky vs 外置 store**、**JSONL 单写者边界**、**notify 幂等 / `request_id`**、**3B/3C 分包**；**无代码行为变更**。  
 - **3B（session store 抽象）**：**`SessionStore` + `getSessionStore()`** — **默认单例 in-memory**；**行为与 3B 前一致**；**`external_stub` 仅类型预留**；**仍非** 多实例安全。  
-- **Session**：`InMemorySessionStore` **非** 多副本安全；**生产多实例** 须 **外置 store（如 Redis，3C+）** 或 **严格 sticky + 书面风险**（**过渡**）。  
+- **Session**：`InMemorySessionStore` **非** 多副本安全；**生产多实例** 须 **外置 store（如 Redis，后续包）** 或 **严格 sticky + 书面风险**（**过渡**）。**3C** 仅 JSONL/notify **契约**，**不** 含 Redis。  
 - **JSONL**：`data/*.jsonl` **同步 append** — 多 writer **损坏/交错**；**勿** 默认假设 NFS 多机安全。  
 - **Notify**：lead/handoff HTTP POST **至少一次** — 下游 **必须** 幂等；**双副本** 可能 **重复发**。  
 - **assignmentTracker**：进程内 — 多实例 **分配统计不一致**。  

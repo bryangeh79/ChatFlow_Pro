@@ -20,6 +20,7 @@ import { emitLeadCaptured, emitQualificationTagsUpdated } from '../conversation-
 import { determineOwnerAssignment } from '../handoff-trigger/assign';
 import { appendHandoffAssignmentRecord } from '../handoff-trigger/assignment-persistence';
 import type { TenantRuntimeSettings } from '../../saas/tenant-runtime-settings';
+import { buildHandoffPendingNotifyIdempotencyKey } from '../../shared/outbound-idempotency';
 
 export interface PipelineOptions {
   traceContext?: {
@@ -203,10 +204,11 @@ export function runUnifiedInboundPipeline(
   ) {
     const hs = sessionAfterHandoffCheck.handoff_state;
     
-    // 记录分配历史（如果发生了新分配）
+    // 记录分配历史（如果发生了新分配）；返回值与 JSONL 行 assignment_log_id 对齐供 notify
+    let assignmentLogIdFromJsonl: string | undefined;
     if (assignment.assign_reason !== 'none' && assignment.assigned_owner_id) {
       const tagHits = sessionAfterHandoffCheck.metadata?.qualification_tags as string[] || [];
-      appendHandoffAssignmentRecord(
+      assignmentLogIdFromJsonl = appendHandoffAssignmentRecord(
         sessionAfterHandoffCheck.session_id,
         sessionAfterHandoffCheck.channel,
         assignment.assigned_owner_id,
@@ -217,7 +219,7 @@ export function runUnifiedInboundPipeline(
         assignment.online_agents?.length
       );
     }
-    
+
     scheduleHandoffNotify({
       event: 'handoff_pending',
       session_id: sessionAfterHandoffCheck.session_id,
@@ -231,9 +233,15 @@ export function runUnifiedInboundPipeline(
       assigned_owner_id: hs.assigned_owner_id ?? undefined,
       assign_reason: assignment.assign_reason,
       online_agents_count: assignment.online_agents?.length,
-      assignment_log_id: assignment.assign_reason !== 'none' ? 
-        `${Date.now().toString(36).slice(-6)}-${simpleStringHash(sessionAfterHandoffCheck.session_id).toString(36).slice(-6)}` : 
-        undefined,
+      assignment_log_id:
+        assignmentLogIdFromJsonl ??
+        (assignment.assign_reason !== 'none'
+          ? `${Date.now().toString(36).slice(-6)}-${simpleStringHash(sessionAfterHandoffCheck.session_id).toString(36).slice(-6)}`
+          : undefined),
+      idempotency_key: buildHandoffPendingNotifyIdempotencyKey({
+        sessionId: sessionAfterHandoffCheck.session_id,
+        requestId: options?.traceContext?.request_id,
+      }),
     });
   }
   

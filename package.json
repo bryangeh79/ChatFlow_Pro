@@ -9,6 +9,7 @@
     "smoke:webhooks": "node scripts/smoke-webhooks.mjs",
     "verify:lead-capture-states": "node scripts/verify-lead-capture-states.mjs",
     "verify:session-store-abstraction": "node scripts/verify-session-store-abstraction.mjs",
+    "verify:phase24-3c-jsonl-notify-contract": "node scripts/verify-phase24-3c-jsonl-notify-contract.mjs",
     "verify:saas-handoff-disabled": "node scripts/verify-saas-handoff-disabled.mjs",
     "verify:saas-notify-disabled": "node scripts/verify-saas-notify-disabled.mjs",
     "verify:saas-lead-capture-disabled": "node scripts/verify-saas-lead-capture-disabled.mjs",
