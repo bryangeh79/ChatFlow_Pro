@@ -1,5 +1,14 @@
 # Completed Work
 
+## Phase 24 — Postgres saas_schema_migrations ledger persistence ✅
+
+**名称**：`Phase 24 / Postgres ledger persistence` — **非** Postgres ready、**非** `go` 已达成。  
+**交付摘要**：`SaasMigrationLedgerProvider` async 化；新增 **`PostgresSaasMigrationLedger`**（参数化 `list/record`，checksum 冲突抛错）；新增 DDL 资产 **`pg_0003_saas_schema_migrations.sql`** 并入 registry；`ledger_persistence_wired` 在 postgres+gate+runtime_wired 且 ledger 表可读时可前进一步。**默认 live SaaS DB 仍为 sqljs**，**空表/可读 ≠ migration 已应用**。  
+**明确不是**：migration apply 真执行、repository 扩面、整体 `evaluatePostgresGoNoGo()` 转 go — **仍为 `NO_GO`**。  
+**提交**：`feat(saas-db): Postgres saas_schema_migrations ledger persistence`（**`22ffc2d`**，以 `git log origin/main` 为准）。
+
+---
+
 ## Phase 24 — Postgres runtime 底座切片 ✅ shared Pool + adapter 最小接线
 
 **名称**：`Phase 24 / Postgres runtime 底座` — **非** Postgres ready、**非** `go` 已达成。  
@@ -32,7 +41,7 @@
 
 **名称**：`Phase 24 / Postgres Foundation checkpoint`  
 **交付摘要**：**2A–2M** — Postgres+migration **ADR**（`docs/177`）；**SaaSDbAdapter** 选择 + **SqlJs** 实现 + **Postgres stub**；**db-migrations** registry、**postgres/*.sql**、checksum、**execution contract**、**fake ledger**；**client gate + 动态 `pg` loader**；**connection config**；**optional TCP probe**；**go/no-go**（`postgres-readiness-boundary.ts` + CLI + verify）。  
-**明确未完成（相对「可投产 Postgres」）**：**ledger 落库**、**migration apply**、**repository 全量 postgres**、**整体门禁转 go** — **`evaluatePostgresGoNoGo()` 仍为 `no_go`**。**底座切片**：共享 Pool + adapter 最小接线 ✅（见上节）。  
+**明确未完成（相对「可投产 Postgres」）**：**migration apply**、**repository 全量 postgres**、**整体门禁转 go** — **`evaluatePostgresGoNoGo()` 仍为 `no_go`**。**底座切片** + **ledger persistence** 已交付 ✅（见上节）。  
 **与 `docs/179` 衔接**：**3A ✅** ADR；**3B ✅**；**3C ✅**；**live 仍非 MI-ready**；**下一**：**Postgres 执行线余下切口**（**`go/no-go` 仍为 `no_go`**）。  
 **封板提交**：`chore(phase-24): seal postgres foundation checkpoint`（以 `git log` 为准）。
 

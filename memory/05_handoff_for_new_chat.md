@@ -6,7 +6,7 @@
 
 ## 1. 当前项目一句话状态
 
-**ChatFlow Pro**：七通道统一入站 + 出站、Legacy `/webhooks/:channel` 与 **多租户** `/webhooks/t/:slug/:channel` 并存；**多租户 SaaS MVP 已封板**（Phase 23 关闭），`package.json` **1.7.90**（以仓库为准）。**Phase 24**：**Postgres Foundation checkpoint 已封**；**Postgres runtime 底座切片** ✅ — **shared `pg` Pool** + **`PostgresSaaSDbAdapter` 最小真实 query/execute**（**`postgres_client_runtime_wired`** 仅 gate+合法配置+只读探测成功）；**≠ Postgres ready**，**整体 `evaluatePostgresGoNoGo()` 仍为 `NO_GO`**。**默认 SaaS DB live 路径仍为 sqljs**（**未**切换 Postgres）；session **仍 in-memory**；**3A–3C** 同上。**未** 开工 Redis/外置队列。下一：**Postgres 执行线余下切口**（`docs/177`，**三选一最小片**，见指挥官排期）。
+**ChatFlow Pro**：七通道统一入站 + 出站、Legacy `/webhooks/:channel` 与 **多租户** `/webhooks/t/:slug/:channel` 并存；**多租户 SaaS MVP 已封板**（Phase 23 关闭），`package.json` **1.7.90**（以仓库为准）。**Phase 24**：**Postgres Foundation checkpoint 已封**；**Postgres runtime 底座切片** ✅；**Postgres `saas_schema_migrations` ledger persistence** ✅（`ledger_persistence_wired` 在 postgres+gate+runtime_wired 且表可读时可前进一步；**空表/可读 ≠ migration 已应用**）。**≠ Postgres ready**，**整体 `evaluatePostgresGoNoGo()` 仍为 `NO_GO`**。**默认 SaaS DB live 路径仍为 sqljs**（**未**切换 Postgres）；session **仍 in-memory**；**3A–3C** 同上。**未** 开工 Redis/外置队列。下一：**Postgres 执行线余下切口**（`docs/177`，仅建议，未开工）。
 
 ---
 
@@ -25,9 +25,10 @@
 1. **Phase 24 / Auth-RBAC Foundation（1A–1J）** — **子里程碑已封**（`docs/176` + `verify:saas-admin-*`）。  
 2. **Phase 24 / Postgres Foundation（2A–2M）** — **checkpoint 已封**；**`go/no-go` 仍为 `NO_GO`**。  
 3. **Phase 24 / Postgres runtime 底座切片** — **shared Pool + PostgresSaaSDbAdapter 最小接线** ✅（**`0b540f4`**）；**默认仍为 sqljs**；**整体仍为 `NO_GO`**。  
-4. **Phase 24 / 包 3B** — **session store 抽象骨架**（**默认 in-memory**）；**非** MI-ready。  
-5. **Phase 24 / 包 3C** — **JSONL / notify 契约收口**（**仍** at-least-once，**非** MI-ready）。  
-6. 更早：**Phase 23 关闭**、**Phase 24 开 v1 Hardening** — 仍见 `memory/02` 与 `git log`。
+4. **Phase 24 / Postgres ledger persistence** — **`saas_schema_migrations` 持久化** ✅（**`22ffc2d`**）；**空表/可读 ≠ migration 已应用**；**整体仍为 `NO_GO`**。  
+5. **Phase 24 / 包 3B** — **session store 抽象骨架**（**默认 in-memory**）；**非** MI-ready。  
+6. **Phase 24 / 包 3C** — **JSONL / notify 契约收口**（**仍** at-least-once，**非** MI-ready）。  
+7. 更早：**Phase 23 关闭**、**Phase 24 开 v1 Hardening** — 仍见 `memory/02` 与 `git log`。
 
 **Push**：以 **`git log origin/main`** 为准。
 
@@ -35,7 +36,7 @@
 
 ## 4. 下一步唯一优先动作
 
-**Phase 24 — Postgres 执行线**：**Pool + adapter 最小片已落地**（**≠ ready / ≠ go**）；余下按 **`docs/177`** 与 **`npm run saas:db:postgres:go-no-go`**（**仍为 `no_go`**）逐项推进。**3C 已交付**（**`docs/179` §9** + **`verify:phase24-3c-jsonl-notify-contract`**）。**不** 在本优先档并行开 Redis/队列。
+**Phase 24 — Postgres 执行线**：**Pool + adapter + ledger persistence** 已落地（**≠ ready / ≠ go**）；余下按 **`docs/177`** 与 **`npm run saas:db:postgres:go-no-go`**（**仍为 `no_go`**）推进。**下一建议最小切口：migration execution wired（仅建议，未开工）**。**不** 在本优先档并行开 Redis/队列。
 
 **集成注意**：下游若对 lead/handoff **notify body** 做 **严格 JSON schema**，需 **放宽** 以接受 **`event_type` / `idempotency_key`** 等新增字段。
 
