@@ -8,9 +8,9 @@ import {
 import { isPostgresClientEnabled } from './postgres-gate';
 import { getPostgresProbeReadinessSummary, isPostgresProbeEnabled, type PostgresProbeStatus } from './postgres-probe';
 import type { SaaSDbDriver } from './types';
+import { POSTGRES_METADATA_QUERY_NOT_WIRED } from './postgres-metadata-constants';
 
-/** Ledger table metadata query not connected to any database (Phase 24 / 2H). */
-export const POSTGRES_METADATA_QUERY_NOT_WIRED = 'POSTGRES_METADATA_QUERY_NOT_WIRED';
+export { POSTGRES_METADATA_QUERY_NOT_WIRED };
 
 export type PostgresLedgerMetadataStatus = 'not_wired' | 'unknown' | 'ready';
 
@@ -123,16 +123,18 @@ export async function getPostgresExecutionReadiness(): Promise<PostgresExecution
   } else if (driver === 'postgres' && postgres_client_gate_enabled && !postgres_client_module_available) {
     message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: ${POSTGRES_CLIENT_MODULE_NOT_AVAILABLE} — gate=on, driver=postgres, but \`pg\` did not load; fix install; ${POSTGRES_CLIENT_RUNTIME_NOT_WIRED}.`;
   } else if (driver === 'postgres' && postgres_client_gate_enabled && postgres_client_module_available) {
-    message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: ${POSTGRES_CLIENT_RUNTIME_NOT_WIRED} — \`pg\` loads but pool/query adapter not wired (2K: config contract only, no connect).`;
+    message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: ${runtime.message}`;
   } else if (postgres_client_gate_enabled && driver === 'sqljs') {
     message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: gate=on, driver=sqljs — live path stays sql.js; \`pg\` probe=${postgres_client_module_available ? 'ok' : 'unavailable'} (not used for default driver).`;
   } else {
     message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: postgres runner and ledger persistence not wired; contract stub only (postgres client gate off).`;
   }
 
+  const adapter_stub = !(driver === 'postgres' && postgres_client_runtime_wired);
+
   return {
     driver,
-    adapter_stub: true,
+    adapter_stub,
     execution_wired: false,
     ledger_persistence_wired: false,
     sql_assets_present,

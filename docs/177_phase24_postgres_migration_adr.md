@@ -253,5 +253,6 @@ SaaS 控制面与租户元数据当前落在 **sql.js 内存 SQLite + 单文件�
 ## 13. Postgres Foundation checkpoint（叙事已封）
 
 - **范围**：**2A–2M** — ADR、**`SaaSDbAdapter`** 双路径、migration **registry / SQL / checksum / execution contract / fake ledger**、**Postgres client gate + loader**、**connection config**、**optional TCP probe**、**go/no-go boundary + verify**。  
-- **未完成（仍阻塞生产 Postgres）**：**real runtime wiring**、**ledger 落库**、**migration apply**、**repository 全量切 Postgres** — 以 **`npm run saas:db:postgres:go-no-go`** 为准。  
+- **本刀推进（仅 runtime / adapter 能力前移，≠ Postgres ready）**：在 **`CHATFLOW_SAAS_DB_DRIVER=postgres`** + **`CHATFLOW_SAAS_POSTGRES_CLIENT=1`** + **连接配置合法** + **受控只读探测**（参数化 `SELECT 1`）成功时，**单一共享 `pg` Pool** 可创建复用；**`PostgresSaaSDbAdapter`** 具备最小 **query/execute**；**`postgres_client_runtime_wired`** 仅在此条件下为真。**`evaluatePostgresGoNoGo()` 仍应为 `no_go`**，除非 **execution / ledger / repository 等其余硬门槛**也满足 — 见 **`npm run saas:db:postgres:go-no-go`**。  
+- **未完成（仍阻塞生产 Postgres）**：**ledger 落库**、**migration apply**、**repository 全量切 Postgres**、**metadata 真实查询与执行器接线** — 以 **`npm run saas:db:postgres:go-no-go`** 为准。  
 - **与 multi-instance 关系**：先 **`docs/179`** 收口 **session / JSONL / 单写者** 假设，再推进 Postgres runtime，可降低「多副本 + 文件库」组合风险。

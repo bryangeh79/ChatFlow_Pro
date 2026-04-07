@@ -106,6 +106,7 @@ async function main() {
   await runVerifyScript('verify-saas-db-migration-assets.mjs');
   await runVerifyScript('verify-saas-db-migration-execution-contract.mjs');
   await runVerifyScript('verify-saas-db-migration-ledger-contract.mjs');
+  await runVerifyScript('verify-postgres-pool-runtime-wire.mjs');
 
   console.log('verify-saas-db-postgres-readiness: ok');
 }

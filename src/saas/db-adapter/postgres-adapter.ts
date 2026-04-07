@@ -4,10 +4,21 @@ import {
   getPostgresClientGateSummary as resolvePostgresClientGateSummary,
   type PostgresClientGateSummary,
 } from './postgres-gate';
+import { getSharedSaaSPostgresPool } from './postgres-pool';
 import type { DbRow, SaaSDbAdapter } from './types';
+import type { Pool } from 'pg';
 
-/** Thrown by all `PostgresSaaSDbAdapter` methods until a real client is wired (Phase 24+). */
+/** Thrown when shared Pool is unavailable (stub path / probe failed). */
 export const POSTGRES_ADAPTER_NOT_IMPLEMENTED = 'postgres_adapter_not_implemented';
+
+function convertSqlitePlaceholdersToPg(sql: string, params: unknown[]): { text: string; values: unknown[] } {
+  let i = 0;
+  const text = sql.replace(/\?/g, () => `$${++i}`);
+  if (i !== params.length) {
+    throw new Error(`postgres_sql_param_mismatch: expected ${i} ? placeholders, got ${params.length} params`);
+  }
+  return { text, values: params };
+}
 
 export class PostgresSaaSDbAdapter implements SaaSDbAdapter {
   /** Read-only: current `CHATFLOW_SAAS_POSTGRES_CLIENT` gate (no DB I/O). */
@@ -15,33 +26,45 @@ export class PostgresSaaSDbAdapter implements SaaSDbAdapter {
     return resolvePostgresClientGateSummary();
   }
 
-  /** Read-only: dynamic `pg` probe only when gate on (no DB I/O). */
+  /** Read-only: gate + optional Pool / `SELECT 1` summary. */
   getPostgresClientRuntimeSummary(): Promise<PostgresClientRuntimeSummary> {
     return resolvePostgresClientRuntimeSummary();
   }
 
-  private notImplemented(): never {
-    throw new Error(POSTGRES_ADAPTER_NOT_IMPLEMENTED);
+  private async requirePool(): Promise<Pool> {
+    const p = await getSharedSaaSPostgresPool();
+    if (!p) {
+      throw new Error(POSTGRES_ADAPTER_NOT_IMPLEMENTED);
+    }
+    return p;
   }
 
-  async queryOne(_sql: string, _params?: unknown[]): Promise<DbRow | null> {
-    this.notImplemented();
+  async queryOne(sql: string, params: unknown[] = []): Promise<DbRow | null> {
+    const pool = await this.requirePool();
+    const { text, values } = convertSqlitePlaceholdersToPg(sql, params);
+    const res = await pool.query(text, values);
+    return (res.rows[0] as DbRow) ?? null;
   }
 
-  async queryAll(_sql: string, _params?: unknown[]): Promise<DbRow[]> {
-    this.notImplemented();
+  async queryAll(sql: string, params: unknown[] = []): Promise<DbRow[]> {
+    const pool = await this.requirePool();
+    const { text, values } = convertSqlitePlaceholdersToPg(sql, params);
+    const res = await pool.query(text, values);
+    return res.rows as DbRow[];
   }
 
-  async execute(_sql: string, _params?: unknown[]): Promise<void> {
-    this.notImplemented();
+  async execute(sql: string, params: unknown[] = []): Promise<void> {
+    const pool = await this.requirePool();
+    const { text, values } = convertSqlitePlaceholdersToPg(sql, params);
+    await pool.query(text, values);
   }
 
   async persistIfNeeded(): Promise<void> {
-    this.notImplemented();
+    /* Postgres: autocommit per statement; no sql.js file flush. */
   }
 
-  async transaction<T>(_fn: (tx: SaaSDbAdapter) => Promise<T>): Promise<T> {
-    this.notImplemented();
+  async transaction<T>(fn: (tx: SaaSDbAdapter) => Promise<T>): Promise<T> {
+    return fn(this);
   }
 }
 
