@@ -1,7 +1,17 @@
 # ADR — Phase 24 / 包 2A — Postgres + migration（仅决策，无实现）
 
 > **状态**：Accepted（**2A = ADR 文档**；**不**含 Postgres runtime、**不**改 sql.js live 路径、**不**动租户 webhook / 现有 auth 实现）。  
-> **真源**：`package.json` **1.7.81+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。
+> **真源**：`package.json` **1.7.82+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。
+
+---
+
+## Phase 24 — 包 2G ✅（ledger persistence contract + fake harness）
+
+- **契约**：**`ledger-types.ts`**（**`SaasMigrationLedgerRecord`**）、**`ledger-contract.ts`**（**`SaasMigrationLedgerProvider`**：`listAppliedMigrations` / `recordAppliedMigration`）。  
+- **Harness**：**`fake-ledger.ts`** — **`FakeSaasMigrationLedger`** + **`seedFakeLedgerFromMigrationIds`**；**纯内存**、**不落盘**。  
+- **联动**：**`runSaasPostgresMigrations`** 可选 **`ledger`**；**dry_run**：**`already_applied`** / **`would_apply`** / **checksum 不匹配 → `failed`**（**`POSTGRES_LEDGER_CHECKSUM_MISMATCH`**）；**apply** 仍 **`not_wired`**、**不写 ledger**。  
+- **CLI**：**`bootstrap --fake-applied=id,...`**（**fake_ledger_only** 标记）。  
+- **验证**：`npm run verify:saas-db-migration-ledger-contract`。
 
 ---
 
@@ -162,6 +172,7 @@ SaaS 控制面与租户元数据当前落在 **sql.js 内存 SQLite + 单文件�
 | **2D** ✅ | **`src/saas/db-migrations/*`** 注册表 + **`buildSaasDbMigrationPlan`** + **`saas:db:migration:plan` / `bootstrap`**（dry-run）；**`saas_schema_migrations`** 仅常量、**未** DDL 执行。 |
 | **2E** ✅ | **`postgres/*.sql`** 静态 DDL + **registry 绑定** + **SHA-256 checksum**；仍 **无执行**、**无 `pg`**。 |
 | **2F** ✅ | **`runSaasPostgresMigrations`** 契约 + **bootstrap** 接线；**无 SQL**、**无 ledger 写**、**无 `pg`**。 |
+| **2G** ✅ | **Ledger provider 接口** + **fake in-memory**；dry-run **already_applied / would_apply**；**真实 ledger 表仍未接线**。 |
 | **后续（执行线）** | 真实 **`pg`**、**migration apply**、**ledger 落库**、**repository 全量**、**CI Postgres**、连接池与运维文档。 |
 
 ---

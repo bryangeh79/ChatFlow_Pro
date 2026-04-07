@@ -1,10 +1,11 @@
 /**
- * SaaS migration bootstrap — uses **execution contract** (Phase 24 / 2F).
- * Does not connect to Postgres; does not run SQL; does not persist ledger.
+ * SaaS migration bootstrap — **execution contract** + optional **fake ledger** (Phase 24 / 2G).
+ * Does not connect to Postgres; does not run SQL; does not persist a real ledger.
  *
- * Usage: node scripts/saas-db-migration-bootstrap.mjs [--mode=dry-run|apply]
+ * Usage:
+ *   node scripts/saas-db-migration-bootstrap.mjs [--mode=dry-run|apply] [--fake-applied=id1,id2]
  *
- * Marker lines: `saas_migration_bootstrap:*` and contract constants.
+ * `--fake-applied` is **verify/bootstrap only** (in-memory); **not** production persistence.
  */
 
 import { createRequire } from 'node:module';
@@ -25,8 +26,20 @@ function parseMode(argv) {
   process.exit(1);
 }
 
+function parseFakeApplied(argv) {
+  const raw = argv.find((a) => a.startsWith('--fake-applied='));
+  if (!raw) return [];
+  return raw
+    .slice('--fake-applied='.length)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function main() {
-  const mode = parseMode(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  const mode = parseMode(argv);
+  const fakeAppliedIds = parseFakeApplied(argv);
 
   const {
     runSaasPostgresMigrations,
@@ -34,6 +47,7 @@ function main() {
     SAAS_SCHEMA_MIGRATIONS_TABLE,
     POSTGRES_MIGRATION_EXECUTION_NOT_WIRED,
     POSTGRES_LEDGER_PERSISTENCE_NOT_WIRED,
+    seedFakeLedgerFromMigrationIds,
   } = require(pathJoin(root, 'dist', 'src', 'saas', 'db-migrations', 'index.js'));
 
   const { getSaaSDbDriver, POSTGRES_ADAPTER_NOT_IMPLEMENTED } = require(pathJoin(
@@ -54,11 +68,20 @@ function main() {
   }
 
   const migrations = listSaasDbMigrations();
+  let ledger = undefined;
+  if (fakeAppliedIds.length > 0) {
+    console.log('saas_migration_bootstrap: fake_ledger_only');
+    console.log('saas_migration_bootstrap: real_ledger_persistence_not_wired');
+    ledger = seedFakeLedgerFromMigrationIds(migrations, fakeAppliedIds);
+    console.log(`saas_migration_bootstrap: fake_applied_ids=${fakeAppliedIds.join(',')}`);
+  }
+
   const runResult = runSaasPostgresMigrations({
     driver: 'postgres',
     mode,
     migrations,
     ledgerTable: SAAS_SCHEMA_MIGRATIONS_TABLE,
+    ledger,
   });
 
   if (runResult.status === 'dry_run_only') {
@@ -95,7 +118,11 @@ function main() {
   console.log('saas_migration_bootstrap: contract_json_end');
 
   console.log('');
-  console.log('Summary: execution contract stub only — no SQL, no ledger writes.');
+  console.log(
+    fakeAppliedIds.length > 0
+      ? 'Summary: fake in-memory ledger only — no SQL, no real ledger persistence.'
+      : 'Summary: execution contract — no SQL, no real ledger writes.',
+  );
   console.log('When CHATFLOW_SAAS_DB_DRIVER=postgres, app adapter still throws until pg is wired.');
 }
 

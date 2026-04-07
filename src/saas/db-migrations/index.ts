@@ -21,7 +21,11 @@ export type {
   SaasPostgresMigrationRunStatus,
 } from './execution-types';
 export {
+  POSTGRES_LEDGER_CHECKSUM_MISMATCH,
   POSTGRES_LEDGER_PERSISTENCE_NOT_WIRED,
   POSTGRES_MIGRATION_EXECUTION_NOT_WIRED,
 } from './execution-types';
 export { runSaasPostgresMigrations } from './execution-contract';
+export type { SaasMigrationLedgerRecord, SaasMigrationLedgerRecordStatus } from './ledger-types';
+export type { SaasMigrationLedgerProvider } from './ledger-contract';
+export { FakeSaasMigrationLedger, seedFakeLedgerFromMigrationIds } from './fake-ledger';

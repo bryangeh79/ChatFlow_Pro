@@ -52,14 +52,14 @@ async function main() {
     ledgerTable: SAAS_SCHEMA_MIGRATIONS_TABLE,
   });
   if (dry.status !== 'dry_run_only') fail('dry_run status');
-  if (dry.applied_count !== 0 || dry.skipped_count !== 0) fail('dry_run counts');
+  if (dry.applied_count !== 0 || dry.skipped_count !== 0) fail('dry_run counts without ledger');
   if (dry.entries.length !== migrations.length) fail('dry_run entries length');
   const dryIds = new Set(dry.entries.map((e) => e.id));
   for (const m of migrations) {
     if (!dryIds.has(m.id)) fail(`dry_run missing entry ${m.id}`);
   }
   for (const e of dry.entries) {
-    if (e.execution_status !== 'not_executed') fail('dry_run entry should be not_executed');
+    if (e.execution_status !== 'would_apply') fail('dry_run entry should be would_apply');
     if (!e.message.includes(POSTGRES_LEDGER_PERSISTENCE_NOT_WIRED)) fail('dry_run entry message');
   }
 

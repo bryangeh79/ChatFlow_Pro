@@ -6,10 +6,10 @@ export type SaasPostgresMigrationMode = 'dry_run' | 'apply';
 /** Aggregate run outcome (ledger + executor state). */
 export type SaasPostgresMigrationRunStatus = 'dry_run_only' | 'not_wired' | 'applied' | 'failed';
 
-/** Per-migration execution outcome within one run. */
+/** Per-migration outcome within one run (2G+ ledger-aware dry-run). */
 export type SaasPostgresMigrationEntryExecutionStatus =
-  | 'planned'
-  | 'skipped_no_ledger'
+  | 'already_applied'
+  | 'would_apply'
   | 'not_executed'
   | 'applied'
   | 'failed';
@@ -17,6 +17,7 @@ export type SaasPostgresMigrationEntryExecutionStatus =
 /** Top-level contract codes for automation / logs. */
 export const POSTGRES_MIGRATION_EXECUTION_NOT_WIRED = 'POSTGRES_MIGRATION_EXECUTION_NOT_WIRED';
 export const POSTGRES_LEDGER_PERSISTENCE_NOT_WIRED = 'POSTGRES_LEDGER_PERSISTENCE_NOT_WIRED';
+export const POSTGRES_LEDGER_CHECKSUM_MISMATCH = 'POSTGRES_LEDGER_CHECKSUM_MISMATCH';
 
 export interface SaasPostgresMigrationEntryResult {
   id: string;
@@ -33,6 +34,7 @@ export interface SaasPostgresMigrationRunResult {
   ledger_table: string;
   planned_count: number;
   applied_count: number;
+  /** Dry-run: rows already present in ledger with matching checksum. */
   skipped_count: number;
   status: SaasPostgresMigrationRunStatus;
   entries: SaasPostgresMigrationEntryResult[];

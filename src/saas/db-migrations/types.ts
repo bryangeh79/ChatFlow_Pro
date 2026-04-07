@@ -25,8 +25,10 @@ export interface SaasDbMigrationDef {
   checksum_sha256: string;
 }
 
-/** CLI-computed until `saas_schema_migrations` (or equivalent) is applied. */
-export type MigrationLedgerStatus = 'pending_no_ledger';
+/**
+ * Plan / run row — `pending_no_ledger` when no provider row; execution dry-run refines further.
+ */
+export type MigrationLedgerStatus = 'pending_no_ledger' | 'recorded_in_ledger' | 'checksum_mismatch';
 
 export interface SaasDbMigrationPlanEntry extends SaasDbMigrationDef {
   status: MigrationLedgerStatus;
