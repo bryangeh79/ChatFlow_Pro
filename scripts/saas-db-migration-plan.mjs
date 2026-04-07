@@ -43,7 +43,7 @@ function main() {
     driver,
     ledger_table_future: plan.ledger_table_future,
     planned_migrations: plan.migrations,
-    note: 'status is CLI-only; no ledger table exists yet (Phase 24 / 2D).',
+    note: 'status is CLI-only; no ledger table exists yet (Phase 24 / 2E). SQL assets + checksums from disk.',
   };
 
   if (format === 'json') {
@@ -56,7 +56,9 @@ function main() {
   console.log(`ledger_table_future: ${plan.ledger_table_future}`);
   console.log(`count: ${plan.migrations.length}`);
   for (const m of plan.migrations) {
-    console.log(`- ${m.id} [${m.kind}] ${m.status} — ${m.description}`);
+    console.log(
+      `- ${m.id} [${m.kind}] ${m.status} asset=${m.asset_path} sha256=${m.checksum_sha256} — ${m.description}`,
+    );
   }
 }
 

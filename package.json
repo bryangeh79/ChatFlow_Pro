@@ -1,6 +1,6 @@
 {
   "name": "chatflow-pro",
-  "version": "1.7.79",
+  "version": "1.7.80",
   "private": true,
   "type": "commonjs",
   "scripts": {
@@ -27,6 +27,7 @@
     "verify:saas-sqljs-adapter-principals": "node scripts/verify-saas-sqljs-adapter-principals.mjs",
     "verify:saas-db-adapter-selection": "node scripts/verify-saas-db-adapter-selection.mjs",
     "verify:saas-db-migration-ledger": "node scripts/verify-saas-db-migration-ledger.mjs",
+    "verify:saas-db-migration-assets": "node scripts/verify-saas-db-migration-assets.mjs",
     "saas:db:migration:plan": "node scripts/saas-db-migration-plan.mjs",
     "saas:db:migration:bootstrap": "node scripts/saas-db-migration-bootstrap.mjs",
     "verify:saas-admin-auth-cutline": "node scripts/verify-saas-admin-auth-cutline.mjs",

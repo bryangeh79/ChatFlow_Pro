@@ -2,7 +2,7 @@
 
 ## 战报顶栏（2026-04-07 — 下一聊天室）
 
-- **版本**：`package.json` **1.7.79**（**Pro_v1.07.79**）— Phase 24：**Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**包 2A–2D ✅**（**2D** = migration **registry + plan/bootstrap dry-run CLI**，无 `pg`、无 SQL 执行）；**下一**：**真实 Postgres 执行**（`pg`、DDL、apply、**`saas_schema_migrations` 落库**、CI）— 见 **`docs/177`**。SaaS MVP 仍 **sealed**。  
+- **版本**：`package.json` **1.7.80**（**Pro_v1.07.80**）— Phase 24：**Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**包 2A–2E ✅**（**2E** = **`postgres/*.sql` DDL 资产** + **registry checksum 绑定**，仍 **无执行**、无 `pg`）；**下一**：**真实 Postgres apply** + **ledger 落库** + **CI** — 见 **`docs/177`**。SaaS MVP 仍 **sealed**。  
 - **当前 Phase**：**24 — SaaS v1 Hardening**（**当前主线**）。  
 - **已关闭**：**Phase 23**（SaaS MVP Final Closure）— **主线 closed**，后续 **不算 MVP 扩功能**。  
 - **本轮 git / push**：`c2a08cc` → `8cae7d4` → `bb5d17e` 已上 **`main`**，**push success**。  
@@ -19,7 +19,7 @@
   - **Phase 22C** — SaaS 行为全面接管（已完成，**Pro_v1.07.65**）
   - **Phase 22D** — SaaS / Legacy 收口（主目标已完成，**Pro_v1.07.67**）
   - **Phase 22E** — CI / 文档 / 边界说明收尾（**✅ 已收口**，见下节）
-- **当前版本（package.json）**：**1.7.79**（**Pro_v1.07.79**）— Phase 24 **2D 已交付**（migration ledger 骨架 + inspect CLI）；**推进中：Postgres 真执行线**。SaaS MVP 封板语义不变。
+- **当前版本（package.json）**：**1.7.80**（**Pro_v1.07.80**）— Phase 24 **2E 已交付**（SQL 静态资产 + checksum）；**推进中：Postgres 真执行 / 落库 / CI**。SaaS MVP 封板语义不变。
 - **任务归属（Phase 24）**：**租户认证 / RBAC**；**Postgres + migration**；**多实例下 session / store 收口**；**凭证安全**（加密、轮换、审计）。拆包顺序由规划与风险决定，**不**在本文件预写死交付日。
 - **提交标注约定**（历史）：22D/22E/23 前缀仍见于已合并提交；**Phase 24**：`feat(phase-24):` · `chore(phase-24):` · `docs(phase-24):`。
 - Previous major milestone in this log: **Phase 16.2** - HTTP access observability enhanced (`X-Request-Id`, optional `CHATFLOW_HTTP_ACCESS_LOG`, webhook `phases_ms`, verification type narrowing)
@@ -273,13 +273,14 @@
 - **包 2A**：**Postgres + migration** — **ADR ✅**（**`docs/177_phase24_postgres_migration_adr.md`**）。  
 - **包 2B**：**DB adapter 骨架 ✅** — `SaaSDbAdapter` + `SqlJsSaaSDbAdapter`；principals/audit 已接线；验证 **`verify:saas-sqljs-adapter-principals`**。  
 - **包 2C**：**✅** — **`PostgresSaaSDbAdapter` stub** + **`CHATFLOW_SAAS_DB_DRIVER`** + **`getSaaSDbDriver()`**；验证 **`verify:saas-db-adapter-selection`**。  
-- **包 2D**：**✅** — **`src/saas/db-migrations/*`** 注册表 + **`saas:db:migration:plan`** / **`saas:db:migration:bootstrap`**（**dry-run**）；未来 ledger 表名 **`saas_schema_migrations`**（**未创建**）；验证 **`verify:saas-db-migration-ledger`**。  
+- **包 2D**：**✅** — **`src/saas/db-migrations/*`** 注册表 + **`saas:db:migration:plan`** / **`bootstrap`**（**dry-run**）；未来 ledger **`saas_schema_migrations`**（**未创建**）；验证 **`verify:saas-db-migration-ledger`**。  
+- **包 2E**：**✅** — **`postgres/pg_0001_*.sql` / `pg_0002_*.sql`** + **`checksum.ts`** + registry 字段 **`asset_path` / `asset_kind` / `checksum_sha256`**；验证 **`verify:saas-db-migration-assets`**。  
 - **下一（Postgres 执行）**：真实 **`pg`**、迁移 **apply**、ledger **落库**、repository 扩面、CI — 见 **`docs/177`**。  
 - **未开始（仍有效）**：真实多用户身份源、password/JWT/session、**完整登录审计**；**不动** webhook 主链与 legacy。
 
 **建议方向（立项时拆包）**：
 1. ~~**Tenant Admin Auth / RBAC（bridge 子线）**~~ **✅ 1A–1J 已封 checkpoint**（`docs/176`）；后续 **真实 tenant auth** 单独立项。  
-2. **Postgres + migration**（**2A ADR ✅ → 2B adapter ✅ → 2C stub+selection ✅ → 2D registry+CLI ✅ → 真 pg/执行/落库/CI**；local 可保留 sql.js，hosted 目标 Postgres）。
+2. **Postgres + migration**（**2A–2E ✅（含 SQL 资产+checksum）→ 真 pg/执行/落库/CI**；local 可保留 sql.js，hosted 目标 Postgres）。
 3. **多实例 / session / store 收口**（sticky、外置 session、JSONL 单写者假设等）。
 4. **凭证安全**：加密-at-rest、轮换策略、审计日志（`docs/175` non-goals 已有提示）。
 

@@ -1,5 +1,5 @@
 /**
- * SaaS migration bootstrap — **dry-run / summary only** (Phase 24 / 2D).
+ * SaaS migration bootstrap — **dry-run / summary only** (Phase 24 / 2E).
  * Does not connect to Postgres; does not run SQL; does not create ledger table.
  *
  * Marker lines (for automation): see stdout lines starting with saas_migration_bootstrap:
@@ -48,6 +48,12 @@ function main() {
   console.log(`saas_migration_bootstrap: current_driver=${driver}`);
   console.log(`saas_migration_bootstrap: registry_count=${plan.migrations.length}`);
   console.log(`saas_migration_bootstrap: postgres_adapter_stub_code=${POSTGRES_ADAPTER_NOT_IMPLEMENTED}`);
+  console.log('saas_migration_bootstrap: sql_assets_summary');
+  for (const m of plan.migrations) {
+    console.log(
+      `saas_migration_bootstrap: asset id=${m.id} path=${m.asset_path} checksum_sha256=${m.checksum_sha256}`,
+    );
+  }
 
   console.log('');
   console.log('Summary: migration registry is loaded in code. No database bootstrap runs in this phase.');

@@ -1,3 +1,4 @@
+import { resolveSaasMigrationAssetPath, sha256HexOfFile } from './checksum';
 import type {
   MigrationLedgerStatus,
   SaasDbMigrationDef,
@@ -5,33 +6,48 @@ import type {
 } from './types';
 
 /**
- * Future Postgres ledger table — **not** created or written in Phase 24 / 2D.
+ * Future Postgres ledger table — **not** created or written in Phase 24 / 2D–2E.
  * Intended columns (later): `migration_id`, `applied_at`, `driver`, `checksum`.
  */
 export const SAAS_SCHEMA_MIGRATIONS_TABLE = 'saas_schema_migrations';
 
-/** Registry is the source of truth; order = apply order. */
-export const SAAS_DB_MIGRATIONS: readonly SaasDbMigrationDef[] = [
+type MigrationBase = Omit<SaasDbMigrationDef, 'checksum_sha256'>;
+
+const SAAS_DB_MIGRATIONS_BASE: readonly MigrationBase[] = [
   {
     id: 'pg_0001_core_saas_tables',
     description: 'Core SaaS tenant metadata: tenants, credentials, FAQ entries, settings.',
     target_driver: 'postgres',
-    phase_tag: 'phase24_2d',
+    phase_tag: 'phase24_2e',
     kind: 'schema',
-    up_summary:
-      'Create Postgres equivalents of core tables from sql.js SCHEMA (DDL in future migration files, not in registry).',
+    up_summary: 'CREATE core tenant tables per postgres/pg_0001_core_saas_tables.sql.',
     down_summary: 'Drop core SaaS tables — destructive; no automated down in MVP.',
+    asset_path: 'postgres/pg_0001_core_saas_tables.sql',
+    asset_kind: 'sql_file',
   },
   {
     id: 'pg_0002_admin_principals_and_audit',
     description: 'tenant_admin_principals + tenant_admin_principal_audit_logs (+ indexes).',
     target_driver: 'postgres',
-    phase_tag: 'phase24_2d',
+    phase_tag: 'phase24_2e',
     kind: 'schema',
-    up_summary: 'Create principal + audit tables matching SQLite semantics (partial unique index on hash TBD in DDL pack).',
+    up_summary: 'CREATE principal + audit tables per postgres/pg_0002_admin_principals_and_audit.sql.',
     down_summary: 'no rollback',
+    asset_path: 'postgres/pg_0002_admin_principals_and_audit.sql',
+    asset_kind: 'sql_file',
   },
 ];
+
+function buildMigrationsWithChecksums(): readonly SaasDbMigrationDef[] {
+  return SAAS_DB_MIGRATIONS_BASE.map((m) => {
+    const abs = resolveSaasMigrationAssetPath(m.asset_path);
+    const checksum_sha256 = sha256HexOfFile(abs);
+    return { ...m, checksum_sha256 };
+  });
+}
+
+/** Resolved migrations with checksums; throws if any SQL asset is missing or unreadable. */
+export const SAAS_DB_MIGRATIONS: readonly SaasDbMigrationDef[] = buildMigrationsWithChecksums();
 
 const STATUS_PENDING: MigrationLedgerStatus = 'pending_no_ledger';
 

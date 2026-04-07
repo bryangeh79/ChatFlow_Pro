@@ -3,7 +3,12 @@ export type SaasMigrationTargetDriver = 'postgres';
 
 export type MigrationKind = 'schema' | 'seed' | 'data_migration';
 
-/** Code registry entry — no inline SQL; summaries only until execution ships. */
+export type SaasMigrationAssetKind = 'sql_file';
+
+/**
+ * Registry entry — SQL lives under `db-migrations/postgres/*.sql`.
+ * `checksum_sha256` is computed at module load from the file (never hand-edited).
+ */
 export interface SaasDbMigrationDef {
   id: string;
   description: string;
@@ -13,6 +18,11 @@ export interface SaasDbMigrationDef {
   kind: MigrationKind;
   up_summary: string;
   down_summary: string;
+  /** Path relative to `src/saas/db-migrations/` (or dist mirror). */
+  asset_path: string;
+  asset_kind: SaasMigrationAssetKind;
+  /** Lowercase hex SHA-256 of the asset file bytes. */
+  checksum_sha256: string;
 }
 
 /** CLI-computed until `saas_schema_migrations` (or equivalent) is applied. */

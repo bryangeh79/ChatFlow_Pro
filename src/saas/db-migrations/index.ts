@@ -3,8 +3,10 @@ export type {
   MigrationLedgerStatus,
   SaasDbMigrationDef,
   SaasDbMigrationPlanEntry,
+  SaasMigrationAssetKind,
   SaasMigrationTargetDriver,
 } from './types';
+export { resolveSaasMigrationAssetPath, sha256HexOfFile } from './checksum';
 export {
   buildSaasDbMigrationPlan,
   listSaasDbMigrations,
