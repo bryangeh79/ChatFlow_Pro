@@ -1,5 +1,5 @@
 /**
- * Postgres migration / schema metadata readiness (read-only stub — no pg, no DB I/O).
+ * Postgres migration / schema / optional TCP probe readiness (not full production health).
  * Requires: npm run build
  *
  * Usage: node scripts/saas-db-postgres-readiness.mjs [--format=json|text]
@@ -33,6 +33,7 @@ async function main() {
     getPostgresClientGateSummary,
     getPostgresClientRuntimeSummary,
     getPostgresConnectionConfigSummary,
+    getPostgresProbeGateSummary,
     POSTGRES_METADATA_QUERY_NOT_WIRED,
   } = require(pathJoin(root, 'dist', 'src', 'saas', 'db-adapter', 'index.js'));
 
@@ -42,10 +43,12 @@ async function main() {
   const postgres_client_gate = getPostgresClientGateSummary();
   const postgres_client_runtime = await getPostgresClientRuntimeSummary();
   const postgres_connection_config = getPostgresConnectionConfigSummary();
+  const postgres_probe_gate = getPostgresProbeGateSummary();
 
   const payload = {
     ok: true,
-    note: 'not_a_db_healthcheck: stub metadata only; no postgres connection; execution not wired',
+    note:
+      'not_a_db_healthcheck: metadata + config contract; optional TCP connect/end only when CHATFLOW_SAAS_POSTGRES_PROBE=1 and strict gates; not full postgres readiness',
     postgres_metadata_query_not_wired: true,
     constant: POSTGRES_METADATA_QUERY_NOT_WIRED,
     postgres_client_gate,
@@ -58,6 +61,11 @@ async function main() {
     connection_config_valid: readiness.connection_config_valid,
     connection_config_source: readiness.connection_config_source,
     connection_message: readiness.connection_message,
+    postgres_probe_gate,
+    postgres_probe_enabled: readiness.postgres_probe_enabled,
+    postgres_probe_attempted: readiness.postgres_probe_attempted,
+    postgres_probe_status: readiness.postgres_probe_status,
+    postgres_probe_message: readiness.postgres_probe_message,
     ledger,
     schema_assets: {
       count: schema_assets.count,
@@ -95,6 +103,10 @@ async function main() {
     );
   }
   console.log(`connection_message: ${readiness.connection_message}`);
+  console.log(
+    `probe: enabled=${readiness.postgres_probe_enabled} attempted=${readiness.postgres_probe_attempted} status=${readiness.postgres_probe_status}`,
+  );
+  console.log(`probe_message: ${readiness.postgres_probe_message}`);
   console.log(readiness.message);
 }
 

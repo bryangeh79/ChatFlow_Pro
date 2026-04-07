@@ -254,3 +254,55 @@ export function getPostgresConnectionConfigSummary(): PostgresConnectionConfigRe
     message: `${c.message}${tail}`,
   };
 }
+
+/** TCP credentials for optional probe only — never log or return in readiness JSON. */
+export interface PostgresTcpCredentials {
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+  ssl_enabled: boolean;
+}
+
+/**
+ * When `loadPostgresConnectionConfig()` is valid, supplies password for `pg` Client (2L probe).
+ * Does not connect. Caller must redact errors.
+ */
+export function resolvePostgresTcpCredentialsForProbe(): PostgresTcpCredentials | null {
+  const c = loadPostgresConnectionConfig();
+  if (!c.valid || !c.host || c.port === null || !c.database || !c.user) return null;
+
+  const rawUrl = trim(process.env[E_URL]);
+  if (rawUrl !== '') {
+    let u: URL;
+    try {
+      u = new URL(rawUrl);
+    } catch {
+      return null;
+    }
+    let password = '';
+    try {
+      password = decodeURIComponent(u.password || '');
+    } catch {
+      password = '';
+    }
+    return {
+      host: c.host,
+      port: c.port,
+      database: c.database,
+      user: c.user,
+      password,
+      ssl_enabled: c.ssl_enabled,
+    };
+  }
+
+  return {
+    host: c.host,
+    port: c.port,
+    database: c.database,
+    user: c.user,
+    password: trim(process.env[E_PASS]),
+    ssl_enabled: c.ssl_enabled,
+  };
+}

@@ -70,6 +70,10 @@ async function main() {
   if (typeof r.connection_config_valid !== 'boolean') fail('connection_config_valid');
   if (!['missing', 'url', 'fields'].includes(r.connection_config_source)) fail('connection_config_source');
   if (typeof r.connection_message !== 'string') fail('connection_message');
+  if (typeof r.postgres_probe_enabled !== 'boolean') fail('postgres_probe_enabled');
+  if (typeof r.postgres_probe_attempted !== 'boolean') fail('postgres_probe_attempted');
+  if (typeof r.postgres_probe_status !== 'string') fail('postgres_probe_status');
+  if (typeof r.postgres_probe_message !== 'string') fail('postgres_probe_message');
   if (!r.message.includes(POSTGRES_METADATA_QUERY_NOT_WIRED)) fail('readiness.message');
 
   const out = execFileSync(process.execPath, [pathJoin(root, 'scripts', 'saas-db-postgres-readiness.mjs'), '--format=json'], {
@@ -93,6 +97,10 @@ async function main() {
   if (typeof j.connection_config_present !== 'boolean') fail('CLI connection_config_present');
   if (typeof j.connection_config_valid !== 'boolean') fail('CLI connection_config_valid');
   if (!j.postgres_connection_config) fail('CLI postgres_connection_config');
+  if (typeof j.readiness.postgres_probe_enabled !== 'boolean') fail('readiness postgres_probe_enabled');
+  if (typeof j.readiness.postgres_probe_attempted !== 'boolean') fail('readiness postgres_probe_attempted');
+  if (typeof j.readiness.postgres_probe_status !== 'string') fail('readiness postgres_probe_status');
+  if (typeof j.readiness.postgres_probe_message !== 'string') fail('readiness postgres_probe_message');
 
   await runVerifyScript('verify-saas-db-migration-ledger.mjs');
   await runVerifyScript('verify-saas-db-migration-assets.mjs');

@@ -6,6 +6,7 @@ import {
   getPostgresClientRuntimeSummary,
 } from './postgres-client-loader';
 import { isPostgresClientEnabled } from './postgres-gate';
+import { getPostgresProbeReadinessSummary, isPostgresProbeEnabled, type PostgresProbeStatus } from './postgres-probe';
 import type { SaaSDbDriver } from './types';
 
 /** Ledger table metadata query not connected to any database (Phase 24 / 2H). */
@@ -48,6 +49,10 @@ export interface PostgresExecutionReadiness {
   connection_config_valid: boolean;
   connection_config_source: PostgresConnectionConfigSource;
   connection_message: string;
+  postgres_probe_enabled: boolean;
+  postgres_probe_attempted: boolean;
+  postgres_probe_status: PostgresProbeStatus;
+  postgres_probe_message: string;
   message: string;
 }
 
@@ -100,6 +105,9 @@ export async function getPostgresExecutionReadiness(): Promise<PostgresExecution
   const connection_config_source = conn.source;
   const connection_message = conn.message;
 
+  const postgres_probe_enabled = isPostgresProbeEnabled();
+  const probe = await getPostgresProbeReadinessSummary();
+
   let sql_assets_present = false;
   try {
     const m = listSaasDbMigrations();
@@ -135,6 +143,10 @@ export async function getPostgresExecutionReadiness(): Promise<PostgresExecution
     connection_config_valid,
     connection_config_source,
     connection_message,
+    postgres_probe_enabled,
+    postgres_probe_attempted: probe.attempted,
+    postgres_probe_status: probe.status,
+    postgres_probe_message: probe.message,
     message,
   };
 }

@@ -18,11 +18,15 @@ export {
   getPostgresConnectionConfigSummary,
   getPostgresExecutionReadiness,
   getPostgresMigrationLedgerInfo,
+  getPostgresProbeGateSummary,
+  getPostgresProbeReadinessSummary,
   getPostgresSchemaAssetInfo,
   isPostgresClientEnabled,
   isPostgresClientModuleAvailable,
+  isPostgresProbeEnabled,
   loadPostgresClientModule,
   loadPostgresConnectionConfig,
+  probePostgresConnection,
   redactPostgresConnectionString,
 } from './postgres-adapter';
 export type {
@@ -34,6 +38,9 @@ export type {
   PostgresExecutionReadiness,
   PostgresLedgerMetadataStatus,
   PostgresMigrationLedgerInfo,
+  PostgresProbeGateSummary,
+  PostgresProbeResult,
+  PostgresProbeStatus,
   PostgresSchemaAssetInfo,
   PostgresSchemaAssetSummary,
 } from './postgres-adapter';

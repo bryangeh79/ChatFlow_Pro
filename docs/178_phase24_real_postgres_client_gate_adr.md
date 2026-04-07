@@ -2,7 +2,15 @@
 
 > **状态**：Accepted（**2I = ADR + 代码 gate**；**不**连真实数据库、**不**改默认 **`sql.js`** live 路径、**不**动租户 webhook）。  
 > **关联**：迁移总览 **`docs/177_phase24_postgres_migration_adr.md`**；readiness CLI **`npm run saas:db:postgres:readiness`**。  
-> **真源**：`package.json` **1.7.86+**；gate **`postgres-gate.ts`**；**2J** **`postgres-client-loader.ts`**；**2K** **`postgres-config.ts`**（DSN / 分字段，无 connect）。
+> **真源**：`package.json` **1.7.87+**；gate **`postgres-gate.ts`**；**2J** **`postgres-client-loader.ts`**；**2K** **`postgres-config.ts`**；**2L** **`postgres-probe.ts`**（可选 TCP）。
+
+---
+
+## Phase 24 — 包 2L ✅（optional TCP probe）
+
+- **开关**：**`CHATFLOW_SAAS_POSTGRES_PROBE=0|1`**（默认 off；非法 fail-fast）。  
+- **与 2I/2K 叠加**：**driver=postgres** + **`CHATFLOW_SAAS_POSTGRES_CLIENT=1`** + **valid config** + **probe=1** 才尝试 **`pg` Client `connect`/`end`**。  
+- **非目标**：**非** 业务 readiness、**非** migration 状态、**非** pool；**`probe_connect_ok` 不宣称 fully ready**。
 
 ---
 

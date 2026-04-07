@@ -1,7 +1,16 @@
 # ADR — Phase 24 / 包 2A — Postgres + migration（仅决策，无实现）
 
 > **状态**：Accepted（**2A = ADR 文档**；**不**含 Postgres runtime、**不**改 sql.js live 路径、**不**动租户 webhook / 现有 auth 实现）。  
-> **真源**：`package.json` **1.7.86+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。**Gate + `pg` + connection env** 见 **`docs/178`**。**2K** 已立 **connection config / DSN validation stub**（**无 TCP、无 pool**）；**connect probe / 真 query / migration 执行** 仍未接线。
+> **真源**：`package.json` **1.7.87+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。**Gate + `pg` + connection env + 可选 probe** 见 **`docs/178`**。**2L** 仅 **optional connect/end 探针** — **不代表** postgres **runtime / 业务 / 迁移** 已 ready；**pool / 真 query / migration 执行** 仍未接线。
+
+---
+
+## Phase 24 — 包 2L ✅（optional connection probe stub）
+
+- **模块**：**`postgres-probe.ts`** — **`CHATFLOW_SAAS_POSTGRES_PROBE=1`** 且 **`CHATFLOW_SAAS_DB_DRIVER=postgres`** 且 **client gate=1** 且 **config valid** 时才 **`connect` + `end`**；**无 SELECT**、**无 schema/ledger**、**不挂默认启动**。  
+- **状态**：**`skipped_*` / `probe_connect_ok` / `probe_connect_failed`**；错误信息 **脱敏**。  
+- **readiness**：**`postgres_probe_*`** 字段；**`postgres_client_runtime_wired` 仍为 false**。  
+- **验证**：**`npm run verify:saas-db-postgres-probe-gate`**（**不**要求本机必有 live DB）。
 
 ---
 
@@ -11,7 +20,7 @@
 - **校验**：host/db/user 非空、port **1–65535**（默认 **5432**）、**`CHATFLOW_SAAS_POSTGRES_SSL=0|1`**；**不回显 password**；**无 connect**。  
 - **readiness**：**`connection_config_present` / `valid` / `source` / `connection_message`**；**`postgres_client_runtime_wired` 仍为 false**。  
 - **验证**：**`npm run verify:saas-db-postgres-config`**。  
-- **下一**：**2L** connection probe（可选）— 见 **`docs/178`**。
+- **下一**：**2L** 见上节；之后 **pool + query / ledger**。
 
 ---
 

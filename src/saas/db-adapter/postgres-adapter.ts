@@ -52,6 +52,13 @@ export {
 } from './postgres-config';
 export type { PostgresConnectionConfigResult, PostgresConnectionConfigSource } from './postgres-config';
 export {
+  getPostgresProbeGateSummary,
+  getPostgresProbeReadinessSummary,
+  isPostgresProbeEnabled,
+  probePostgresConnection,
+} from './postgres-probe';
+export type { PostgresProbeGateSummary, PostgresProbeResult, PostgresProbeStatus } from './postgres-probe';
+export {
   POSTGRES_CLIENT_LOAD_SKIPPED_GATE_OFF,
   POSTGRES_CLIENT_MODULE_NOT_AVAILABLE,
   POSTGRES_CLIENT_RUNTIME_NOT_WIRED,
