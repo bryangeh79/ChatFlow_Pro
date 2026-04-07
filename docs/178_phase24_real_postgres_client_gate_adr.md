@@ -2,7 +2,14 @@
 
 > **状态**：Accepted（**2I = ADR + 代码 gate**；**不**连真实数据库、**不**改默认 **`sql.js`** live 路径、**不**动租户 webhook）。  
 > **关联**：迁移总览 **`docs/177_phase24_postgres_migration_adr.md`**；readiness CLI **`npm run saas:db:postgres:readiness`**。  
-> **真源**：`package.json` **1.7.87+**；gate **`postgres-gate.ts`**；**2J** **`postgres-client-loader.ts`**；**2K** **`postgres-config.ts`**；**2L** **`postgres-probe.ts`**（可选 TCP）。
+> **真源**：`package.json` **1.7.88+**；gate **`postgres-gate.ts`**；**2J** loader；**2K** config；**2L** probe；**2M** **`postgres-readiness-boundary.ts`**（**go/no-go**，**当前仍 `no_go`**）。
+
+---
+
+## Phase 24 — 包 2M ✅（go / no-go 收口）
+
+- **`npm run saas:db:postgres:go-no-go`**：团队统一门禁；**探针/配置通过也不等于 GO**。  
+- **投产前**仍需：pool、adapter 非 stub、**migration apply**、**DB ledger**、staging 与回滚 runbook（**不在 2M 范围**）。
 
 ---
 

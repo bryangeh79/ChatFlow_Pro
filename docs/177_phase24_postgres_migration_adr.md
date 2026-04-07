@@ -1,7 +1,16 @@
 # ADR — Phase 24 / 包 2A — Postgres + migration（仅决策，无实现）
 
 > **状态**：Accepted（**2A = ADR 文档**；**不**含 Postgres runtime、**不**改 sql.js live 路径、**不**动租户 webhook / 现有 auth 实现）。  
-> **真源**：`package.json` **1.7.87+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。**Gate + `pg` + connection env + 可选 probe** 见 **`docs/178`**。**2L** 仅 **optional connect/end 探针** — **不代表** postgres **runtime / 业务 / 迁移** 已 ready；**pool / 真 query / migration 执行** 仍未接线。
+> **真源**：`package.json` **1.7.88+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。**2M** 提供 **`evaluatePostgresGoNoGo()` / `npm run saas:db:postgres:go-no-go`** — **当前默认 `no_go`**；**`probe_connect_ok` ≠ 可投产 runtime**；见 **`docs/178`**。
+
+---
+
+## Phase 24 — 包 2M ✅（readiness boundary & go/no-go checklist）
+
+- **模块**：**`postgres-readiness-boundary.ts`** — **`evaluatePostgresGoNoGo()`**：聚合 **driver / gate / module / config / probe / execution_wired / ledger_persistence_wired / runtime_wired / sql_assets / adapter_stub**。  
+- **规则**：**`overall_status === 'go'`** 仅当 **全部必填检查通过**；**本版本恒为 `no_go`**（**execution / ledger / runtime / adapter** 仍未接线）。  
+- **CLI**：**`npm run saas:db:postgres:go-no-go`** — **`blocking_reasons`**（稳定 code）+ **`next_required_capabilities`**；**无密码**。  
+- **验证**：**`npm run verify:saas-db-postgres-go-no-go`**。
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## 战报顶栏（2026-04-07）
 
-- **版本 / Phase**：**1.7.87**；**Phase 24** — **Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**包 2A–2L ✅**（**2L** = **连接层可选探针**，**非** 业务/迁移 readiness）；**pool / 真 SSL 校验 / ledger 执行** 仍待后续；**Phase 23 / SaaS MVP 主线已关闭**。  
+- **版本 / Phase**：**1.7.88**；**Phase 24** — **Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**包 2A–2M ✅**（**2M** = **go/no-go**；**Postgres runtime 仍 `no_go`**）；**pool / ledger 真执行** 仍待后续；**Phase 23 / SaaS MVP 主线已关闭**。  
 - **本轮 git**：以 `git log origin/main` 为准。  
 - **新发现风险（本轮）**：**Postgres 迁移线**见下节「Phase 24 — Postgres 迁移线（2A+）」；其余见 **Phase 24 预期风险**。  
 - **已知边界**：**冻结（MVP）** — `docs/175` + `memory/04` §「Known SaaS MVP boundaries」；**待后续（v1）** — 凭证 KMS、多实例 store、**sql.js→Postgres（2B/2C）**。  
@@ -31,6 +31,7 @@
 - **Postgres client gate + loader（2I / 2J）**：**`CHATFLOW_SAAS_POSTGRES_CLIENT=1`** 才 **动态 `import('pg')`**（见 **`docs/178`**）；**gate 关** → **不加载** `pg`，**勿误判安装失败**。**`postgres_client_runtime_wired` 仍为 false** — **勿将 module 可解析当已连库或可执行 query**。  
 - **Connection config（2K）**：**`CHATFLOW_SAAS_POSTGRES_URL` 或分字段** 仅 **解析/校验 stub** — **`connection_config_valid` 不代表 DB 可达**；**无 pool、无真实 SSL 材料读取** — **勿当生产凭据或健康检查终态**。  
 - **TCP probe（2L）**：**`CHATFLOW_SAAS_POSTGRES_PROBE=1`** 时 **仅** **`connect`/`end`** — **`probe_connect_ok` 不等于 schema/ledger/业务可用**；**默认关闭**、**不** 进 sql.js 启动链 — **勿将探针当迁移或 RBAC 就绪信号**。  
+- **Go/no-go（2M）**：**`saas:db:postgres:go-no-go`** 默认 **`no_go`** — **已有 probe/config 也不等于可投产**；**勿将 CLI 绿字误解为 runtime 已 fully ready**。  
 - **Postgres adapter（2C）**：**仅为 stub** — 设 `CHATFLOW_SAAS_DB_DRIVER=postgres` 时 **任何 DB 调用即抛** `postgres_adapter_not_implemented`；**未**接 `pg`、**无** CI Postgres runtime — **勿当可跑生产后端**。  
 - **adapter 过渡期（2B+）**：**repository 双路径** — principals/audit 走 **`SaaSDbAdapter`**，其余表仍 **`getSaaSDatabase` + stmt**；新增功能若接错路径易出现 **持久化语义不一致**（忘记 `persistIfNeeded` / 混用连接）— **扩表时必须跟 adapter 模式或显式文档例外**。  
 - **数据迁移 / 一致性**：单文件 SQLite（sql.js）→ 托管 Postgres 需 **显式导出/导入或双写窗口**；多租户表外键与索引需 **一次性校验**，避免部分表成功导致 **orphan** 或 **unique 冲突**。  

@@ -59,6 +59,25 @@ export {
 } from './postgres-probe';
 export type { PostgresProbeGateSummary, PostgresProbeResult, PostgresProbeStatus } from './postgres-probe';
 export {
+  POSTGRES_GO_NO_GO_REASON_ADAPTER_STUB,
+  POSTGRES_GO_NO_GO_REASON_CLIENT_GATE,
+  POSTGRES_GO_NO_GO_REASON_CONFIG,
+  POSTGRES_GO_NO_GO_REASON_DRIVER,
+  POSTGRES_GO_NO_GO_REASON_EXECUTION,
+  POSTGRES_GO_NO_GO_REASON_LEDGER,
+  POSTGRES_GO_NO_GO_REASON_MODULE,
+  POSTGRES_GO_NO_GO_REASON_PROBE_FAILED,
+  POSTGRES_GO_NO_GO_REASON_RUNTIME,
+  POSTGRES_GO_NO_GO_REASON_SQL_ASSETS,
+  evaluatePostgresGoNoGo,
+} from './postgres-readiness-boundary';
+export type {
+  PostgresGoNoGoResult,
+  PostgresGoNoGoSummary,
+  PostgresGoNoGoOverall,
+  PostgresReadinessCheckRow,
+} from './postgres-readiness-boundary';
+export {
   POSTGRES_CLIENT_LOAD_SKIPPED_GATE_OFF,
   POSTGRES_CLIENT_MODULE_NOT_AVAILABLE,
   POSTGRES_CLIENT_RUNTIME_NOT_WIRED,
