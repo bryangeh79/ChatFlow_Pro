@@ -1,4 +1,9 @@
 import { listSaasDbMigrations, SAAS_SCHEMA_MIGRATIONS_TABLE } from '../db-migrations';
+import {
+  POSTGRES_CLIENT_MODULE_NOT_AVAILABLE,
+  POSTGRES_CLIENT_RUNTIME_NOT_WIRED,
+  getPostgresClientRuntimeSummary,
+} from './postgres-client-loader';
 import { isPostgresClientEnabled } from './postgres-gate';
 import type { SaaSDbDriver } from './types';
 
@@ -34,7 +39,9 @@ export interface PostgresExecutionReadiness {
   sql_assets_present: boolean;
   /** `CHATFLOW_SAAS_POSTGRES_CLIENT=1`; does not mean `pg` is loaded or connected. */
   postgres_client_gate_enabled: boolean;
-  /** Always false until Phase 24+ wires a real client. */
+  /** `true` only when gate on and dynamic `import('pg')` succeeded. */
+  postgres_client_module_available: boolean;
+  /** Always false until pool + query path is implemented (after 2J). */
   postgres_client_runtime_wired: boolean;
   message: string;
 }
@@ -74,10 +81,15 @@ export function getPostgresSchemaAssetInfo(): PostgresSchemaAssetInfo {
 
 /**
  * Single summary for operators — does not imply migrations are applied or DB is reachable.
+ * Async: probes `pg` only when `CHATFLOW_SAAS_POSTGRES_CLIENT=1`.
  */
-export function getPostgresExecutionReadiness(): PostgresExecutionReadiness {
+export async function getPostgresExecutionReadiness(): Promise<PostgresExecutionReadiness> {
   const driver = readDbDriverForMetadata();
   const postgres_client_gate_enabled = isPostgresClientEnabled();
+  const runtime = await getPostgresClientRuntimeSummary();
+  const postgres_client_module_available = postgres_client_gate_enabled && runtime.module_available;
+  const postgres_client_runtime_wired = runtime.runtime_wired;
+
   let sql_assets_present = false;
   try {
     const m = listSaasDbMigrations();
@@ -90,10 +102,12 @@ export function getPostgresExecutionReadiness(): PostgresExecutionReadiness {
   let message: string;
   if (driver === 'postgres' && !postgres_client_gate_enabled) {
     message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: driver=postgres but CHATFLOW_SAAS_POSTGRES_CLIENT gate is closed (unset/0) — gate-closed, not pretending postgres-ready.`;
-  } else if (postgres_client_gate_enabled && driver === 'postgres') {
-    message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: gate=on allows future real client wiring only; adapter/runtime still not wired (no pg).`;
+  } else if (driver === 'postgres' && postgres_client_gate_enabled && !postgres_client_module_available) {
+    message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: ${POSTGRES_CLIENT_MODULE_NOT_AVAILABLE} — gate=on, driver=postgres, but \`pg\` did not load; fix install; ${POSTGRES_CLIENT_RUNTIME_NOT_WIRED}.`;
+  } else if (driver === 'postgres' && postgres_client_gate_enabled && postgres_client_module_available) {
+    message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: ${POSTGRES_CLIENT_RUNTIME_NOT_WIRED} — \`pg\` loads but pool/query adapter not wired (2J skeleton).`;
   } else if (postgres_client_gate_enabled && driver === 'sqljs') {
-    message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: postgres client gate=on but driver=sqljs — default sql.js path unchanged; no pg loaded.`;
+    message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: gate=on, driver=sqljs — live path stays sql.js; \`pg\` probe=${postgres_client_module_available ? 'ok' : 'unavailable'} (not used for default driver).`;
   } else {
     message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: postgres runner and ledger persistence not wired; contract stub only (postgres client gate off).`;
   }
@@ -105,7 +119,8 @@ export function getPostgresExecutionReadiness(): PostgresExecutionReadiness {
     ledger_persistence_wired: false,
     sql_assets_present,
     postgres_client_gate_enabled,
-    postgres_client_runtime_wired: false,
+    postgres_client_module_available,
+    postgres_client_runtime_wired,
     message,
   };
 }

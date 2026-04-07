@@ -2,7 +2,7 @@
 
 ## 战报顶栏（2026-04-07 — 下一聊天室）
 
-- **版本**：`package.json` **1.7.84**（**Pro_v1.07.84**）— Phase 24：**Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**包 2A–2I ✅**（**2H** readiness stub；**2I** = **`docs/178`** + **`postgres-gate`** + readiness **gate 字段**；**仍无** 真实 `pg` / 连库）；**下一**：**2J 安装并接线 `pg`**、**2K apply + DB ledger** — 见 **`docs/177`**、**`docs/178`**。SaaS MVP 仍 **sealed**。  
+- **版本**：`package.json` **1.7.85**（**Pro_v1.07.85**）— Phase 24：**Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**包 2A–2J ✅**（**2J** = **`pg` 依赖 + `postgres-client-loader` 动态加载**；**无** pool/连库/query；**2I** gate 仍生效）；**下一**：**pool + adapter query 接线**、**2K apply + DB ledger** — 见 **`docs/177`**、**`docs/178`**。SaaS MVP 仍 **sealed**。  
 - **当前 Phase**：**24 — SaaS v1 Hardening**（**当前主线**）。  
 - **已关闭**：**Phase 23**（SaaS MVP Final Closure）— **主线 closed**，后续 **不算 MVP 扩功能**。  
 - **本轮 git / push**：`c2a08cc` → `8cae7d4` → `bb5d17e` 已上 **`main`**，**push success**。  
@@ -19,7 +19,7 @@
   - **Phase 22C** — SaaS 行为全面接管（已完成，**Pro_v1.07.65**）
   - **Phase 22D** — SaaS / Legacy 收口（主目标已完成，**Pro_v1.07.67**）
   - **Phase 22E** — CI / 文档 / 边界说明收尾（**✅ 已收口**，见下节）
-- **当前版本（package.json）**：**1.7.84**（**Pro_v1.07.84**）— Phase 24 **2I 已交付**（client gate ADR + 代码 gate）；**推进中：2J 真 `pg` client / 2K 执行与 ledger**。SaaS MVP 封板语义不变。
+- **当前版本（package.json）**：**1.7.85**（**Pro_v1.07.85**）— Phase 24 **2J 已交付**（client wiring skeleton）；**推进中：runtime 接线 / 2K 执行与 ledger**。SaaS MVP 封板语义不变。
 - **任务归属（Phase 24）**：**租户认证 / RBAC**；**Postgres + migration**；**多实例下 session / store 收口**；**凭证安全**（加密、轮换、审计）。拆包顺序由规划与风险决定，**不**在本文件预写死交付日。
 - **提交标注约定**（历史）：22D/22E/23 前缀仍见于已合并提交；**Phase 24**：`feat(phase-24):` · `chore(phase-24):` · `docs(phase-24):`。
 - Previous major milestone in this log: **Phase 16.2** - HTTP access observability enhanced (`X-Request-Id`, optional `CHATFLOW_HTTP_ACCESS_LOG`, webhook `phases_ms`, verification type narrowing)

@@ -1,5 +1,5 @@
 /**
- * Phase 24 / 2I — feature gate for a future real `pg` client (no `pg` installed yet).
+ * Phase 24 / 2I+ — feature gate for real `pg` wiring (`pg` may be installed; load only when gate on).
  * Unset / `0` → disabled; `1` → enabled. Other values fail fast (same family as `CHATFLOW_SAAS_DB_DRIVER`).
  */
 
@@ -31,7 +31,7 @@ export function getPostgresClientGateSummary(): PostgresClientGateSummary {
   let message: string;
   if (enabled) {
     message =
-      'postgres_client_gate: on (CHATFLOW_SAAS_POSTGRES_CLIENT=1) — permits future real client wiring only; no pg dependency/runtime yet.';
+      'postgres_client_gate: on (CHATFLOW_SAAS_POSTGRES_CLIENT=1) — allows dynamic `pg` probe/load; pool/query may still be unwired (see readiness).';
   } else {
     message =
       'postgres_client_gate: off (unset or 0) — real postgres client path must stay inert; sql.js default unaffected by package state.';

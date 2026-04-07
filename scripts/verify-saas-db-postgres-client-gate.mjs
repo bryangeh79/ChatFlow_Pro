@@ -1,5 +1,5 @@
 /**
- * Phase 24 / 2I — postgres client feature gate (no `pg` dependency).
+ * Phase 24 / 2I+ — postgres client feature gate (`pg` present; load only when gate on).
  * Requires: npm run build
  */
 
@@ -34,19 +34,22 @@ function runVerifyReadiness() {
 
 async function main() {
   const pkg = JSON.parse(readFileSync(pathJoin(root, 'package.json'), 'utf8'));
-  if (pkg.dependencies && Object.prototype.hasOwnProperty.call(pkg.dependencies, 'pg')) fail('package.json must not depend on pg');
+  if (!pkg.dependencies || !Object.prototype.hasOwnProperty.call(pkg.dependencies, 'pg')) fail('package.json must depend on pg');
   if (pkg.devDependencies && Object.prototype.hasOwnProperty.call(pkg.devDependencies, 'pg')) fail('package.json devDependencies must not include pg');
 
   const envGateOff = { ...process.env };
   delete envGateOff.CHATFLOW_SAAS_POSTGRES_CLIENT;
 
   const offCode = `
-    const r = require(${JSON.stringify(adapterIndex)});
-    if (r.isPostgresClientEnabled() !== false) process.exit(10);
-    const rd = r.getPostgresExecutionReadiness();
-    if (rd.postgres_client_gate_enabled !== false) process.exit(11);
-    if (rd.postgres_client_runtime_wired !== false) process.exit(12);
-    process.exit(0);
+    (async () => {
+      const r = require(${JSON.stringify(adapterIndex)});
+      if (r.isPostgresClientEnabled() !== false) process.exit(10);
+      const rd = await r.getPostgresExecutionReadiness();
+      if (rd.postgres_client_gate_enabled !== false) process.exit(11);
+      if (rd.postgres_client_module_available !== false) process.exit(12);
+      if (rd.postgres_client_runtime_wired !== false) process.exit(13);
+      process.exit(0);
+    })().catch((e) => { console.error(e); process.exit(1); });
   `;
   try {
     runNodeEval(offCode, envGateOff);
@@ -55,12 +58,15 @@ async function main() {
   }
 
   const onCode = `
-    const r = require(${JSON.stringify(adapterIndex)});
-    if (r.isPostgresClientEnabled() !== true) process.exit(20);
-    const rd = r.getPostgresExecutionReadiness();
-    if (rd.postgres_client_gate_enabled !== true) process.exit(21);
-    if (rd.postgres_client_runtime_wired !== false) process.exit(22);
-    process.exit(0);
+    (async () => {
+      const r = require(${JSON.stringify(adapterIndex)});
+      if (r.isPostgresClientEnabled() !== true) process.exit(20);
+      const rd = await r.getPostgresExecutionReadiness();
+      if (rd.postgres_client_gate_enabled !== true) process.exit(21);
+      if (rd.postgres_client_module_available !== true) process.exit(22);
+      if (rd.postgres_client_runtime_wired !== false) process.exit(23);
+      process.exit(0);
+    })().catch((e) => { console.error(e); process.exit(1); });
   `;
   const envGateOn = { ...process.env, CHATFLOW_SAAS_POSTGRES_CLIENT: '1' };
   try {

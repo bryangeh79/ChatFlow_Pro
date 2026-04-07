@@ -1,6 +1,6 @@
 {
   "name": "chatflow-pro",
-  "version": "1.7.84",
+  "version": "1.7.85",
   "private": true,
   "type": "commonjs",
   "scripts": {
@@ -33,6 +33,7 @@
     "saas:db:postgres:readiness": "node scripts/saas-db-postgres-readiness.mjs",
     "verify:saas-db-postgres-readiness": "node scripts/verify-saas-db-postgres-readiness.mjs",
     "verify:saas-db-postgres-client-gate": "node scripts/verify-saas-db-postgres-client-gate.mjs",
+    "verify:saas-db-postgres-client-loader": "node scripts/verify-saas-db-postgres-client-loader.mjs",
     "saas:db:migration:plan": "node scripts/saas-db-migration-plan.mjs",
     "saas:db:migration:bootstrap": "node scripts/saas-db-migration-bootstrap.mjs",
     "verify:saas-admin-auth-cutline": "node scripts/verify-saas-admin-auth-cutline.mjs",
@@ -71,9 +72,11 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.3",
+    "@types/pg": "^8.20.0",
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "pg": "^8.20.0",
     "sql.js": "^1.12.0",
     "undici": "^6.24.1"
   }

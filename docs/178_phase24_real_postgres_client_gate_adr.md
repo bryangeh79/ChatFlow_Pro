@@ -1,8 +1,17 @@
 # ADR — Phase 24 / 包 2I — Real Postgres client：引入条件与 dependency gate
 
-> **状态**：Accepted（**2I = ADR + 代码 gate**；**不**安装 **`pg`**、**不**连真实数据库、**不**改默认 **`sql.js`** live 路径、**不**动租户 webhook）。  
+> **状态**：Accepted（**2I = ADR + 代码 gate**；**不**连真实数据库、**不**改默认 **`sql.js`** live 路径、**不**动租户 webhook）。  
 > **关联**：迁移总览 **`docs/177_phase24_postgres_migration_adr.md`**；readiness CLI **`npm run saas:db:postgres:readiness`**。  
-> **真源**：`package.json` **1.7.84+**；gate 实现 **`src/saas/db-adapter/postgres-gate.ts`**。
+> **真源**：`package.json` **1.7.85+**；gate **`postgres-gate.ts`**；**2J** 动态加载 **`postgres-client-loader.ts`**。
+
+---
+
+## Phase 24 — 包 2J ✅（wiring skeleton，`pg` 动态加载）
+
+- **`pg`** 列为 **`dependencies`**，但 **gate off 时进程不 `import('pg')`** — sql.js 默认路径 **不依赖** 是否已解析该包（与 **§1** 的安装图担忧对齐：未使用 Postgres 的进程 **不执行** 动态 import）。  
+- **`postgres-client-loader.ts`**：**`loadPostgresClientModule()`** / **`getPostgresClientRuntimeSummary()`** / **`isPostgresClientModuleAvailable()`**；**无 pool、无连接串、无 query**。  
+- **readiness**：**`postgres_client_module_available`** + **`postgres_client_runtime_wired: false`**（直至后续包接线 pool/adapter）。  
+- **验证**：**`npm run verify:saas-db-postgres-client-loader`**。
 
 ---
 
@@ -14,7 +23,7 @@ Phase 24 已具备：**双 driver 选择**（`CHATFLOW_SAAS_DB_DRIVER`）、**Po
 - **`driver=postgres` 被误读为“已可连库”**，掩盖 **stub 仍抛错** 的事实；
 - **运维与开发**缺少 **单一、可审计的开关**，难以做 **渐进接线** 与 **回滚**。
 
-本 ADR 将 **“何时允许走真实 client 代码路径”** 与 **`package.json` 是否包含 `pg`** 拆开：**默认永不隐式依赖 `pg`**；仅当 **driver + feature gate** 同时满足时，后续包（2J）才允许加载真实客户端。
+本 ADR 将 **“何时允许走真实 client 代码路径”** 与 **“进程是否实际加载 `pg`”** 拆开：**`package.json` 可含 `pg`（2J）**，但 **仅当 gate on 才动态 `import('pg')`**；**driver + gate** 仍是后续 **pool / query** 接线的硬前置。
 
 ---
 
@@ -48,8 +57,8 @@ Phase 24 已具备：**双 driver 选择**（`CHATFLOW_SAAS_DB_DRIVER`）、**Po
 | **环境变量** | `CHATFLOW_SAAS_POSTGRES_CLIENT` |
 | **合法值** | 未设置 / 空 / `0` → **关闭**；`1` → **开启**；**其他值** → **fail-fast** `invalid_chatflow_saas_postgres_client:<value>`（与 `CHATFLOW_SAAS_DB_DRIVER` 校验风格一致） |
 | **API** | `isPostgresClientEnabled()`、`getPostgresClientGateSummary()`（**`postgres-gate.ts`**） |
-| **语义** | Gate **只**表示 **允许未来接线**，**不**表示 **`pg` 已安装、已连接、已健康** |
-| **readiness** | `getPostgresExecutionReadiness()` 携带 **`postgres_client_gate_enabled`**、**`postgres_client_runtime_wired: false`**（在真实 client 接线前恒为 `false`） |
+| **语义** | Gate **只**表示 **允许动态加载 `pg` 模块**；**不**表示 **pool 已建、已连接、已健康** |
+| **readiness** | `getPostgresExecutionReadiness()`（**async**）携带 **`postgres_client_gate_enabled`**、**`postgres_client_module_available`**、**`postgres_client_runtime_wired: false`**（pool/adapter 接线前恒为 `false`） |
 
 **`PostgresSaaSDbAdapter`** 可提供 **`getPostgresClientGateSummary()`** 实例方法，便于调试；**不**在 gate 关闭时 **静默创建 pool**。
 
@@ -66,7 +75,7 @@ Phase 24 已具备：**双 driver 选择**（`CHATFLOW_SAAS_DB_DRIVER`）、**Po
 
 - **`driver=sqljs`**：完全 **不** 评估 Postgres client；**sql.js 启动路径** 与 **是否安装 `pg` 无关**。  
 - **`driver=postgres` 且 gate 关闭**：保持 **stub**（当前仍 **`postgres_adapter_not_implemented`**）；readiness **明确 “gate 关闭，非 ready”**，**不** 伪装健康检查通过。  
-- **`driver=postgres` 且 gate 开启**：仍 **仅表示 “允许未来接线”**；在 **2J 未合并前**，**`postgres_client_runtime_wired` 仍为 `false`**。
+- **`driver=postgres` 且 gate 开启**：**2J** 起可 **解析 `pg` 模块**；**`postgres_client_runtime_wired` 仍为 `false`**（无 pool / 无 query）。
 
 ---
 
@@ -76,7 +85,7 @@ Phase 24 已具备：**双 driver 选择**（`CHATFLOW_SAAS_DB_DRIVER`）、**Po
 |------|------|
 | **Local 默认** | 不设 `CHATFLOW_SAAS_POSTGRES_CLIENT` → gate **关**；`CHATFLOW_SAAS_DB_DRIVER` 默认/省略 → **sqljs**。 |
 | **本地试验 Postgres** | 显式 `CHATFLOW_SAAS_DB_DRIVER=postgres` + `CHATFLOW_SAAS_POSTGRES_CLIENT=1` +（2J 起）连接串；**未接 2J 前** 仍会 **stub / 报错**，符合预期。 |
-| **Hosted / prod** | 若仍跑 sql.js：**不要** 开 gate、**不要** 装 `pg`。若目标 Postgres：**先** 基础设施与 secret，**再** 开 gate + 切 driver + 部署含 **`pg` 的版本**（2J）。 |
+| **Hosted / prod** | 若仍跑 sql.js：**不要** 开 gate（进程即 **不** `import('pg')`）。若目标 Postgres：**先** 基础设施与 secret，**再** 开 gate + 切 driver + 部署 **2J+** 构建（含 **`pg` 依赖**）。 |
 
 ---
 
@@ -91,7 +100,7 @@ Phase 24 已具备：**双 driver 选择**（`CHATFLOW_SAAS_DB_DRIVER`）、**Po
 ## 8. 回滚策略
 
 - **配置回滚**：`CHATFLOW_SAAS_POSTGRES_CLIENT=0` 或未设置 → **禁止** 真实 client 路径；配合 **`CHATFLOW_SAAS_DB_DRIVER=sqljs`** 回到 **文件 sql.js**。  
-- **发布回滚**：回退到 **未合并 2J 的构建** → **无 `pg` 依赖**；gate 仍存在，**行为与 2I 一致**。  
+- **发布回滚**：回退到 **未合并 2J 的构建** → **无 `pg` 依赖**；gate 仍存在，**行为与纯 2I 一致**。  
 - **数据回滚**：见 **`docs/177`** 与 **`memory/04`** — **快照 + 明确 backend 环境变量**，避免 **双写分叉**。
 
 ---
@@ -100,17 +109,18 @@ Phase 24 已具备：**双 driver 选择**（`CHATFLOW_SAAS_DB_DRIVER`）、**Po
 
 | 包 | 建议范围 |
 |----|-----------|
-| **2J** | **`package.json` 增加 `pg`（及类型）**；**仅在 `driver=postgres` 且 gate=on 时** `require`/动态加载；实现 **最小 pool + 连接失败策略**；**`postgres_client_runtime_wired`** 在 **成功创建 pool** 后为 `true`（定义见 2J PR）。 |
+| **2J** | ✅ **骨架**：**`pg` 依赖 + `postgres-client-loader.ts`**（gate on 才动态加载）；**`postgres_client_runtime_wired` 仍为 `false`**。 **后续 2J+ / 2K**：最小 **pool + 连接失败策略**；**`postgres_client_runtime_wired`** 在 **成功创建 pool** 后为 `true`（以 PR 为准）。 |
 | **2K** | **migration apply** 与 **DB ledger** 与 **真实连接** 串联；CI Postgres job；**仍不** 改 webhook 默认路径。 |
 
 ---
 
-## 10. 验收（2I）
+## 10. 验收（2I + 2J）
 
 - `npm run build`  
 - `npm run verify:saas-db-postgres-readiness`  
 - `npm run verify:saas-db-postgres-client-gate`  
-- **`package.json` 仍无 `pg`**
+- `npm run verify:saas-db-postgres-client-loader`  
+- **2J+**：**`package.json` `dependencies` 含 `pg`**；**gate off 的 verify** 断言 **`require.cache` 无 `pg`**
 
 ---
 

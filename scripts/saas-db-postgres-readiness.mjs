@@ -24,20 +24,22 @@ function parseFormat(argv) {
   return 'json';
 }
 
-function main() {
+async function main() {
   const format = parseFormat(process.argv.slice(2));
   const {
     getPostgresMigrationLedgerInfo,
     getPostgresSchemaAssetInfo,
     getPostgresExecutionReadiness,
     getPostgresClientGateSummary,
+    getPostgresClientRuntimeSummary,
     POSTGRES_METADATA_QUERY_NOT_WIRED,
   } = require(pathJoin(root, 'dist', 'src', 'saas', 'db-adapter', 'index.js'));
 
   const ledger = getPostgresMigrationLedgerInfo();
   const schema_assets = getPostgresSchemaAssetInfo();
-  const readiness = getPostgresExecutionReadiness();
+  const readiness = await getPostgresExecutionReadiness();
   const postgres_client_gate = getPostgresClientGateSummary();
+  const postgres_client_runtime = await getPostgresClientRuntimeSummary();
 
   const payload = {
     ok: true,
@@ -45,7 +47,9 @@ function main() {
     postgres_metadata_query_not_wired: true,
     constant: POSTGRES_METADATA_QUERY_NOT_WIRED,
     postgres_client_gate,
+    postgres_client_runtime,
     postgres_client_gate_enabled: readiness.postgres_client_gate_enabled,
+    postgres_client_module_available: readiness.postgres_client_module_available,
     postgres_client_runtime_wired: readiness.postgres_client_runtime_wired,
     ledger,
     schema_assets: {
@@ -67,7 +71,7 @@ function main() {
   console.log('saas_db_postgres_readiness: stub_summary');
   console.log(`driver: ${readiness.driver}`);
   console.log(
-    `postgres_client_gate_enabled: ${readiness.postgres_client_gate_enabled} postgres_client_runtime_wired: ${readiness.postgres_client_runtime_wired}`,
+    `postgres_client_gate_enabled: ${readiness.postgres_client_gate_enabled} module_available: ${readiness.postgres_client_module_available} runtime_wired: ${readiness.postgres_client_runtime_wired}`,
   );
   console.log(`adapter_stub: ${readiness.adapter_stub} execution_wired: ${readiness.execution_wired} ledger_persistence_wired: ${readiness.ledger_persistence_wired}`);
   console.log(`sql_assets_present: ${readiness.sql_assets_present}`);
@@ -76,4 +80,7 @@ function main() {
   console.log(readiness.message);
 }
 
-main();
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

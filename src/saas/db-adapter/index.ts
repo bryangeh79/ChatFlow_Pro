@@ -9,15 +9,23 @@ export { SqlJsSaaSDbAdapter } from './sqljs-adapter';
 export {
   PostgresSaaSDbAdapter,
   POSTGRES_ADAPTER_NOT_IMPLEMENTED,
+  POSTGRES_CLIENT_LOAD_SKIPPED_GATE_OFF,
+  POSTGRES_CLIENT_MODULE_NOT_AVAILABLE,
+  POSTGRES_CLIENT_RUNTIME_NOT_WIRED,
   POSTGRES_METADATA_QUERY_NOT_WIRED,
   getPostgresClientGateSummary,
+  getPostgresClientRuntimeSummary,
   getPostgresExecutionReadiness,
   getPostgresMigrationLedgerInfo,
   getPostgresSchemaAssetInfo,
   isPostgresClientEnabled,
+  isPostgresClientModuleAvailable,
+  loadPostgresClientModule,
 } from './postgres-adapter';
 export type {
   PostgresClientGateSummary,
+  PostgresClientModule,
+  PostgresClientRuntimeSummary,
   PostgresExecutionReadiness,
   PostgresLedgerMetadataStatus,
   PostgresMigrationLedgerInfo,

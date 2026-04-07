@@ -1,3 +1,5 @@
+import type { PostgresClientRuntimeSummary } from './postgres-client-loader';
+import { getPostgresClientRuntimeSummary as resolvePostgresClientRuntimeSummary } from './postgres-client-loader';
 import {
   getPostgresClientGateSummary as resolvePostgresClientGateSummary,
   type PostgresClientGateSummary,
@@ -11,6 +13,11 @@ export class PostgresSaaSDbAdapter implements SaaSDbAdapter {
   /** Read-only: current `CHATFLOW_SAAS_POSTGRES_CLIENT` gate (no DB I/O). */
   getPostgresClientGateSummary(): PostgresClientGateSummary {
     return resolvePostgresClientGateSummary();
+  }
+
+  /** Read-only: dynamic `pg` probe only when gate on (no DB I/O). */
+  getPostgresClientRuntimeSummary(): Promise<PostgresClientRuntimeSummary> {
+    return resolvePostgresClientRuntimeSummary();
   }
 
   private notImplemented(): never {
@@ -38,6 +45,15 @@ export class PostgresSaaSDbAdapter implements SaaSDbAdapter {
   }
 }
 
+export {
+  POSTGRES_CLIENT_LOAD_SKIPPED_GATE_OFF,
+  POSTGRES_CLIENT_MODULE_NOT_AVAILABLE,
+  POSTGRES_CLIENT_RUNTIME_NOT_WIRED,
+  getPostgresClientRuntimeSummary,
+  isPostgresClientModuleAvailable,
+  loadPostgresClientModule,
+} from './postgres-client-loader';
+export type { PostgresClientModule, PostgresClientRuntimeSummary } from './postgres-client-loader';
 export { getPostgresClientGateSummary, isPostgresClientEnabled } from './postgres-gate';
 export type { PostgresClientGateSummary } from './postgres-gate';
 export {

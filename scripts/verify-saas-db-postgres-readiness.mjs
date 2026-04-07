@@ -1,5 +1,5 @@
 /**
- * Phase 24 / 2H — postgres metadata readiness stub + regression chain (no pg).
+ * Phase 24 / 2H+ — postgres readiness + client loader regression chain.
  * Requires: npm run build
  */
 
@@ -33,8 +33,8 @@ function runVerifyScript(name) {
 
 async function main() {
   const pkg = JSON.parse(readFileSync(pathJoin(root, 'package.json'), 'utf8'));
-  if (pkg.dependencies && Object.prototype.hasOwnProperty.call(pkg.dependencies, 'pg')) fail('package.json must not depend on pg');
-  if (pkg.devDependencies && Object.prototype.hasOwnProperty.call(pkg.devDependencies, 'pg')) fail('package.json devDependencies must not include pg');
+  if (!pkg.dependencies || !Object.prototype.hasOwnProperty.call(pkg.dependencies, 'pg')) fail('package.json must depend on pg (Phase 24 / 2J)');
+  if (pkg.devDependencies && Object.prototype.hasOwnProperty.call(pkg.devDependencies, 'pg')) fail('package.json devDependencies must not bundle pg');
 
   const {
     getPostgresMigrationLedgerInfo,
@@ -57,13 +57,14 @@ async function main() {
     if (!m.id || !m.asset_path || !hex64.test(m.checksum_sha256)) fail(`bad asset row ${m.id}`);
   }
 
-  const r = getPostgresExecutionReadiness();
+  const r = await getPostgresExecutionReadiness();
   if (r.driver !== 'sqljs' && r.driver !== 'postgres') fail('readiness.driver');
   if (r.adapter_stub !== true) fail('adapter_stub');
   if (r.execution_wired !== false) fail('execution_wired');
   if (r.ledger_persistence_wired !== false) fail('ledger_persistence_wired');
   if (typeof r.sql_assets_present !== 'boolean') fail('sql_assets_present');
   if (typeof r.postgres_client_gate_enabled !== 'boolean') fail('postgres_client_gate_enabled');
+  if (typeof r.postgres_client_module_available !== 'boolean') fail('postgres_client_module_available');
   if (r.postgres_client_runtime_wired !== false) fail('postgres_client_runtime_wired');
   if (!r.message.includes(POSTGRES_METADATA_QUERY_NOT_WIRED)) fail('readiness.message');
 
@@ -81,8 +82,10 @@ async function main() {
   if (!j.ledger || j.ledger.status !== 'not_wired') fail('CLI ledger');
   if (!j.readiness || j.readiness.execution_wired !== false) fail('CLI readiness');
   if (typeof j.postgres_client_gate_enabled !== 'boolean') fail('CLI postgres_client_gate_enabled');
+  if (typeof j.postgres_client_module_available !== 'boolean') fail('CLI postgres_client_module_available');
   if (j.postgres_client_runtime_wired !== false) fail('CLI postgres_client_runtime_wired');
   if (!j.postgres_client_gate || typeof j.postgres_client_gate.enabled !== 'boolean') fail('CLI postgres_client_gate');
+  if (!j.postgres_client_runtime || typeof j.postgres_client_runtime.module_available !== 'boolean') fail('CLI postgres_client_runtime');
 
   await runVerifyScript('verify-saas-db-migration-ledger.mjs');
   await runVerifyScript('verify-saas-db-migration-assets.mjs');

@@ -1,28 +1,38 @@
 # ADR — Phase 24 / 包 2A — Postgres + migration（仅决策，无实现）
 
 > **状态**：Accepted（**2A = ADR 文档**；**不**含 Postgres runtime、**不**改 sql.js live 路径、**不**动租户 webhook / 现有 auth 实现）。  
-> **真源**：`package.json` **1.7.84+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。**真实 `pg` client 引入前置条件** 见 **`docs/178_phase24_real_postgres_client_gate_adr.md`**（**2I**）。
+> **真源**：`package.json` **1.7.85+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。**Gate + 动态 `pg` 加载契约** 见 **`docs/178_phase24_real_postgres_client_gate_adr.md`**（**2I / 2J**）。**2J** 已立 **client loading contract**；**pool / query / migration 真执行** 仍未接线。
 
 ---
 
-## Phase 24 — 包 2I ✅（real postgres client：ADR + dependency gate，仍无 `pg`）
+## Phase 24 — 包 2J ✅（real postgres client wiring skeleton — 不连库）
 
-- **ADR**：**`docs/178_phase24_real_postgres_client_gate_adr.md`** — 背景、**不**立刻接 `pg` 的理由、**driver + `CHATFLOW_SAAS_POSTGRES_CLIENT=1`** 前置、失败/回滚、**2J/2K** 拆分建议。  
+- **依赖**：**`pg`** 入 **`dependencies`**；**仅**在 **`CHATFLOW_SAAS_POSTGRES_CLIENT=1`** 时 **`import('pg')`**（**`postgres-client-loader.ts`**）。  
+- **API**：**`isPostgresClientModuleAvailable()`**、**`loadPostgresClientModule()`**、**`getPostgresClientRuntimeSummary()`**；常量 **`POSTGRES_CLIENT_MODULE_NOT_AVAILABLE`** / **`POSTGRES_CLIENT_RUNTIME_NOT_WIRED`** / **`POSTGRES_CLIENT_LOAD_SKIPPED_GATE_OFF`**。  
+- **readiness**：**`getPostgresExecutionReadiness()`**（**async**）含 **`postgres_client_module_available`**、**`postgres_client_runtime_wired: false`**；gate off **不** 触达 `pg`。  
+- **验证**：**`npm run verify:saas-db-postgres-client-loader`**。  
+- **禁止**：**不**建 pool、**不**读连接串、**不**执行 SQL、**不**改默认 **sql.js** driver。
+
+---
+
+## Phase 24 — 包 2I ✅（real postgres client：ADR + dependency gate）
+
+- **ADR**：**`docs/178_phase24_real_postgres_client_gate_adr.md`** — **driver + `CHATFLOW_SAAS_POSTGRES_CLIENT=1`** 前置、失败/回滚、**2J/2K** 拆分建议。  
 - **Gate**：**`postgres-gate.ts`** — **`isPostgresClientEnabled()`** / **`getPostgresClientGateSummary()`**（未设/`0` → off；`1` → on；其他值 fail-fast）。  
-- **readiness**：**`postgres_client_gate_enabled`**、**`postgres_client_runtime_wired: false`**；**`driver=postgres` 且 gate 关** 时摘要 **明示 gate 关闭**。  
+- **readiness**：**`postgres_client_gate_enabled`** 等；**`driver=postgres` 且 gate 关** 时摘要 **明示 gate 关闭**。  
 - **验证**：**`npm run verify:saas-db-postgres-client-gate`**。  
-- **禁止**：本包 **不**安装 **`pg`**、**不**连库、**不**改默认 **sql.js**。
+- **演进**：**2J** 起 **`pg`** 已安装，但 **默认路径仍不加载**（见上节）。
 
 ---
 
 ## Phase 24 — 包 2H ✅（Postgres metadata / readiness stub — no DB I/O）
 
-- **模块**：**`postgres-metadata.ts`** — 只读 **contract stub**：**`getPostgresMigrationLedgerInfo()`**（ledger 表名 + **`status=not_wired`** / **`exists=false`**）、**`getPostgresSchemaAssetInfo()`**（registry 内 SQL 资产 + **checksum** + **count**）、**`getPostgresExecutionReadiness()`**（**`adapter_stub: true`**、**`execution_wired: false`**、**`ledger_persistence_wired: false`**、**`sql_assets_present`**）。  
-- **常量**：**`POSTGRES_METADATA_QUERY_NOT_WIRED`** — 明示 **未** 接真实 `information_schema` / `pg` 查询。  
+- **模块**：**`postgres-metadata.ts`** — 只读 **contract stub**：**`getPostgresMigrationLedgerInfo()`**、**`getPostgresSchemaAssetInfo()`**、**`getPostgresExecutionReadiness()`**（**async**；**`adapter_stub: true`**、**`execution_wired: false`**、**`ledger_persistence_wired: false`**、**`sql_assets_present`**、**`postgres_client_*`** 见 **2I/2J**）。  
+- **常量**：**`POSTGRES_METADATA_QUERY_NOT_WIRED`** — 明示 **未** 接真实 `information_schema` / DB。  
 - **接线**：**`postgres-adapter.ts`** / **`db-adapter/index.ts`** 再导出上述 API；**不**改 live 默认 **sql.js**、**不**动租户 webhook。  
 - **CLI**：**`npm run saas:db:postgres:readiness`**（**`scripts/saas-db-postgres-readiness.mjs`**）— 摘要 JSON/text，**非** DB 健康检查通过语义。  
 - **验证**：**`npm run verify:saas-db-postgres-readiness`**（含既有 ledger / assets / execution / ledger-contract 回归链）。  
-- **禁止**：本包 **不**引入 **`pg`**、**不**执行 SQL、**不**伪成功 apply。
+- **禁止**：**不**执行 SQL、**不**伪成功 apply。
 
 ---
 
