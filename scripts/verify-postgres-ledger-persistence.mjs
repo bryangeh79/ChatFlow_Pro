@@ -1,8 +1,8 @@
 /**
- * Phase 24 — saas_schema_migrations ledger persistence semantics (no local PG required).
- * Optional: CHATFLOW_SAAS_POSTGRES_LEDGER_INTEGRATION=1 + working URL + driver=postgres + CLIENT=1
- *   → record+list round-trip when ledger table exists (see script header in repo).
- * Requires: npm run build
+ * Phase 24 — controlled reachability verification for runtime_wired + ledger_ready.
+ * Default chain (no controlled flag): must remain NO_GO and never require local PG.
+ * Controlled chain: set CHATFLOW_SAAS_POSTGRES_CONTROLLED_VERIFY=1 (+ URL) to validate
+ * runtime_wired + ledger_info.status=ready in a prepared PG environment.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -32,6 +32,7 @@ function scrub(base) {
   delete e.CHATFLOW_SAAS_POSTGRES_PROBE;
   delete e.CHATFLOW_SAAS_DB_DRIVER;
   delete e.CHATFLOW_SAAS_POSTGRES_LEDGER_INTEGRATION;
+  delete e.CHATFLOW_SAAS_POSTGRES_CONTROLLED_VERIFY;
   return e;
 }
 
@@ -47,6 +48,8 @@ function execReadiness(env) {
         ledger_status: r.ledger_info.status,
         ledger_exists: r.ledger_info.exists,
         execution_wired: r.execution_wired,
+        controlled_reachability: r.controlled_reachability,
+        reachability_basis: r.reachability_basis,
       }));
     })().catch((e) => { console.error(e); process.exit(1); });
   `;
@@ -66,14 +69,15 @@ function execGoNoGo(env) {
   return JSON.parse(out.trim().split('\n').pop());
 }
 
-async function maybeIntegrationRw() {
-  if (process.env.CHATFLOW_SAAS_POSTGRES_LEDGER_INTEGRATION !== '1') {
+async function maybeControlledReachability() {
+  if (process.env.CHATFLOW_SAAS_POSTGRES_CONTROLLED_VERIFY !== '1') {
+    console.log('verify-postgres-ledger-persistence: controlled_reachability_skip (flag_off)');
     return;
   }
 
   const url = process.env.CHATFLOW_SAAS_POSTGRES_URL;
   if (!url || typeof url !== 'string' || !url.trim()) {
-    console.log('verify-postgres-ledger-persistence: skip integration (no CHATFLOW_SAAS_POSTGRES_URL)');
+    console.log('verify-postgres-ledger-persistence: controlled_reachability_skip (no_postgres_url)');
     return;
   }
 
@@ -86,16 +90,22 @@ async function maybeIntegrationRw() {
 
   const snap = execReadiness(env);
   if (!snap.postgres_client_runtime_wired) {
-    console.log('verify-postgres-ledger-persistence: skip integration (runtime not wired against URL)');
+    console.log('verify-postgres-ledger-persistence: controlled_reachability_skip (runtime_unwired)');
     return;
   }
   if (snap.ledger_status !== 'ready') {
     console.log(
-      `verify-postgres-ledger-persistence: skip integration RW (ledger_status=${snap.ledger_status}; need table from pg_0003 DDL applied manually)`,
+      `verify-postgres-ledger-persistence: controlled_reachability_skip (ledger_status=${snap.ledger_status}; need pg_0003 applied manually)`,
     );
     return;
   }
   if (!snap.ledger_persistence_wired) fail('integration: ready ledger must set ledger_persistence_wired');
+  if (snap.controlled_reachability !== 'postgres_runtime_wired_ledger_ready') {
+    fail('controlled_reachability must be postgres_runtime_wired_ledger_ready');
+  }
+  if (!String(snap.reachability_basis || '').includes('does not imply GO')) {
+    fail('reachability_basis should remind overall_go_not_implied');
+  }
 
   const code = `
     (async () => {
@@ -121,7 +131,10 @@ async function maybeIntegrationRw() {
     })().catch((e) => { console.error(e); process.exit(1); });
   `;
   execFileSync(process.execPath, ['-e', code], { cwd: root, encoding: 'utf8', env, stdio: 'inherit' });
-  console.log('verify-postgres-ledger-persistence: integration RW ok');
+  const g = execGoNoGo(env);
+  if (g.overall_status === 'go') fail('controlled chain must not imply automatic GO');
+  console.log('verify-postgres-ledger-persistence: controlled_reachability_ok');
+  console.log('verify-postgres-ledger-persistence: overall_go_not_implied');
 }
 
 async function main() {
@@ -131,9 +144,11 @@ async function main() {
   if (d0.driver !== 'sqljs') fail('default driver sqljs');
   if (d0.ledger_persistence_wired !== false) fail('default ledger_persistence_wired false');
   if (d0.ledger_status !== 'not_wired') fail('default ledger_status not_wired');
+  if (d0.controlled_reachability !== 'default_path_no_postgres') fail('default controlled_reachability');
   const g0 = execGoNoGo(base);
   if (g0.overall_status !== 'no_go') fail('default go/no-go no_go');
   if (!g0.blocking_reasons.includes('postgres_ledger_persistence_not_wired')) fail('default missing ledger blocker');
+  console.log('verify-postgres-ledger-persistence: default_no_go_ok');
 
   const eBad = {
     ...base,
@@ -145,10 +160,11 @@ async function main() {
   if (d1.postgres_client_runtime_wired !== false) fail('dead PG: runtime unwired');
   if (d1.ledger_persistence_wired !== false) fail('dead PG: ledger not wired');
   if (d1.ledger_status !== 'not_wired') fail('dead PG: ledger status stays not_wired when runtime false');
+  if (d1.controlled_reachability !== 'postgres_runtime_unwired') fail('dead PG: controlled_reachability');
   const g1 = execGoNoGo(eBad);
   if (g1.overall_status !== 'no_go') fail('dead PG: still no_go');
 
-  await maybeIntegrationRw();
+  await maybeControlledReachability();
 
   console.log('verify-postgres-ledger-persistence: ok');
 }

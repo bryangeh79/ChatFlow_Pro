@@ -3,6 +3,7 @@
 ## 战报顶栏（2026-04-07 — 下一聊天室）
 
 - **版本**：`package.json` **1.7.90**（**Pro_v1.07.90**）— Phase 24：**3A ✅**；**3B ✅**；**3C ✅** — **`event_type` + `idempotency_key` 契约**（`docs/179` §9、`verify:phase24-3c-jsonl-notify-contract`），**仍** at-least-once / **非** MI-ready。**Postgres 线**：共享 **Pool** + **`PostgresSaaSDbAdapter`** + **`saas_schema_migrations` 真实 ledger** + **migration execution wired**（apply 真实执行；**`execution_wired`** 基于 runtime+ledger+assets）；**默认 sqljs 不变**；**`evaluatePostgresGoNoGo()` 仍为 `NO_GO`**。SaaS MVP 仍 **sealed**。  
+- **受控可达性稳定化**：readiness 证据字段 + verify 固定文案（`default_no_go_ok` / `controlled_reachability_ok` / `overall_go_not_implied`）；受控链需显式开关，前置不足统一 `skip`。  
 - **当前 Phase**：**24 — SaaS v1 Hardening**（**当前主线**）。  
 - **已关闭**：**Phase 23**（SaaS MVP Final Closure）— **主线 closed**，后续 **不算 MVP 扩功能**。  
 - **本轮 git / push**：**以 `git log origin/main` 为准**；**migration execution wired** **`c142da3`**（**已 push**）；**Postgres ledger persistence** **`22ffc2d`**；**Postgres Pool/adapter 切片** **`0b540f4`**；**3C** **`30bdc57`**；**3B** **`9f76785`**。  

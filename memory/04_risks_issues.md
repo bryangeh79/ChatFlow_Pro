@@ -43,6 +43,7 @@
 - **TCP probe（2L）**：**`CHATFLOW_SAAS_POSTGRES_PROBE=1`** 时 **仅** **`connect`/`end`** — **`probe_connect_ok` 不等于 schema/ledger/业务可用**；**默认关闭**、**不** 进 sql.js 启动链 — **勿将探针当迁移或 RBAC 就绪信号**。  
 - **Go/no-go（2M）**：**`saas:db:postgres:go-no-go`** 默认 **`no_go`** — **已有 probe/config 也不等于可投产**；**勿将 CLI 绿字误解为 runtime 已 fully ready**。  
 - **Execution wired（新切片）**：apply 已真实执行 SQL + ledger（单 migration 一事务、失败回滚并 fail-fast）；**但 execution wired ≠ Postgres ready**，仍需其余硬门槛同时满足才可能 GO。  
+- **受控可达性验证**：受控链必须显式开关启用；`runtime_wired + ledger_ready` 拉通仅代表门槛可达，**不自动等于 GO**；无 PG/前置不足按 `skip` 处理，避免把环境缺失误判为失败。  
 - **Postgres adapter（2C）**：**最小 query/execute 已接线**（共享 Pool、`?`→`$n`）；**仍** 无 repository 全量迁 PG；**execution wired** 仍不等于生产 DB 全路径 ready — **勿当 Postgres / 迁移 / 生产 DB 就绪**。  
 - **adapter 过渡期（2B+）**：**repository 双路径** — principals/audit 走 **`SaaSDbAdapter`**，其余表仍 **`getSaaSDatabase` + stmt**；新增功能若接错路径易出现 **持久化语义不一致**（忘记 `persistIfNeeded` / 混用连接）— **扩表时必须跟 adapter 模式或显式文档例外**。  
 - **数据迁移 / 一致性**：单文件 SQLite（sql.js）→ 托管 Postgres 需 **显式导出/导入或双写窗口**；多租户表外键与索引需 **一次性校验**，避免部分表成功导致 **orphan** 或 **unique 冲突**。  

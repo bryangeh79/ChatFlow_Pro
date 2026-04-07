@@ -72,6 +72,8 @@ async function main() {
   if (typeof r.postgres_probe_attempted !== 'boolean') fail('postgres_probe_attempted');
   if (typeof r.postgres_probe_status !== 'string') fail('postgres_probe_status');
   if (typeof r.postgres_probe_message !== 'string') fail('postgres_probe_message');
+  if (typeof r.controlled_reachability !== 'string') fail('controlled_reachability');
+  if (typeof r.reachability_basis !== 'string') fail('reachability_basis');
   if (!r.message.includes(POSTGRES_METADATA_QUERY_NOT_WIRED)) fail('readiness.message');
 
   const out = execFileSync(process.execPath, [pathJoin(root, 'scripts', 'saas-db-postgres-readiness.mjs'), '--format=json'], {
@@ -100,6 +102,8 @@ async function main() {
   if (typeof j.readiness.postgres_probe_attempted !== 'boolean') fail('readiness postgres_probe_attempted');
   if (typeof j.readiness.postgres_probe_status !== 'string') fail('readiness postgres_probe_status');
   if (typeof j.readiness.postgres_probe_message !== 'string') fail('readiness postgres_probe_message');
+  if (typeof j.readiness.controlled_reachability !== 'string') fail('readiness controlled_reachability');
+  if (typeof j.readiness.reachability_basis !== 'string') fail('readiness reachability_basis');
 
   await runVerifyScript('verify-saas-db-migration-ledger.mjs');
   await runVerifyScript('verify-saas-db-migration-assets.mjs');

@@ -62,6 +62,14 @@ export interface PostgresExecutionReadiness {
   postgres_probe_attempted: boolean;
   postgres_probe_status: PostgresProbeStatus;
   postgres_probe_message: string;
+  /** Readiness evidence for controlled PG reachability verification; never implies overall GO. */
+  controlled_reachability:
+    | 'default_path_no_postgres'
+    | 'postgres_runtime_unwired'
+    | 'postgres_runtime_wired_ledger_not_ready'
+    | 'postgres_runtime_wired_ledger_ready';
+  /** Human-readable basis for `controlled_reachability`; no secrets. */
+  reachability_basis: string;
   message: string;
 }
 
@@ -193,6 +201,22 @@ export async function getPostgresExecutionReadiness(): Promise<PostgresExecution
     postgres_client_runtime_wired,
   );
   const execution_wired = postgres_client_runtime_wired && ledger_persistence_wired && sql_assets_present;
+  const controlled_reachability =
+    driver !== 'postgres'
+      ? 'default_path_no_postgres'
+      : !postgres_client_runtime_wired
+        ? 'postgres_runtime_unwired'
+        : ledger_persistence_wired
+          ? 'postgres_runtime_wired_ledger_ready'
+          : 'postgres_runtime_wired_ledger_not_ready';
+  const reachability_basis =
+    controlled_reachability === 'default_path_no_postgres'
+      ? 'driver=sqljs(default) or non-postgres; controlled PG reachability not evaluated on live path.'
+      : controlled_reachability === 'postgres_runtime_unwired'
+        ? 'driver=postgres but runtime_wired=false (gate/config/probe/pool preconditions not fully met).'
+        : controlled_reachability === 'postgres_runtime_wired_ledger_ready'
+          ? 'driver=postgres + runtime_wired=true + ledger_info.status=ready (controlled reachability OK; does not imply GO).'
+          : 'driver=postgres + runtime_wired=true but ledger_info not ready (table_missing/not_ready).';
 
   return {
     driver,
@@ -212,6 +236,8 @@ export async function getPostgresExecutionReadiness(): Promise<PostgresExecution
     postgres_probe_attempted: probe.attempted,
     postgres_probe_status: probe.status,
     postgres_probe_message: probe.message,
+    controlled_reachability,
+    reachability_basis,
     message,
   };
 }
