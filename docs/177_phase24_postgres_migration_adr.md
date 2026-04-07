@@ -1,7 +1,15 @@
 # ADR — Phase 24 / 包 2A — Postgres + migration（仅决策，无实现）
 
 > **状态**：Accepted（**2A = ADR 文档**；**不**含 Postgres runtime、**不**改 sql.js live 路径、**不**动租户 webhook / 现有 auth 实现）。  
-> **真源**：`package.json` **1.7.76**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。
+> **真源**：`package.json` **1.7.77+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。
+
+---
+
+## Phase 24 — 包 2B（已启动，骨架）
+
+- **代码**：`src/saas/db-adapter/*` — **`SaaSDbAdapter`**（`queryOne` / `queryAll` / `execute` / `transaction` / `persistIfNeeded`）+ **`SqlJsSaaSDbAdapter`**；**默认 live 仍 sql.js**，**无** Postgres client。  
+- **接线**：`repository.ts` 中 **`tenant_admin_principals` + `tenant_admin_principal_audit_logs`** 路径已走 adapter；**其余表**仍直连接口 `getSaaSDatabase` / `stmt*`。  
+- **验证**：`npm run verify:saas-sqljs-adapter-principals`。
 
 ---
 
@@ -18,11 +26,11 @@ SaaS 控制面与租户元数据当前落在 **sql.js 内存 SQLite + 单文件�
 | 能力 | 说明 |
 |------|------|
 | **入口** | `src/saas/db.ts` — `initSqlJs` → `new SQL.Database(optionalUint8)`；`getSaaSDatabase()` 单例；`persistSaaSDatabase()` 全量 `export()` 写回文件。 |
-| **消费者** | `src/saas/repository.ts` **唯一**直接依赖 `getSaaSDatabase` / `persistSaaSDatabase`；`src/server.ts` 仅 **warm-up** 调用 `getSaaSDatabase()`。 |
+| **消费者** | `src/saas/repository.ts`：**principals / audit** 经 **`getSaasDbAdapter()`**；**其余**仍直接 `getSaaSDatabase` / `persistSaaSDatabase`；`src/server.ts` 仅 **warm-up** `getSaaSDatabase()`。 |
 | **初始化** | 启动时 `db.exec(SCHEMA)`（`CREATE TABLE IF NOT EXISTS`）+ `applyTenantPrincipalHashColumnMigration`（`PRAGMA table_info` + `ALTER` + **部分唯一索引**）。 |
 | **边界** | **单进程写语义**；多副本时文件库 **非** 共享真相源；**无**连接池、**无**流式迁移 API；SQL 带 **SQLite 方言**（`datetime('now')` 等）。 |
 
-**最强耦合点**：`repository.ts` 与 **sql.js 语句 API**（`prepare` / `step` / `getAsObject`）及 **每次写后 `persistSaaSDatabase()`** 假设。
+**最强耦合点（迁移中）**：`repository.ts` **未适配段** 仍与 **sql.js 语句 API**（`prepare` / `step` / `getAsObject`）及 **写后 `persistSaaSDatabase()`** 绑定；**已适配段** 仅依赖 **`SaaSDbAdapter`**。
 
 ---
 

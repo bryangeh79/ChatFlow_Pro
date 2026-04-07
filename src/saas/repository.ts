@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { SqlJsDatabase } from './db';
 import { getSaaSDatabase, persistSaaSDatabase } from './db';
+import { getSaasDbAdapter } from './db-adapter';
 import { hashBridgeToken } from './bridge-token';
 import {
   insertPrincipalAuditLog,
@@ -233,10 +234,9 @@ export async function findEnabledPrincipalByBridgeToken(
   if (!trimmed) return null;
   const h = hashBridgeToken(trimmed);
   if (!h) return null;
-  const db = await getSaaSDatabase();
+  const adapter = await getSaasDbAdapter();
 
-  let row = stmtGet(
-    db,
+  let row = await adapter.queryOne(
     `SELECT p.tenant_id, p.role, t.slug AS tenant_slug
      FROM tenant_admin_principals p
      INNER JOIN tenants t ON t.id = p.tenant_id
@@ -253,8 +253,7 @@ export async function findEnabledPrincipalByBridgeToken(
     };
   }
 
-  row = stmtGet(
-    db,
+  row = await adapter.queryOne(
     `SELECT p.id, p.tenant_id, p.role, t.slug AS tenant_slug
      FROM tenant_admin_principals p
      INNER JOIN tenants t ON t.id = p.tenant_id
@@ -266,13 +265,13 @@ export async function findEnabledPrincipalByBridgeToken(
   const role = String(row.role);
   if (role !== 'tenant_admin' && role !== 'tenant_operator_readonly') return null;
   const id = String(row.id);
-  db.run(
+  await adapter.execute(
     `UPDATE tenant_admin_principals
      SET bridge_token_hash = ?, bridge_token = ?, updated_at = datetime('now')
      WHERE id = ?`,
     [h, id, id],
   );
-  persistSaaSDatabase();
+  await adapter.persistIfNeeded();
   return {
     tenant_id: String(row.tenant_id),
     tenant_slug: String(row.tenant_slug).trim().toLowerCase(),
@@ -324,9 +323,8 @@ function oldMatchesNewToken(o: OldPrincipalSnap, secret: string): boolean {
 }
 
 export async function listTenantAdminPrincipals(tenantId: string): Promise<TenantPrincipalListRow[]> {
-  const db = await getSaaSDatabase();
-  const rows = stmtAll(
-    db,
+  const adapter = await getSaasDbAdapter();
+  const rows = await adapter.queryAll(
     `SELECT id, tenant_id, role, bridge_token, bridge_token_hash, is_enabled, display_name, created_at, updated_at
      FROM tenant_admin_principals WHERE tenant_id = ? ORDER BY created_at ASC`,
     [tenantId],
@@ -344,11 +342,10 @@ export async function replaceTenantAdminPrincipals(
   }>,
   actor: PrincipalReplaceActorFields,
 ): Promise<void> {
-  const db = await getSaaSDatabase();
+  const adapter = await getSaasDbAdapter();
   const tsIso = new Date().toISOString();
 
-  const rawOld = stmtAll(
-    db,
+  const rawOld = await adapter.queryAll(
     `SELECT id, role, bridge_token, bridge_token_hash, is_enabled, display_name, created_at
      FROM tenant_admin_principals WHERE tenant_id = ? ORDER BY created_at ASC`,
     [tenantId],
@@ -370,7 +367,7 @@ export async function replaceTenantAdminPrincipals(
     if (oldMatch) {
       matchedOld.add(oldMatch.id);
       if (oldMatch.is_enabled !== newItem.is_enabled) {
-        insertPrincipalAuditLog(db, {
+        await insertPrincipalAuditLog(adapter, {
           tenant_id: tenantId,
           principal_role: newItem.role,
           action: newItem.is_enabled ? 'enabled' : 'disabled',
@@ -382,7 +379,7 @@ export async function replaceTenantAdminPrincipals(
         });
       }
       if (normPrincipalDisplay(oldMatch.display_name) !== newDisplayNorm) {
-        insertPrincipalAuditLog(db, {
+        await insertPrincipalAuditLog(adapter, {
           tenant_id: tenantId,
           principal_role: newItem.role,
           action: 'updated',
@@ -399,7 +396,7 @@ export async function replaceTenantAdminPrincipals(
       const pair = sameRole[0];
       if (pair) {
         matchedOld.add(pair.id);
-        insertPrincipalAuditLog(db, {
+        await insertPrincipalAuditLog(adapter, {
           tenant_id: tenantId,
           principal_role: newItem.role,
           action: 'rotated',
@@ -410,7 +407,7 @@ export async function replaceTenantAdminPrincipals(
           ts_iso: tsIso,
         });
       } else {
-        insertPrincipalAuditLog(db, {
+        await insertPrincipalAuditLog(adapter, {
           tenant_id: tenantId,
           principal_role: newItem.role,
           action: 'created',
@@ -426,7 +423,7 @@ export async function replaceTenantAdminPrincipals(
 
   for (const o of olds) {
     if (!matchedOld.has(o.id)) {
-      insertPrincipalAuditLog(db, {
+      await insertPrincipalAuditLog(adapter, {
         tenant_id: tenantId,
         principal_role: o.role,
         action: 'deleted',
@@ -439,24 +436,24 @@ export async function replaceTenantAdminPrincipals(
     }
   }
 
-  db.run('DELETE FROM tenant_admin_principals WHERE tenant_id = ?', [tenantId]);
+  await adapter.execute('DELETE FROM tenant_admin_principals WHERE tenant_id = ?', [tenantId]);
   for (const it of items) {
     const id = randomUUID();
     const secret = it.bridge_token.trim();
     const h = hashBridgeToken(secret);
     if (!h) continue;
-    db.run(
+    await adapter.execute(
       `INSERT INTO tenant_admin_principals (id, tenant_id, role, bridge_token, bridge_token_hash, is_enabled, display_name, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
       [id, tenantId, it.role, id, h, it.is_enabled ? 1 : 0, it.display_name?.trim() || null],
     );
   }
-  persistSaaSDatabase();
+  await adapter.persistIfNeeded();
 }
 
 export async function countAllTenantAdminPrincipals(): Promise<number> {
-  const db = await getSaaSDatabase();
-  const row = stmtGet(db, 'SELECT COUNT(*) AS c FROM tenant_admin_principals', []);
+  const adapter = await getSaasDbAdapter();
+  const row = await adapter.queryOne('SELECT COUNT(*) AS c FROM tenant_admin_principals', []);
   return row ? Number(row.c) : 0;
 }
 
@@ -464,10 +461,9 @@ export async function listTenantPrincipalAuditLogs(
   tenantId: string,
   limit: number,
 ): Promise<PrincipalAuditLogRow[]> {
-  const db = await getSaaSDatabase();
+  const adapter = await getSaasDbAdapter();
   const cap = Math.min(Math.max(1, limit), 200);
-  const rows = stmtAll(
-    db,
+  const rows = await adapter.queryAll(
     `SELECT id, tenant_id, principal_role, action, actor_auth_source, actor_role, actor_scope_type,
             actor_tenant_slug, target_display_name, target_is_enabled, token_state, ts_iso
      FROM tenant_admin_principal_audit_logs

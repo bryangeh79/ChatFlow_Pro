@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { SqlJsDatabase } from './db';
+import type { SaaSDbAdapter } from './db-adapter/types';
 
 /** Phase 24 / 1I — principal control-plane audit (no token / hash payloads). */
 export type PrincipalAuditAction =
@@ -34,8 +34,8 @@ export interface PrincipalAuditLogRow {
   ts_iso: string;
 }
 
-export function insertPrincipalAuditLog(
-  db: SqlJsDatabase,
+export async function insertPrincipalAuditLog(
+  adapter: Pick<SaaSDbAdapter, 'execute'>,
   input: {
     tenant_id: string;
     principal_role: 'tenant_admin' | 'tenant_operator_readonly';
@@ -46,9 +46,9 @@ export function insertPrincipalAuditLog(
     token_state: PrincipalAuditTokenState;
     ts_iso: string;
   },
-): void {
+): Promise<void> {
   const id = randomUUID();
-  db.run(
+  await adapter.execute(
     `INSERT INTO tenant_admin_principal_audit_logs (
        id, tenant_id, principal_role, action,
        actor_auth_source, actor_role, actor_scope_type, actor_tenant_slug,

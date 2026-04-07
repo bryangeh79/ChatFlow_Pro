@@ -2,7 +2,7 @@
 
 ## 战报顶栏（2026-04-07 — 下一聊天室）
 
-- **版本**：`package.json` **1.7.76**（**Pro_v1.07.76**）— Phase 24：**Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**当前包 2A**：Postgres + migration **ADR**（**`docs/177_phase24_postgres_migration_adr.md`**）。SaaS MVP 仍 **sealed**。  
+- **版本**：`package.json` **1.7.77**（**Pro_v1.07.77**）— Phase 24：**Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**包 2A**（Postgres ADR）**✅**；**当前包 2B**：**DB adapter 骨架**（`src/saas/db-adapter/*`，principals/audit 已接线，默认仍 sql.js）。SaaS MVP 仍 **sealed**。  
 - **当前 Phase**：**24 — SaaS v1 Hardening**（**当前主线**）。  
 - **已关闭**：**Phase 23**（SaaS MVP Final Closure）— **主线 closed**，后续 **不算 MVP 扩功能**。  
 - **本轮 git / push**：`c2a08cc` → `8cae7d4` → `bb5d17e` 已上 **`main`**，**push success**。  
@@ -19,7 +19,7 @@
   - **Phase 22C** — SaaS 行为全面接管（已完成，**Pro_v1.07.65**）
   - **Phase 22D** — SaaS / Legacy 收口（主目标已完成，**Pro_v1.07.67**）
   - **Phase 22E** — CI / 文档 / 边界说明收尾（**✅ 已收口**，见下节）
-- **当前版本（package.json）**：**1.7.76**（**Pro_v1.07.76**）— Phase 24 **1J**；SaaS MVP 封板语义不变。
+- **当前版本（package.json）**：**1.7.77**（**Pro_v1.07.77**）— Phase 24 **2B**（adapter 骨架）；SaaS MVP 封板语义不变。
 - **任务归属（Phase 24）**：**租户认证 / RBAC**；**Postgres + migration**；**多实例下 session / store 收口**；**凭证安全**（加密、轮换、审计）。拆包顺序由规划与风险决定，**不**在本文件预写死交付日。
 - **提交标注约定**（历史）：22D/22E/23 前缀仍见于已合并提交；**Phase 24**：`feat(phase-24):` · `chore(phase-24):` · `docs(phase-24):`。
 - Previous major milestone in this log: **Phase 16.2** - HTTP access observability enhanced (`X-Request-Id`, optional `CHATFLOW_HTTP_ACCESS_LOG`, webhook `phases_ms`, verification type narrowing)
@@ -270,19 +270,20 @@
 - **包 1I**：principal 审计 + rotation 钩子 — **已完成**（`verify:saas-admin-principal-audit`）。  
 - **包 1J**：**auth cutline / deprecation prep** — **已完成**（`admin-auth-sources` + **`GET /saas/v1/admin/auth/summary`**）；验证 **`verify:saas-admin-auth-cutline`**。  
 - **✅ 子里程碑**：**Phase 24 / Auth-RBAC Foundation checkpoint（1A–1J）** — **已正式封板**（见 `memory/01`、`memory/02`）；**不再继续堆 bridge**；真实 tenant auth **另开产品化线**。  
-- **包 2A（当前）**：**Postgres + migration** — **仅 ADR**，见 **`docs/177_phase24_postgres_migration_adr.md`**（**不写实现、不接 Postgres runtime、不改 sql.js live 路径**）。  
-- **包 2B / 2C（建议）**：见 **`docs/177_phase24_postgres_migration_adr.md`** 分包建议（如 adapter 抽象、迁移工具、托管默认 Postgres 等）。  
+- **包 2A**：**Postgres + migration** — **ADR ✅**（**`docs/177_phase24_postgres_migration_adr.md`**）。  
+- **包 2B（当前）**：**DB adapter 骨架** — `SaaSDbAdapter` + `SqlJsSaaSDbAdapter`；**`tenant_admin_principals` / `tenant_admin_principal_audit_logs`** 已迁接线；**默认 live 仍 sql.js**；验证 **`verify:saas-sqljs-adapter-principals`**。  
+- **包 2C（建议）**：见 **`docs/177_phase24_postgres_migration_adr.md`**（repository 全量适配、迁移 CLI、Postgres 实现、CI 等）。  
 - **未开始（仍有效）**：真实多用户身份源、password/JWT/session、**完整登录审计**；**不动** webhook 主链与 legacy。
 
 **建议方向（立项时拆包）**：
 1. ~~**Tenant Admin Auth / RBAC（bridge 子线）**~~ **✅ 1A–1J 已封 checkpoint**（`docs/176`）；后续 **真实 tenant auth** 单独立项。  
-2. **Postgres + migration**（**2A ADR → 2B/2C 实现**；local 可保留 sql.js，hosted 目标 Postgres）。
+2. **Postgres + migration**（**2A ADR ✅ → 2B adapter 骨架 → 2C Postgres/迁移**；local 可保留 sql.js，hosted 目标 Postgres）。
 3. **多实例 / session / store 收口**（sticky、外置 session、JSONL 单写者假设等）。
 4. **凭证安全**：加密-at-rest、轮换策略、审计日志（`docs/175` non-goals 已有提示）。
 
 ## Next (执行优先级)
 
-1. **Phase 24**：**2A ADR（`docs/177_phase24_postgres_migration_adr.md`）** → **2B/2C** 按 ADR 拆实现；默认仍保持 **T0 + T1** 不降级。
+1. **Phase 24**：**2B adapter** 继续扩表 / **2C** Postgres 与迁移 — 按 **`docs/177_phase24_postgres_migration_adr.md`**；默认仍保持 **T0 + T1** 不降级。
 2. **MVP 回归**：合并前仍以 **`docs/175`** + **T0/T1** 为 SaaS 基线。
 3. 默认外发动作（非 onboarding）：`npm run delivery:ship:final`。
 4. 客户 **onboarding / 一客户一部署**：继续走 **`docs/171`** 等交付链，与 Phase 24 **并行规划**时需标明资源优先级。
