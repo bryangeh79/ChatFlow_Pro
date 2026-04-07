@@ -13,17 +13,17 @@ import {
 
 /**
  * Postgres migration execution contract (Phase 24 / 2F–2G).
- * No `pg`, no SQL execution — optional in-memory ledger for dry-run classification only.
+ * No migration SQL execution in `apply` mode until a later slice — optional ledger for dry-run classification.
  */
-export function runSaasPostgresMigrations(params: {
+export async function runSaasPostgresMigrations(params: {
   /** Must be `postgres` (target of these DDL migrations). */
   driver: string;
   mode: SaasPostgresMigrationMode;
   migrations: readonly SaasDbMigrationDef[];
   ledgerTable: string;
-  /** Optional (e.g. `FakeSaasMigrationLedger`); never persisted to real DB in 2G. */
+  /** Optional (e.g. `FakeSaasMigrationLedger`); Postgres real ledger is separate from bootstrap by default. */
   ledger?: SaasMigrationLedgerProvider;
-}): SaasPostgresMigrationRunResult {
+}): Promise<SaasPostgresMigrationRunResult> {
   const { driver, mode, migrations, ledgerTable, ledger } = params;
   if (driver !== 'postgres') {
     throw new Error(`saas_postgres_migration_invalid_driver:expected_postgres_got:${driver}`);
@@ -32,7 +32,7 @@ export function runSaasPostgresMigrations(params: {
   const planned_count = migrations.length;
 
   if (mode === 'dry_run') {
-    const appliedRows = ledger?.listAppliedMigrations() ?? [];
+    const appliedRows = ledger ? await ledger.listAppliedMigrations() : [];
     const byId = new Map(appliedRows.map((r) => [r.migration_id, r]));
     let skipped_count = 0;
     const entries: SaasPostgresMigrationEntryResult[] = migrations.map((m) => {

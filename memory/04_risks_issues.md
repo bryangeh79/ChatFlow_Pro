@@ -36,13 +36,13 @@
 
 ## Phase 24 — Postgres 迁移线（2A+，ADR：`docs/177_phase24_postgres_migration_adr.md`）
 
-- **Migration 机制（2D–2G）**：**registry + SQL + checksum + execution + ledger contract** 已有；**`FakeSaasMigrationLedger` 仅内存** — **`saas_schema_migrations` 仍未接真实 DB**、**apply 仍 `not_wired`**、**无 `pg`** — **勿将 fake harness 当生产 ledger**。  
-- **Metadata readiness（2H）**：**`postgres-metadata`** 与 **`saas:db:postgres:readiness`** 仅为 **contract / CLI 摘要**；**真实 Postgres metadata 查询**（ledger 表是否存在、执行器接线等）**仍未实现** — **勿将 readiness 输出当 DB 健康或迁移已应用**。  
+- **Migration 机制（2D–2G）**：**registry + SQL + checksum + execution + async ledger contract**；**`PostgresSaasMigrationLedger`** 在 **runtime_wired** 下可读写 **`saas_schema_migrations`**（**表须运维执行 DDL 资产**；**无自动 apply**）；**`FakeSaasMigrationLedger`** 仍供 verify / dry-run — **勿将单表可读写当 Postgres 生产就绪**。  
+- **Metadata readiness（2H）**：**`postgres-metadata`** / **`saas:db:postgres:readiness`** 可探测 **ledger 表存在性**（**`table_missing` / `ready` 等**）；**仍非** 全库健康检查 — **勿将 `ledger_persistence_wired` 当 migration 已应用或 GO**。  
 - **Postgres client gate + loader（2I / 2J）**：**`CHATFLOW_SAAS_POSTGRES_CLIENT=1`** 才 **动态 `import('pg')`**（见 **`docs/178`**）；**gate 关** → **不加载** `pg`，**勿误判安装失败**。**`postgres_client_runtime_wired`** 仅 **driver=postgres + gate + 合法连接配置 + 受控只读探测成功** 时为真 — **勿将「池已建」或 module 可解析当迁移/ledger/生产就绪**。  
 - **Connection config（2K）**：**`CHATFLOW_SAAS_POSTGRES_URL` 或分字段** 仅 **解析/校验 stub** — **`connection_config_valid` 不代表 DB 可达**；**无 pool、无真实 SSL 材料读取** — **勿当生产凭据或健康检查终态**。  
 - **TCP probe（2L）**：**`CHATFLOW_SAAS_POSTGRES_PROBE=1`** 时 **仅** **`connect`/`end`** — **`probe_connect_ok` 不等于 schema/ledger/业务可用**；**默认关闭**、**不** 进 sql.js 启动链 — **勿将探针当迁移或 RBAC 就绪信号**。  
 - **Go/no-go（2M）**：**`saas:db:postgres:go-no-go`** 默认 **`no_go`** — **已有 probe/config 也不等于可投产**；**勿将 CLI 绿字误解为 runtime 已 fully ready**。  
-- **Postgres adapter（2C）**：**最小 query/execute 已接线**（共享 Pool、`?`→`$n`）；**仍** 无 migration apply、无 ledger 落库、无 repository 全量迁 PG；**`runtime_wired` 仅 gate+合法配置+只读探测成功** — **勿当 Postgres / 迁移 / 生产 DB 就绪**。  
+- **Postgres adapter（2C）**：**最小 query/execute 已接线**（共享 Pool、`?`→`$n`）；**仍** 无 migration apply、无 repository 全量迁 PG；**ledger 落库能力** ≠ **execution wired** — **勿当 Postgres / 迁移 / 生产 DB 就绪**。  
 - **adapter 过渡期（2B+）**：**repository 双路径** — principals/audit 走 **`SaaSDbAdapter`**，其余表仍 **`getSaaSDatabase` + stmt**；新增功能若接错路径易出现 **持久化语义不一致**（忘记 `persistIfNeeded` / 混用连接）— **扩表时必须跟 adapter 模式或显式文档例外**。  
 - **数据迁移 / 一致性**：单文件 SQLite（sql.js）→ 托管 Postgres 需 **显式导出/导入或双写窗口**；多租户表外键与索引需 **一次性校验**，避免部分表成功导致 **orphan** 或 **unique 冲突**。  
 - **回滚**：若生产已切 Postgres 而应用回滚到仅 sql.js 版本，**数据分叉** — 需 **迁移前快照**、**可重复迁移脚本**、**环境变量明确 backend**（避免静默写错库）。  

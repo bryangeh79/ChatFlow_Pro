@@ -56,6 +56,7 @@ async function main() {
   const planIds = planJson.planned_migrations.map((x) => x.id);
   if (!planIds.includes('pg_0001_core_saas_tables')) fail('plan missing pg_0001');
   if (!planIds.includes('pg_0002_admin_principals_and_audit')) fail('plan missing pg_0002');
+  if (!planIds.includes('pg_0003_saas_schema_migrations')) fail('plan missing pg_0003');
   for (const row of planJson.planned_migrations) {
     if (!row.checksum_sha256 || !hex64.test(row.checksum_sha256)) fail('plan row missing checksum');
     if (!row.asset_path) fail('plan row missing asset_path');

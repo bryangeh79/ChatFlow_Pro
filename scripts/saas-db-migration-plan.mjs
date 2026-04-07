@@ -43,7 +43,7 @@ function main() {
     driver,
     ledger_table_future: plan.ledger_table_future,
     planned_migrations: plan.migrations,
-    note: 'status is CLI-only; no ledger table exists yet (Phase 24 / 2E). SQL assets + checksums from disk.',
+    note: 'status is CLI-only; ledger DDL is an asset (pg_0003) — app does not auto-create the table. SQL assets + checksums from disk.',
   };
 
   if (format === 'json') {

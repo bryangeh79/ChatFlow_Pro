@@ -32,8 +32,8 @@ async function main() {
   const migrations = listSaasDbMigrations();
   if (migrations.length < 2) fail('need at least 2 migrations');
 
-  const partial = seedFakeLedgerFromMigrationIds(migrations, ['pg_0001_core_saas_tables']);
-  const dr = runSaasPostgresMigrations({
+  const partial = await seedFakeLedgerFromMigrationIds(migrations, ['pg_0001_core_saas_tables']);
+  const dr = await runSaasPostgresMigrations({
     driver: 'postgres',
     mode: 'dry_run',
     migrations,
@@ -46,6 +46,8 @@ async function main() {
   const e2 = dr.entries.find((x) => x.id === 'pg_0002_admin_principals_and_audit');
   if (!e1 || e1.execution_status !== 'already_applied') fail('expected pg_0001 already_applied');
   if (!e2 || e2.execution_status !== 'would_apply') fail('expected pg_0002 would_apply');
+  const e3 = dr.entries.find((x) => x.id === 'pg_0003_saas_schema_migrations');
+  if (!e3 || e3.execution_status !== 'would_apply') fail('expected pg_0003 would_apply');
 
   const bad = new FakeSaasMigrationLedger();
   bad.seed([
@@ -57,7 +59,7 @@ async function main() {
       status: 'applied',
     },
   ]);
-  const mm = runSaasPostgresMigrations({
+  const mm = await runSaasPostgresMigrations({
     driver: 'postgres',
     mode: 'dry_run',
     migrations,
@@ -70,7 +72,7 @@ async function main() {
   if (!em || em.execution_status !== 'failed') fail('mismatch entry status');
   if (!em.message.includes(POSTGRES_LEDGER_CHECKSUM_MISMATCH)) fail('mismatch entry message');
 
-  const app = runSaasPostgresMigrations({
+  const app = await runSaasPostgresMigrations({
     driver: 'postgres',
     mode: 'apply',
     migrations,

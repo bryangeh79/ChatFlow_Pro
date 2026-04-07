@@ -36,7 +36,7 @@ function parseFakeApplied(argv) {
     .filter(Boolean);
 }
 
-function main() {
+async function main() {
   const argv = process.argv.slice(2);
   const mode = parseMode(argv);
   const fakeAppliedIds = parseFakeApplied(argv);
@@ -72,11 +72,11 @@ function main() {
   if (fakeAppliedIds.length > 0) {
     console.log('saas_migration_bootstrap: fake_ledger_only');
     console.log('saas_migration_bootstrap: real_ledger_persistence_not_wired');
-    ledger = seedFakeLedgerFromMigrationIds(migrations, fakeAppliedIds);
+    ledger = await seedFakeLedgerFromMigrationIds(migrations, fakeAppliedIds);
     console.log(`saas_migration_bootstrap: fake_applied_ids=${fakeAppliedIds.join(',')}`);
   }
 
-  const runResult = runSaasPostgresMigrations({
+  const runResult = await runSaasPostgresMigrations({
     driver: 'postgres',
     mode,
     migrations,
@@ -126,4 +126,7 @@ function main() {
   console.log('When CHATFLOW_SAAS_DB_DRIVER=postgres, app adapter still throws until pg is wired.');
 }
 
-main();
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

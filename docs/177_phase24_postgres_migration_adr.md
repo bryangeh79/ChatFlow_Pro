@@ -53,22 +53,23 @@
 
 ---
 
-## Phase 24 — 包 2H ✅（Postgres metadata / readiness stub — no DB I/O）
+## Phase 24 — 包 2H ✅（Postgres metadata / readiness）
 
-- **模块**：**`postgres-metadata.ts`** — 只读 **contract stub**：**`getPostgresMigrationLedgerInfo()`**、**`getPostgresSchemaAssetInfo()`**、**`getPostgresExecutionReadiness()`**（**async**；**`adapter_stub: true`**、**`execution_wired: false`**、**`ledger_persistence_wired: false`**、**`sql_assets_present`**、**`postgres_client_*`** 见 **2I/2J**）。  
-- **常量**：**`POSTGRES_METADATA_QUERY_NOT_WIRED`** — 明示 **未** 接真实 `information_schema` / DB。  
+- **模块**：**`postgres-metadata.ts`** — **`getPostgresMigrationLedgerInfo()`**（**async**）、**`getPostgresSchemaAssetInfo()`**、**`getPostgresExecutionReadiness()`**（含 **`ledger_info`**；**`ledger_persistence_wired`** 在 **runtime_wired** 且 **ledger 表可读** 时为真，**表缺失** → **`table_missing`** / **不误判 wired**）；**`execution_wired`** 仍为 **false** 直至 execution 切片；摘要 **≠** 生产 DB 健康通过。  
+- **常量**：**`POSTGRES_METADATA_QUERY_NOT_WIRED`** — 摘要与错误语义仍须带此标记；**不**等于「未连库」（runtime 路径可发受控只读 SQL）。  
 - **接线**：**`postgres-adapter.ts`** / **`db-adapter/index.ts`** 再导出上述 API；**不**改 live 默认 **sql.js**、**不**动租户 webhook。  
 - **CLI**：**`npm run saas:db:postgres:readiness`**（**`scripts/saas-db-postgres-readiness.mjs`**）— 摘要 JSON/text，**非** DB 健康检查通过语义。  
-- **验证**：**`npm run verify:saas-db-postgres-readiness`**（含既有 ledger / assets / execution / ledger-contract 回归链）。  
-- **禁止**：**不**执行 SQL、**不**伪成功 apply。
+- **验证**：**`npm run verify:saas-db-postgres-readiness`**（含 **`verify:postgres-ledger-persistence`** 等链）。  
+- **禁止**：**不**伪成功 **apply**；**不**偷偷 **CREATE TABLE**；**不**将 **ledger 可读** 表述为 **Postgres ready**。
 
 ---
 
 ## Phase 24 — 包 2G ✅（ledger persistence contract + fake harness）
 
-- **契约**：**`ledger-types.ts`**（**`SaasMigrationLedgerRecord`**）、**`ledger-contract.ts`**（**`SaasMigrationLedgerProvider`**：`listAppliedMigrations` / `recordAppliedMigration`）。  
-- **Harness**：**`fake-ledger.ts`** — **`FakeSaasMigrationLedger`** + **`seedFakeLedgerFromMigrationIds`**；**纯内存**、**不落盘**。  
-- **联动**：**`runSaasPostgresMigrations`** 可选 **`ledger`**；**dry_run**：**`already_applied`** / **`would_apply`** / **checksum 不匹配 → `failed`**（**`POSTGRES_LEDGER_CHECKSUM_MISMATCH`**）；**apply** 仍 **`not_wired`**、**不写 ledger**。  
+- **契约**：**`ledger-types.ts`**（**`SaasMigrationLedgerRecord`**）、**`ledger-contract.ts`**（**`SaasMigrationLedgerProvider`**：**async** `listAppliedMigrations` / `recordAppliedMigration`）。  
+- **Harness**：**`fake-ledger.ts`** — **`FakeSaasMigrationLedger`** + **`seedFakeLedgerFromMigrationIds`**（**async**）；**纯内存**、**不落盘**。  
+- **Postgres**：**`postgres-ledger.ts`** — **`PostgresSaasMigrationLedger`**（参数化 SQL；**checksum 冲突抛错** **`SAAS_LEDGER_RECORD_CHECKSUM_CONFLICT`**，**不静默覆盖**）。  
+- **联动**：**`runSaasPostgresMigrations`**（**async**）可选 **`ledger`**；**dry_run**：**`already_applied`** / **`would_apply`** / **checksum 不匹配 → `failed`**（**`POSTGRES_LEDGER_CHECKSUM_MISMATCH`**）；**apply** 仍 **`not_wired`**、**不写真实 ledger**（本阶段）。  
 - **CLI**：**`bootstrap --fake-applied=id,...`**（**fake_ledger_only** 标记）。  
 - **验证**：`npm run verify:saas-db-migration-ledger-contract`。
 
@@ -253,6 +254,7 @@ SaaS 控制面与租户元数据当前落在 **sql.js 内存 SQLite + 单文件�
 ## 13. Postgres Foundation checkpoint（叙事已封）
 
 - **范围**：**2A–2M** — ADR、**`SaaSDbAdapter`** 双路径、migration **registry / SQL / checksum / execution contract / fake ledger**、**Postgres client gate + loader**、**connection config**、**optional TCP probe**、**go/no-go boundary + verify**。  
-- **本刀推进（仅 runtime / adapter 能力前移，≠ Postgres ready）**：在 **`CHATFLOW_SAAS_DB_DRIVER=postgres`** + **`CHATFLOW_SAAS_POSTGRES_CLIENT=1`** + **连接配置合法** + **受控只读探测**（参数化 `SELECT 1`）成功时，**单一共享 `pg` Pool** 可创建复用；**`PostgresSaaSDbAdapter`** 具备最小 **query/execute**；**`postgres_client_runtime_wired`** 仅在此条件下为真。**`evaluatePostgresGoNoGo()` 仍应为 `no_go`**，除非 **execution / ledger / repository 等其余硬门槛**也满足 — 见 **`npm run saas:db:postgres:go-no-go`**。  
-- **未完成（仍阻塞生产 Postgres）**：**ledger 落库**、**migration apply**、**repository 全量切 Postgres**、**metadata 真实查询与执行器接线** — 以 **`npm run saas:db:postgres:go-no-go`** 为准。  
+- **本刀推进（runtime / adapter，≠ Postgres ready）**：在 **`CHATFLOW_SAAS_DB_DRIVER=postgres`** + **`CHATFLOW_SAAS_POSTGRES_CLIENT=1`** + **连接配置合法** + **受控只读探测**（参数化 `SELECT 1`）成功时，**单一共享 `pg` Pool** 可创建复用；**`PostgresSaaSDbAdapter`** 具备最小 **query/execute**；**`postgres_client_runtime_wired`** 仅在此条件下为真。  
+- **本刀推进（ledger 持久化切片，≠ Postgres ready）**：**`postgres/pg_0003_saas_schema_migrations.sql`** 为 **DDL 资产**（已入 registry；**应用不自动 apply / 运行时不偷偷建表**）。**`SaasMigrationLedgerProvider`** 为 **async**；**`PostgresSaasMigrationLedger`** 提供 **参数化** `list` / `record`（**checksum 冲突抛错、不静默覆盖**）。**`ledger_persistence_wired=true`** 仅表示 **ledger 表存在且可读**（**空表 ≠ migration 已应用**）；**`evaluatePostgresGoNoGo()` 仍为 `no_go`**（**`execution_wired` 仍 false**、**apply 仍 `not_wired`**）— 见 **`npm run saas:db:postgres:go-no-go`**。  
+- **未完成（仍阻塞生产 Postgres）**：**migration apply 真执行**、**repository 全量切 Postgres**、**execution 与业务路径全接线** — 以 **`npm run saas:db:postgres:go-no-go`** 为准。  
 - **与 multi-instance 关系**：先 **`docs/179`** 收口 **session / JSONL / 单写者** 假设，再推进 Postgres runtime，可降低「多副本 + 文件库」组合风险。

@@ -31,7 +31,7 @@ async function main() {
 
   let threw = false;
   try {
-    runSaasPostgresMigrations({
+    await runSaasPostgresMigrations({
       driver: 'sqljs',
       mode: 'dry_run',
       migrations,
@@ -45,7 +45,7 @@ async function main() {
   }
   if (!threw) fail('expected fail-fast for non-postgres driver');
 
-  const dry = runSaasPostgresMigrations({
+  const dry = await runSaasPostgresMigrations({
     driver: 'postgres',
     mode: 'dry_run',
     migrations,
@@ -63,7 +63,7 @@ async function main() {
     if (!e.message.includes(POSTGRES_LEDGER_PERSISTENCE_NOT_WIRED)) fail('dry_run entry message');
   }
 
-  const app = runSaasPostgresMigrations({
+  const app = await runSaasPostgresMigrations({
     driver: 'postgres',
     mode: 'apply',
     migrations,

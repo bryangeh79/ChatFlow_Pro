@@ -29,3 +29,8 @@ export { runSaasPostgresMigrations } from './execution-contract';
 export type { SaasMigrationLedgerRecord, SaasMigrationLedgerRecordStatus } from './ledger-types';
 export type { SaasMigrationLedgerProvider } from './ledger-contract';
 export { FakeSaasMigrationLedger, seedFakeLedgerFromMigrationIds } from './fake-ledger';
+export {
+  PostgresSaasMigrationLedger,
+  SAAS_LEDGER_RECORD_CHECKSUM_CONFLICT,
+  probePostgresSaasLedgerTableFromPool,
+} from './postgres-ledger';

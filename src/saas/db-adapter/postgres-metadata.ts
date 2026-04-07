@@ -1,4 +1,5 @@
 import { listSaasDbMigrations, SAAS_SCHEMA_MIGRATIONS_TABLE } from '../db-migrations';
+import { probePostgresSaasLedgerTableFromPool } from '../db-migrations/postgres-ledger';
 import { getPostgresConnectionConfigSummary, type PostgresConnectionConfigSource } from './postgres-config';
 import {
   POSTGRES_CLIENT_MODULE_NOT_AVAILABLE,
@@ -7,12 +8,18 @@ import {
 } from './postgres-client-loader';
 import { isPostgresClientEnabled } from './postgres-gate';
 import { getPostgresProbeReadinessSummary, isPostgresProbeEnabled, type PostgresProbeStatus } from './postgres-probe';
+import { getSharedSaaSPostgresPool } from './postgres-pool';
 import type { SaaSDbDriver } from './types';
 import { POSTGRES_METADATA_QUERY_NOT_WIRED } from './postgres-metadata-constants';
 
 export { POSTGRES_METADATA_QUERY_NOT_WIRED };
 
-export type PostgresLedgerMetadataStatus = 'not_wired' | 'unknown' | 'ready';
+export type PostgresLedgerMetadataStatus =
+  | 'not_wired'
+  | 'table_missing'
+  | 'not_ready'
+  | 'ready'
+  | 'unknown';
 
 export interface PostgresMigrationLedgerInfo {
   ledger_table: string;
@@ -38,12 +45,14 @@ export interface PostgresExecutionReadiness {
   adapter_stub: boolean;
   execution_wired: boolean;
   ledger_persistence_wired: boolean;
+  /** Same probe as `getPostgresMigrationLedgerInfo()` for this process env (avoids duplicate query when using readiness alone). */
+  ledger_info: PostgresMigrationLedgerInfo;
   sql_assets_present: boolean;
   /** `CHATFLOW_SAAS_POSTGRES_CLIENT=1`; does not mean `pg` is loaded or connected. */
   postgres_client_gate_enabled: boolean;
   /** `true` only when gate on and dynamic `import('pg')` succeeded. */
   postgres_client_module_available: boolean;
-  /** Always false until pool + query path is implemented (after 2J). */
+  /** Pool + parameterized probe succeeded (Phase 24 runtime slice). */
   postgres_client_runtime_wired: boolean;
   connection_config_present: boolean;
   connection_config_valid: boolean;
@@ -65,14 +74,61 @@ function readDbDriverForMetadata(): SaaSDbDriver {
   throw new Error(`invalid_chatflow_saas_db_driver:${t}`);
 }
 
-/** Read-only stub: no `pg`, no `information_schema` query. */
-export function getPostgresMigrationLedgerInfo(): PostgresMigrationLedgerInfo {
+async function resolvePostgresLedgerMetadata(
+  driver: SaaSDbDriver,
+  postgres_client_runtime_wired: boolean,
+): Promise<{ info: PostgresMigrationLedgerInfo; ledger_persistence_wired: boolean }> {
+  const ledger_table = SAAS_SCHEMA_MIGRATIONS_TABLE;
+  if (driver !== 'postgres' || !postgres_client_runtime_wired) {
+    return {
+      info: {
+        ledger_table,
+        exists: false,
+        status: 'not_wired',
+        message: `${POSTGRES_METADATA_QUERY_NOT_WIRED}: ledger Postgres table not probed (not postgres driver or runtime_wired=false — not claiming ledger ready).`,
+      },
+      ledger_persistence_wired: false,
+    };
+  }
+
+  const pool = await getSharedSaaSPostgresPool();
+  if (!pool) {
+    return {
+      info: {
+        ledger_table,
+        exists: false,
+        status: 'not_ready',
+        message: `${POSTGRES_METADATA_QUERY_NOT_WIRED}: runtime_wired but shared Pool unavailable — ledger persistence not ready.`,
+      },
+      ledger_persistence_wired: false,
+    };
+  }
+
+  const p = await probePostgresSaasLedgerTableFromPool(pool);
+  if (p.status === 'ready') {
+    return {
+      info: { ledger_table, exists: true, status: 'ready', message: `${POSTGRES_METADATA_QUERY_NOT_WIRED}: ${p.message}` },
+      ledger_persistence_wired: true,
+    };
+  }
+  if (p.status === 'table_missing') {
+    return {
+      info: { ledger_table, exists: false, status: 'table_missing', message: `${POSTGRES_METADATA_QUERY_NOT_WIRED}: ${p.message}` },
+      ledger_persistence_wired: false,
+    };
+  }
   return {
-    ledger_table: SAAS_SCHEMA_MIGRATIONS_TABLE,
-    exists: false,
-    status: 'not_wired',
-    message: `${POSTGRES_METADATA_QUERY_NOT_WIRED}: ledger table existence not queried (no DB connection).`,
+    info: { ledger_table, exists: false, status: 'not_ready', message: `${POSTGRES_METADATA_QUERY_NOT_WIRED}: ${p.message}` },
+    ledger_persistence_wired: false,
   };
+}
+
+/** Ledger table metadata; async when driver=postgres and runtime may touch Pool. */
+export async function getPostgresMigrationLedgerInfo(): Promise<PostgresMigrationLedgerInfo> {
+  const driver = readDbDriverForMetadata();
+  const runtime = await getPostgresClientRuntimeSummary();
+  const { info } = await resolvePostgresLedgerMetadata(driver, runtime.runtime_wired);
+  return info;
 }
 
 /** Registry-backed asset list (checksums computed at registry load). */
@@ -132,11 +188,17 @@ export async function getPostgresExecutionReadiness(): Promise<PostgresExecution
 
   const adapter_stub = !(driver === 'postgres' && postgres_client_runtime_wired);
 
+  const { info: ledger_info, ledger_persistence_wired } = await resolvePostgresLedgerMetadata(
+    driver,
+    postgres_client_runtime_wired,
+  );
+
   return {
     driver,
     adapter_stub,
     execution_wired: false,
-    ledger_persistence_wired: false,
+    ledger_persistence_wired,
+    ledger_info,
     sql_assets_present,
     postgres_client_gate_enabled,
     postgres_client_module_available,

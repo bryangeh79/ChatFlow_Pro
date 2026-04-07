@@ -27,7 +27,6 @@ function parseFormat(argv) {
 async function main() {
   const format = parseFormat(process.argv.slice(2));
   const {
-    getPostgresMigrationLedgerInfo,
     getPostgresSchemaAssetInfo,
     getPostgresExecutionReadiness,
     getPostgresClientGateSummary,
@@ -37,9 +36,9 @@ async function main() {
     POSTGRES_METADATA_QUERY_NOT_WIRED,
   } = require(pathJoin(root, 'dist', 'src', 'saas', 'db-adapter', 'index.js'));
 
-  const ledger = getPostgresMigrationLedgerInfo();
   const schema_assets = getPostgresSchemaAssetInfo();
   const readiness = await getPostgresExecutionReadiness();
+  const ledger = readiness.ledger_info;
   const postgres_client_gate = getPostgresClientGateSummary();
   const postgres_client_runtime = await getPostgresClientRuntimeSummary();
   const postgres_connection_config = getPostgresConnectionConfigSummary();

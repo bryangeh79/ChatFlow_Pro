@@ -12,13 +12,13 @@ export class FakeSaasMigrationLedger implements SaasMigrationLedgerProvider {
     this.records.push(...rows);
   }
 
-  listAppliedMigrations(): SaasMigrationLedgerRecord[] {
+  async listAppliedMigrations(): Promise<SaasMigrationLedgerRecord[]> {
     return [...this.records];
   }
 
-  recordAppliedMigration(
+  async recordAppliedMigration(
     row: Omit<SaasMigrationLedgerRecord, 'status'> & { status?: SaasMigrationLedgerRecord['status'] },
-  ): void {
+  ): Promise<void> {
     this.records.push({
       ...row,
       status: row.status ?? 'applied',
@@ -27,16 +27,16 @@ export class FakeSaasMigrationLedger implements SaasMigrationLedgerProvider {
 }
 
 /** Mark `ids` as applied with current registry checksums (must match definitions). */
-export function seedFakeLedgerFromMigrationIds(
+export async function seedFakeLedgerFromMigrationIds(
   migrations: readonly SaasDbMigrationDef[],
   ids: readonly string[],
-): FakeSaasMigrationLedger {
+): Promise<FakeSaasMigrationLedger> {
   const ledger = new FakeSaasMigrationLedger();
   const want = new Set(ids.map((s) => s.trim()).filter(Boolean));
   const ts = new Date().toISOString();
   for (const m of migrations) {
     if (want.has(m.id)) {
-      ledger.recordAppliedMigration({
+      await ledger.recordAppliedMigration({
         migration_id: m.id,
         driver: 'postgres',
         checksum_sha256: m.checksum_sha256,

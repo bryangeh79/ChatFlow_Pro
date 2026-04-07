@@ -5,10 +5,7 @@ import type {
   SaasDbMigrationPlanEntry,
 } from './types';
 
-/**
- * Future Postgres ledger table — **not** created or written in Phase 24 / 2D–2E.
- * Intended columns (later): `migration_id`, `applied_at`, `driver`, `checksum`.
- */
+/** Ledger table name; DDL asset `postgres/pg_0003_saas_schema_migrations.sql` (app does not auto-apply). */
 export const SAAS_SCHEMA_MIGRATIONS_TABLE = 'saas_schema_migrations';
 
 type MigrationBase = Omit<SaasDbMigrationDef, 'checksum_sha256'>;
@@ -34,6 +31,17 @@ const SAAS_DB_MIGRATIONS_BASE: readonly MigrationBase[] = [
     up_summary: 'CREATE principal + audit tables per postgres/pg_0002_admin_principals_and_audit.sql.',
     down_summary: 'no rollback',
     asset_path: 'postgres/pg_0002_admin_principals_and_audit.sql',
+    asset_kind: 'sql_file',
+  },
+  {
+    id: 'pg_0003_saas_schema_migrations',
+    description: 'Migration ledger table `saas_schema_migrations` (persistence boundary).',
+    target_driver: 'postgres',
+    phase_tag: 'phase24_2e',
+    kind: 'schema',
+    up_summary: 'CREATE saas_schema_migrations per postgres/pg_0003_saas_schema_migrations.sql.',
+    down_summary: 'no rollback',
+    asset_path: 'postgres/pg_0003_saas_schema_migrations.sql',
     asset_kind: 'sql_file',
   },
 ];

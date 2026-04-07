@@ -1,4 +1,4 @@
-/** Row shape for `saas_schema_migrations` (future); in-memory only in Phase 24 / 2G. */
+/** Row shape for `saas_schema_migrations` (Postgres + in-memory fake). */
 export type SaasMigrationLedgerRecordStatus = 'applied';
 
 export interface SaasMigrationLedgerRecord {
