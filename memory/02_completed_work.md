@@ -1,5 +1,15 @@
 # Completed Work
 
+## Phase 24 — migration execution wired ✅
+
+**名称**：`Phase 24 / migration execution wired` — **非** Postgres ready、**非** `go` 已达成。  
+**交付摘要**：`runSaasPostgresMigrations(..., mode='apply')` 已接真实执行路径：单 migration 一事务（`BEGIN -> SQL -> ledger -> COMMIT`），失败 `ROLLBACK` 且 fail-fast；`dry_run` 仍仅预览。apply 具备真实执行 SQL + 写 ledger 能力。  
+**默认路径**：默认 live SaaS DB 仍为 sqljs（未切换 Postgres）。  
+**语义边界**：`execution_wired` 为能力门槛判定（runtime + ledger + assets），**不自动等于 GO**；整体 `go/no-go` 仍按当前门禁为准。  
+**提交**：`feat(saas-db): wire postgres migration apply execution path`（**`c142da3`**，以 `git log origin/main` 为准）。
+
+---
+
 ## Phase 24 — Postgres saas_schema_migrations ledger persistence ✅
 
 **名称**：`Phase 24 / Postgres ledger persistence` — **非** Postgres ready、**非** `go` 已达成。  
