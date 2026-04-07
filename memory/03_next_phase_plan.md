@@ -1,5 +1,12 @@
 # Next Phase Plan
 
+## Phase 25 受控闭环收口（本轮）
+
+- 已固化受控 PG 闭环证据：apply 成功、ledger ready、受控 go-no-go=go。
+- 口径固定：受控 `go` 仅是受控环境结果，**不等于** 默认链/整体已 GO。
+- 默认 live 路径仍为 `sqljs`（未切换）。
+- 本轮仅收口证据，不新增实现切口。
+
 ## Phase 25 本组收口（不扩新切口）
 
 - 本组已收口：tenant credential entrypoint boundary（分流 + 兼容壳 + repository 入口职责标注 + verify 脚本）。

@@ -1,5 +1,11 @@
 # Handoff for New Chat（下一聊天室可直接接手）
 
+## Phase 25 受控 PG 闭环证据（已固化）
+
+- 受控环境结果：`migration apply` 成功、`ledger ready`、受控 `go-no-go=go`。
+- 严格边界：默认 live 路径仍 `sqljs`，默认链/整体口径**不得**直接写成“已整体 GO”。
+- 本轮仅做证据收口与真源同步，未开新实现切口。
+
 ## Phase 25 本组已收口（最小同步）
 
 - 已完成并待沿主线继续：tenant credential entrypoint boundary（凭据读取分流、`getTenantCredentials()` 兼容壳收敛、`repository.ts` 入口职责文档化/弃用标注、`verify:tenant-credentials-entrypoint-boundary`）。

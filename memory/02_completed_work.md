@@ -1,5 +1,13 @@
 # Completed Work
 
+## Phase 25 — controlled postgres closure evidence ✅
+
+**名称**：`Phase 25 / controlled postgres closure evidence`。  
+**交付摘要**：在受控目标 Postgres 环境完成闭环复核：`saas:db:migration:bootstrap --mode=apply` 成功（`applied_count=3`）；`saas:db:postgres:readiness --format=json` 显示 `ledger.status=ready`、`ledger_persistence_wired=true`、`execution_wired=true`；受控 `saas:db:postgres:go-no-go --format=json` 为 `overall_status=go`。  
+**边界口径**：默认 live 路径仍 `sqljs`；默认链/整体口径不改写为已 GO。  
+
+---
+
 ## Phase 25 — tenant credential entrypoint boundary sealed ✅
 
 **名称**：`Phase 25 / tenant credential entrypoint boundary`。  

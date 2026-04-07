@@ -1,5 +1,12 @@
 # Project Status
 
+## Phase 25 受控 PG 闭环证据收口（2026-04-07）
+
+- 受控闭环结果：`migration apply` 成功、`saas_schema_migrations` `ledger` 为 `ready`、受控 `go-no-go` 为 `go`。
+- 口径保留：受控闭环 `go` 仅代表受控目标环境门禁满足，**不等于默认链/整体已 GO**。
+- 默认 live 路径不变：仍为 `sqljs`（默认环境未切换 `postgres`）。
+- 版本/Phase 不变：`1.7.90 / Pro_v1.07.90`，当前 Phase 仍为 `25`。
+
 ## Phase 25 收口提交（本组）
 
 - 收口目标：凭据读取分流、`getTenantCredentials()` 兼容壳收敛、`repository.ts` 入口职责文档化/弃用标注、`verify:tenant-credentials-entrypoint-boundary`。
