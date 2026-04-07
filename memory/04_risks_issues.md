@@ -2,7 +2,7 @@
 
 ## 战报顶栏（2026-04-07）
 
-- **版本 / Phase**：**1.7.88**；**Phase 24** — **Auth-RBAC Foundation（1A–1J）checkpoint 已封**；**包 2A–2M ✅**（**2M** = **go/no-go**；**Postgres runtime 仍 `no_go`**）；**pool / ledger 真执行** 仍待后续；**Phase 23 / SaaS MVP 主线已关闭**。  
+- **版本 / Phase**：**1.7.89**；**Phase 24** — **Postgres Foundation checkpoint 已封**（**仍 `no_go`**）；**包 3A ✅**（**`docs/179`** multi-instance ADR）；**下一 3B/3C** — session / JSONL-notify；**Phase 23 / SaaS MVP 主线已关闭**。  
 - **本轮 git**：以 `git log origin/main` 为准。  
 - **新发现风险（本轮）**：**Postgres 迁移线**见下节「Phase 24 — Postgres 迁移线（2A+）」；其余见 **Phase 24 预期风险**。  
 - **已知边界**：**冻结（MVP）** — `docs/175` + `memory/04` §「Known SaaS MVP boundaries」；**待后续（v1）** — 凭证 KMS、多实例 store、**sql.js→Postgres（2B/2C）**。  
@@ -21,8 +21,17 @@
 - **包 1H**：hash-at-rest — **已完成**；**仍无** KMS、加盐、**token rotation policy engine**。  
 - **包 1I**：principal 变更审计摘要 — **已完成**；**仍无**完整 **登录会话审计**、SIEM、**轮换策略引擎**、password/JWT 产品面。  
 - **包 1J**：bridge / break-glass **cutline 已文档化+registry** — **子里程碑已封**；**不再堆新型 bridge**；真实 tenant auth **另立项**。  
-- **多实例**：内存 session、JSONL 追加、notify 幂等 — 需 sticky 或外置 store。  
+- **多实例**：内存 session、JSONL 追加、notify 幂等 — 需 sticky 或外置 store（**决策见 `docs/179`**）。  
 - **凭证**：DB 明文 → KMS/信封加密、轮换与审计面。
+
+## Phase 24 — Multi-instance session / store（3A+，ADR：`docs/179_phase24_multi_instance_session_store_adr.md`）
+
+- **3A（ADR）**：已固定 **单实例假设清单**、**sticky vs 外置 store**、**JSONL 单写者边界**、**notify 幂等 / `request_id`**、**3B/3C 分包**；**无代码行为变更**。  
+- **Session**：`InMemorySessionStore` **非** 多副本安全；**生产多实例** 须 **外置 store（如 Redis，实现落在 3B）** 或 **严格 sticky + 书面风险**（**过渡**）。  
+- **JSONL**：`data/*.jsonl` **同步 append** — 多 writer **损坏/交错**；**勿** 默认假设 NFS 多机安全。  
+- **Notify**：lead/handoff HTTP POST **至少一次** — 下游 **必须** 幂等；**双副本** 可能 **重复发**。  
+- **assignmentTracker**：进程内 — 多实例 **分配统计不一致**。  
+- **与 Postgres**：**正交**；**`go/no-go` NO_GO** 不阻碍先 **收口会话叙事**，但 **DB 专线** 仍须 **`go-no-go` 转 go** 后才可宣称生产 PG runtime。
 
 ## Phase 24 — Postgres 迁移线（2A+，ADR：`docs/177_phase24_postgres_migration_adr.md`）
 

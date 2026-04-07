@@ -1,12 +1,12 @@
 # Handoff for New Chat（下一聊天室可直接接手）
 
-> **先读**：`memory/01_project_status.md`（真源）→ 本文件 → `memory/03_next_phase_plan.md`（Phase 24 节）→ **`docs/175_pro_saas_multitenant_mvp.md`**（SaaS 契约 + MVP sealed）。
+> **先读**：`memory/01_project_status.md`（真源）→ 本文件 → `memory/03_next_phase_plan.md`（Phase 24 节）→ **`docs/175_pro_saas_multitenant_mvp.md`** → **`docs/179_phase24_multi_instance_session_store_adr.md`**（多实例 session/store 决策）。
 
 ---
 
 ## 1. 当前项目一句话状态
 
-**ChatFlow Pro**：七通道统一入站 + 出站、Legacy `/webhooks/:channel` 与 **多租户** `/webhooks/t/:slug/:channel` 并存；**多租户 SaaS MVP 已封板**（Phase 23 关闭），`package.json` **1.7.88+**（以仓库为准）。**Phase 24**：**Auth-RBAC（1A–1J）** 已封；**Postgres Foundation（2A–2M）checkpoint 已封** — **`go/no-go` 仍为 `NO_GO`**，**勿当已可切生产 Postgres**。当前主线下一包：**3A** — **`docs/179`** multi-instance session/store ADR。
+**ChatFlow Pro**：七通道统一入站 + 出站、Legacy `/webhooks/:channel` 与 **多租户** `/webhooks/t/:slug/:channel` 并存；**多租户 SaaS MVP 已封板**（Phase 23 关闭），`package.json` **1.7.89**（以仓库为准）。**Phase 24**：**Postgres Foundation checkpoint 已封**（**仍 `NO_GO`**）；**3A** — **`docs/179`** multi-instance ADR **已立**。下一实现包：**3B/3C**。
 
 ---
 
@@ -32,9 +32,9 @@
 
 ## 4. 下一步唯一优先动作
 
-**Phase 24 包 3A+**：读完 **`docs/179_phase24_multi_instance_session_store_adr.md`**，再按 **3B/3C** 拆 **session 外置 / JSONL 单写者边界 / notify 幂等** 等实现；**与 Postgres runtime 专线正交** — 先做 ADR 边界，避免多副本下「内存 session + 本地文件」 silent 分叉。  
+**Phase 24 包 3B+**：按 **`docs/179`** 落地 **session store** 与 **JSONL/notify** 收口；**3A 仅 ADR，已完成**。  
 
-**Postgres**：Foundation 已封；**真实 runtime** 仍以 **`npm run saas:db:postgres:go-no-go`** 为门禁，**当前默认 `no_go`**。
+**Postgres**：**`npm run saas:db:postgres:go-no-go`** — **当前默认 `no_go`**。
 
 **合并门禁（不变）**：**T0** `npm run build` + **T1** `npm run staging:docker-smoke`（或 CI `docker-smoke` 绿）。
 
