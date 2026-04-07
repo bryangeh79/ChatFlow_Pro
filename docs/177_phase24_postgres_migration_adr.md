@@ -1,14 +1,22 @@
 # ADR — Phase 24 / 包 2A — Postgres + migration（仅决策，无实现）
 
 > **状态**：Accepted（**2A = ADR 文档**；**不**含 Postgres runtime、**不**改 sql.js live 路径、**不**动租户 webhook / 现有 auth 实现）。  
-> **真源**：`package.json` **1.7.77+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。
+> **真源**：`package.json` **1.7.78+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。
 
 ---
 
-## Phase 24 — 包 2B（已启动，骨架）
+## Phase 24 — 包 2C ✅（adapter selection + Postgres stub）
 
-- **代码**：`src/saas/db-adapter/*` — **`SaaSDbAdapter`**（`queryOne` / `queryAll` / `execute` / `transaction` / `persistIfNeeded`）+ **`SqlJsSaaSDbAdapter`**；**默认 live 仍 sql.js**，**无** Postgres client。  
-- **接线**：`repository.ts` 中 **`tenant_admin_principals` + `tenant_admin_principal_audit_logs`** 路径已走 adapter；**其余表**仍直连接口 `getSaaSDatabase` / `stmt*`。  
+- **选择**：`CHATFLOW_SAAS_DB_DRIVER` = **`sqljs`**（默认）| **`postgres`**；**未知值 fail-fast** `invalid_chatflow_saas_db_driver:<value>`。只读查询 **`getSaaSDbDriver()`**。  
+- **双实现**：**`SqlJsSaaSDbAdapter`**（live 默认）+ **`PostgresSaaSDbAdapter`**（**stub**：所有方法抛 **`postgres_adapter_not_implemented`**；**未**引入 `pg`、**未**连库）。  
+- **验证**：`npm run verify:saas-db-adapter-selection`。
+
+---
+
+## Phase 24 — 包 2B ✅（骨架）
+
+- **代码**：`src/saas/db-adapter/*` — **`SaaSDbAdapter`**（`queryOne` / `queryAll` / `execute` / `transaction` / `persistIfNeeded`）+ **`SqlJsSaaSDbAdapter`**；**默认 live 仍 sql.js**。  
+- **接线**：`repository.ts` 中 **`tenant_admin_principals` + `tenant_admin_principal_audit_logs`** 路径已走 **`getSaasDbAdapter()`**；**其余表**仍直连接口 `getSaaSDatabase` / `stmt*`。  
 - **验证**：`npm run verify:saas-sqljs-adapter-principals`。
 
 ---
@@ -121,8 +129,9 @@ SaaS 控制面与租户元数据当前落在 **sql.js 内存 SQLite + 单文件�
 
 | 包 | 建议范围 |
 |----|-----------|
-| **2B** | **Adapter 接口** + **SqlJsStore 包装现有 repository 内部** + **PostgresStore 骨架**（仅连接与 ping）；**首条 migration** 建表与索引；**不改变默认 runtime**。 |
-| **2C** | **repository 全量切 adapter**；**数据迁移 CLI**；**CI Postgres job**；**连接池与运维文档**（`DATABASE_URL`、pool、备份）。 |
+| **2B** ✅ | **SaaSDbAdapter** + **SqlJsSaaSDbAdapter**；principals/audit 经 **`getSaasDbAdapter()`**；默认 sql.js。 |
+| **2C**（已落地 **stub + selection**） | **`PostgresSaaSDbAdapter`**（抛 **`postgres_adapter_not_implemented`**）+ **`CHATFLOW_SAAS_DB_DRIVER`** + **`getSaaSDbDriver()`**；**无 `pg`**、**未**切默认 driver。 |
+| **2C+（后续）** | 真实 **`pg`**、**repository 全量**、**migration CLI**、**CI Postgres**、连接池与运维文档。 |
 
 ---
 

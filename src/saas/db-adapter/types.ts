@@ -1,6 +1,9 @@
 /** Row shape returned by the SaaS DB adapter (driver-agnostic). */
 export type DbRow = Record<string, unknown>;
 
+/** `CHATFLOW_SAAS_DB_DRIVER` — default `sqljs`. */
+export type SaaSDbDriver = 'sqljs' | 'postgres';
+
 /**
  * Minimal SaaS persistence boundary for repository code.
  * sql.js today; Postgres later — callers must not assume sync flush except via persistIfNeeded.
