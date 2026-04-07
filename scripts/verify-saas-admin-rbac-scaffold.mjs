@@ -17,6 +17,7 @@ const {
 } = authz;
 
 const EXPECTED_POLICY_IDS = [
+  'admin_auth_summary_get',
   'admin_tenant_principals_audit_get',
   'admin_tenant_principals_put',
   'admin_tenant_principals_get',
@@ -30,6 +31,7 @@ const EXPECTED_POLICY_IDS = [
 ];
 
 const SAMPLES = [
+  ['GET', '/saas/v1/admin/auth/summary', 'admin_auth_summary_get'],
   ['GET', '/saas/v1/admin/tenants', 'admin_tenants_list_get'],
   ['POST', '/saas/v1/admin/tenants', 'admin_tenants_create_post'],
   ['GET', '/saas/v1/admin/tenants/acme', 'admin_tenant_get'],

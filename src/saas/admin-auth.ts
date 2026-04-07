@@ -1,19 +1,27 @@
 /**
  * SaaS Admin control-plane auth (Phase 24 — abstraction + tenant bridges).
  * Webhook / legacy paths stay separate; tenant webhook verification is unchanged.
+ *
+ * Auth source cutline / deprecation metadata: `admin-auth-sources.ts` (1J).
  */
 
-import { findEnabledPrincipalByBridgeToken } from './repository';
+import type { SaasAdminAuthSource } from './admin-auth-sources';
+import {
+  BRIDGE_SAAS_ADMIN_AUTH_SOURCE_IDS,
+  SAAS_ADMIN_AUTH_SOURCE_IDS,
+  SAAS_ADMIN_AUTH_SOURCE_REGISTRY,
+} from './admin-auth-sources';
+import { findEnabledPrincipalByBridgeToken, countAllTenantAdminPrincipals } from './repository';
+
+export type { AuthSourceStability, SaasAdminAuthSource } from './admin-auth-sources';
+export {
+  BRIDGE_SAAS_ADMIN_AUTH_SOURCE_IDS,
+  SAAS_ADMIN_AUTH_SOURCE_IDS,
+  SAAS_ADMIN_AUTH_SOURCE_REGISTRY,
+} from './admin-auth-sources';
 
 /** Roles for Admin API; live sources: break-glass, tenant_admin bridge, tenant_operator_readonly bridge. */
 export type SaasAdminAuthRole = 'platform_admin' | 'tenant_admin' | 'tenant_operator_readonly';
-
-/** Credential sources for admin principals. */
-export type SaasAdminAuthSource =
-  | 'break_glass_env'
-  | 'tenant_bridge_db'
-  | 'tenant_bridge_env'
-  | 'tenant_readonly_bridge_env';
 
 /** Admin principal scope: platform ops vs single-tenant binding (1D+ semantics). */
 export type SaasAdminScopeType = 'platform' | 'tenant';
@@ -164,4 +172,56 @@ export async function resolveSaasAdminAuth(authHeader: string | undefined): Prom
 /** Gate helper for `/saas/v1/admin/*` (same resolution as `resolveSaasAdminAuth`). */
 export async function requireSaasAdmin(authHeader: string | undefined): Promise<ResolvedSaasAdminAuth> {
   return resolveSaasAdminAuth(authHeader);
+}
+
+/** Phase 24 / 1J — read-only summary for platform_admin introspection (no secrets). */
+export async function getSaasAdminAuthSummaryPayload(): Promise<{
+  break_glass_present: boolean;
+  env_tenant_admin_bridge_configured: boolean;
+  env_tenant_readonly_bridge_configured: boolean;
+  db_principal_source_active: boolean;
+  bridge_source_ids: readonly string[];
+  auth_sources: Array<{
+    id: SaasAdminAuthSource;
+    stability: (typeof SAAS_ADMIN_AUTH_SOURCE_REGISTRY)[SaasAdminAuthSource]['stability'];
+    intended_scope: string;
+    deprecation_candidate: boolean;
+    configured: boolean;
+  }>;
+}> {
+  const break_glass_present = Boolean(breakGlassAdminToken());
+  const env_tenant_admin_bridge_configured = parseTenantAdminTokenMap().size > 0;
+  const env_tenant_readonly_bridge_configured = parseTenantReadonlyTokenMap().size > 0;
+  const dbCount = await countAllTenantAdminPrincipals();
+  const db_principal_source_active = dbCount > 0;
+
+  const auth_sources = SAAS_ADMIN_AUTH_SOURCE_IDS.map((id) => {
+    const meta = SAAS_ADMIN_AUTH_SOURCE_REGISTRY[id];
+    const configured =
+      id === 'break_glass_env'
+        ? break_glass_present
+        : id === 'tenant_bridge_env'
+          ? env_tenant_admin_bridge_configured
+          : id === 'tenant_readonly_bridge_env'
+            ? env_tenant_readonly_bridge_configured
+            : id === 'tenant_bridge_db'
+              ? db_principal_source_active
+              : false;
+    return {
+      id,
+      stability: meta.stability,
+      intended_scope: meta.intended_scope,
+      deprecation_candidate: meta.deprecation_candidate,
+      configured,
+    };
+  });
+
+  return {
+    break_glass_present,
+    env_tenant_admin_bridge_configured,
+    env_tenant_readonly_bridge_configured,
+    db_principal_source_active,
+    bridge_source_ids: [...BRIDGE_SAAS_ADMIN_AUTH_SOURCE_IDS],
+    auth_sources,
+  };
 }

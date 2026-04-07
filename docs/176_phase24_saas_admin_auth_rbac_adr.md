@@ -1,8 +1,8 @@
 # ADR — Phase 24 / SaaS Admin Auth & RBAC（最小落地）
 
-> **状态**：Accepted；**包 1I** 已接入 **principal 审计摘要 + rotation（`rotated`）钩子**；仍为 **dev/ops 过渡**，**非**产品化登录  
+> **状态**：Accepted；**包 1J** 已划 **auth cutline / deprecation prep**（registry + `GET .../auth/summary`）；**不**新增登录产品  
 > **范围**：SaaS **控制面**（`/saas/*` Admin API + Admin UI），**非** MVP 功能补完  
-> **真源**：`package.json` **1.7.75+**（Phase 24 小步）；SaaS MVP **sealed**（`docs/175`）；本 ADR 属于 **Phase 24 — SaaS v1 Hardening**
+> **真源**：`package.json` **1.7.76+**（Phase 24 小步）；SaaS MVP **sealed**（`docs/175`）；本 ADR 属于 **Phase 24 — SaaS v1 Hardening**
 
 ---
 
@@ -82,6 +82,74 @@
 
 ---
 
+## Phase 24 — 包 1J（tenant auth cutline / deprecation prep）
+
+- **目的**：把 **临时 bridge** 与 **长期 break-glass**、以及 **未来产品化 tenant auth** 的边界写死；**不**实现 JWT/password/session/UI 登录。
+- **代码**：`src/saas/admin-auth-sources.ts` — 每个 `SaasAdminAuthContext.auth_source` 的 **`stability`**（`break_glass` \| `bridge` \| `future` 预留枚举）、**`intended_scope`**、**`deprecation_candidate`**；`admin-auth.ts` 再导出 **`getSaasAdminAuthSummaryPayload()`**。
+- **只读 introspection**：`GET /saas/v1/admin/auth/summary`（**仅 `platform_admin`**）— **`break_glass_present`**、env/DB bridge **是否配置**（布尔）、**`bridge_source_ids`**、**`auth_sources[]`**（每源 `configured` + 元数据）；**不**返回 token/hash/明文。
+- **验证**：`npm run verify:saas-admin-auth-cutline`。
+
+---
+
+## Phase 24 — Auth stack（Current Stack & Deprecations，1J）
+
+### Current Phase 24 Auth Stack
+
+| 层 | 内容 |
+|----|------|
+| **鉴权入口** | `resolveSaasAdminAuth` — 固定优先级链（break-glass → DB principal → env admin map → env readonly map） |
+| **授权** | `authorizeAdminRouteAfterAuth` — `platform` vs `tenant_targeted` + `allowed_roles` + slug 对齐 |
+| **凭证形态** | break-glass：单 env 全串；bridge：env JSON map 或 DB hash-at-rest principal；均无终端用户账户模型 |
+
+### Temporary Bridges（`stability: bridge`，`deprecation_candidate: true`）
+
+- **`tenant_bridge_env`** — `CHATFLOW_SAAS_TENANT_ADMIN_TOKENS`
+- **`tenant_readonly_bridge_env`** — `CHATFLOW_SAAS_TENANT_READONLY_TOKENS`
+- **`tenant_bridge_db`** — `tenant_admin_principals`（hash-at-rest + 审计）
+
+以上三条均为 **Phase 24 控制面过渡能力**；**正式 tenant auth 产品化后应可关闭或降级**，避免与「真实用户身份源」双轨长期并存。
+
+### Break-glass Policy（`stability: break_glass`，非 deprecation 主目标）
+
+- **`break_glass_env`** — `CHATFLOW_SAAS_ADMIN_TOKEN` → **`platform_admin`**；**运维/CI 兜底**，**不**标为 `deprecation_candidate`；仍须 **严格分发、轮换与 runbook**。
+- **原则**：break-glass **不等于** tenant 用户登录；**不得**把 break-glass 当作多租户日常运营身份。
+
+### Planned Deprecations（方向，非时间表）
+
+- **Cutover 后**：优先 **关闭 env tenant bridge**（两 JSON map），减少「进程级共享 secret 面」。
+- **DB bridge**：在具备 **租户用户 + 登录审计 + rotation policy** 后，评估 **迁移到正式会话/JWT 或等价机制**，principal 表可演进为 **服务账号/成员关系**，而非长期依赖「bridge_token 语义」。
+- **API**：`/auth/summary` 仅用于 **运维可见性**；**不**承诺为对外产品 API。
+
+### Exit Criteria before “real tenant auth”（建议门槛）
+
+1. **身份源**：每租户 **用户/服务主体** 与 **成员关系**（非仅 bridge token）。  
+2. **凭证**：password / magic link / SSO / JWT（**择一并 ADR**）+ **吊销/过期** 叙事。  
+3. **审计**：**登录与会话** 级审计（超出当前 principal **配置变更** 审计）。  
+4. **策略**：**rotation**、禁用路径、与 **break-glass** 共存的 **最小权限** 默认。  
+5. **配置**：文档与运维流程明确 **何时可 `deprecation_candidate` bridge 全关**。
+
+### Non-goals kept out of Phase 24 packages 1A–1J
+
+- **不做**：legacy 改动；租户 webhook 运行时；Postgres 切换；公开 Admin 登录页；完整 SIEM/KMS；在本子线内 **继续堆叠新型 bridge**（后续应新开 **tenant auth 产品化** 线，而非 1K/1L 式叠 bridge）。
+
+### 1A–1I 已交付 & 1J 后收束
+
+| 包 | 交付要点 |
+|----|----------|
+| **1A** | ADR / memory 立项 |
+| **1B** | `admin-auth` 抽象 |
+| **1C** | `admin-authorization` 策略表 |
+| **1D** | tenant slug 作用域语义 |
+| **1E / 1F** | env tenant admin / readonly bridge |
+| **1G** | DB-backed principal |
+| **1H** | hash-at-rest |
+| **1I** | principal 审计 + `rotated` |
+| **1J** | **cutline** + registry + **`/auth/summary`** |
+
+**1J 之后**：本条 Phase 24 **Admin auth / bridge 子线可阶段性收束**；再继续应 **立项「真实 tenant auth」**，而不是在同一子线无限增加 bridge 变体。
+
+---
+
 ## 1. 背景
 
 - 多租户 SaaS MVP 已交付：**租户 Webhook 运行时**（`/webhooks/t/...`）与 **Legacy**（`/webhooks/<channel>`）双轨并存；租户路径验签 / hub verify **不回退**进程 `env`（`docs/175`）。
@@ -99,6 +167,7 @@
 | **`GET /saas/admin`** | 静态返回 `public/saas-admin.html`，**无**服务端会话 gate |
 | **Admin UI** | `public/saas-admin.html`：用户粘贴 token，`fetch(..., { headers: { Authorization: 'Bearer ' + token } })` 调所有 admin REST |
 | **数据模型** | `src/saas/db.ts`：`tenant_admin_principals` + **`tenant_admin_principal_audit_logs`**（摘要审计）；另 `tenants`、`tenant_credentials`、`tenant_faq_entries`、`tenant_settings` |
+| **Auth cutline（1J）** | `admin-auth-sources.ts` 元数据；**`GET /saas/v1/admin/auth/summary`**（platform_admin，无密钥） |
 | **CI / 脚本** | 多个 `verify:*` 与 `tenant-boundary-verify` 使用 env 中的 `CHATFLOW_SAAS_ADMIN_TOKEN` 调用 Admin API（与实现演进需后续对齐，不在本 ADR 包内改脚本） |
 
 ## 3. 为什么先做 Auth / RBAC 而不是 Postgres

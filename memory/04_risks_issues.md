@@ -2,7 +2,7 @@
 
 ## 战报顶栏（2026-04-07）
 
-- **版本 / Phase**：**1.7.75**；**Phase 24** 当前（**1I** principal audit），**Phase 23 / SaaS MVP 主线已关闭**。  
+- **版本 / Phase**：**1.7.76**；**Phase 24** 当前（**1J** auth cutline），**Phase 23 / SaaS MVP 主线已关闭**。  
 - **本轮 git**：`bb5d17e`（及 `8cae7d4`、`c2a08cc`）已 **push success**。  
 - **新发现风险（本轮）**：无新的代码缺陷级条目；**Phase 24 预期风险**见下节。  
 - **已知边界**：**冻结（MVP）** — `docs/175` + `memory/04` §「Known SaaS MVP boundaries」；**待后续（v1）** — 凭证加密、多实例、Postgres、Admin RBAC。  
@@ -19,7 +19,8 @@
 - **包 1F**：**tenant_admin + tenant_operator_readonly** 双 env bridge — **已完成**；泄露风险同下。  
 - **包 1G**：**principal 行已入库** — **已完成**。  
 - **包 1H**：hash-at-rest — **已完成**；**仍无** KMS、加盐、**token rotation policy engine**。  
-- **包 1I**：已有 **principal 变更审计摘要**（无 token/hash 落审计表）；**仍无**完整 **登录会话审计**、SIEM、**轮换策略引擎**、password/JWT 产品面。  
+- **包 1I**：principal 变更审计摘要 — **已完成**；**仍无**完整 **登录会话审计**、SIEM、**轮换策略引擎**、password/JWT 产品面。  
+- **包 1J**：bridge / break-glass **cutline 已文档化+registry**；**bridge 若长期留存**会叠加 **env + DB** 配置面与运维误配风险 — **后续应进入真实 tenant auth 产品化**，**避免**在同一子线继续加新型 bridge。  
 - **数据层迁移**：sql.js → Postgres 需双写/迁移策略，避免租户数据丢失。  
 - **多实例**：内存 session、JSONL 追加、notify 幂等 — 需 sticky 或外置 store。  
 - **凭证**：DB 明文 → KMS/信封加密、轮换与审计面。

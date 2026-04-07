@@ -29,6 +29,13 @@ export interface AdminRoutePolicy {
  */
 export const ADMIN_ROUTE_POLICIES: readonly AdminRoutePolicy[] = [
   {
+    id: 'admin_auth_summary_get',
+    method: 'GET',
+    pathPattern: /^\/saas\/v1\/admin\/auth\/summary$/,
+    resource_scope: 'platform',
+    allowed_roles: ['platform_admin'],
+  },
+  {
     id: 'admin_tenant_principals_audit_get',
     method: 'GET',
     pathPattern: /^\/saas\/v1\/admin\/tenants\/[^/]+\/principals\/audit$/,

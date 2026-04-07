@@ -67,6 +67,7 @@ function mustDeny(c, method, path) {
 
 function main() {
   const routes = [
+    ['GET', '/saas/v1/admin/auth/summary'],
     ['GET', '/saas/v1/admin/tenants'],
     ['POST', '/saas/v1/admin/tenants'],
     ['GET', '/saas/v1/admin/tenants/acme'],
@@ -86,6 +87,7 @@ function main() {
     mustAllow(platformAdmin, method, path);
   }
 
+  mustDeny(tenantAdminAcme, 'GET', '/saas/v1/admin/auth/summary');
   mustDeny(tenantAdminAcme, 'GET', '/saas/v1/admin/tenants');
   mustDeny(tenantAdminAcme, 'POST', '/saas/v1/admin/tenants');
   mustAllow(tenantAdminAcme, 'GET', '/saas/v1/admin/tenants/acme');
@@ -100,6 +102,7 @@ function main() {
   mustAllow(tenantAdminAcme, 'PUT', '/saas/v1/admin/tenants/acme/faq');
   mustAllow(tenantAdminAcme, 'PUT', '/saas/v1/admin/tenants/acme/settings');
 
+  mustDeny(readonlyAcme, 'GET', '/saas/v1/admin/auth/summary');
   mustDeny(readonlyAcme, 'GET', '/saas/v1/admin/tenants');
   mustDeny(readonlyAcme, 'POST', '/saas/v1/admin/tenants');
   mustAllow(readonlyAcme, 'GET', '/saas/v1/admin/tenants/acme');

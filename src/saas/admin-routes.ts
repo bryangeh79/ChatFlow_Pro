@@ -14,7 +14,7 @@ import {
 } from './repository';
 import type { TenantPrincipalRole } from './repository';
 import { getSaaSDbPathForDisplay } from './db';
-import { breakGlassAdminToken, requireSaasAdmin } from './admin-auth';
+import { breakGlassAdminToken, getSaasAdminAuthSummaryPayload, requireSaasAdmin } from './admin-auth';
 import type { SaasAdminAuthContext } from './admin-auth';
 import { authorizeAdminRouteAfterAuth } from './admin-authorization';
 import type { PrincipalReplaceActorFields } from './principal-audit';
@@ -91,6 +91,11 @@ export async function handleSaaSAdminRequest(
     const authz = authorizeAdminRouteAfterAuth(method, pathname, authResult.context);
     if (!authz.ok) return forbidden();
     saasAdminContext = authResult.context;
+  }
+
+  if (pathname === '/saas/v1/admin/auth/summary' && method === 'GET') {
+    const summary = await getSaasAdminAuthSummaryPayload();
+    return { status: 200, body: { ok: true, ...summary } };
   }
 
   if (pathname === '/saas/v1/admin/tenants' && method === 'GET') {

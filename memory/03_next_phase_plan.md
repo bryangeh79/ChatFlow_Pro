@@ -2,7 +2,7 @@
 
 ## 战报顶栏（2026-04-07 — 下一聊天室）
 
-- **版本**：`package.json` **1.7.75**（**Pro_v1.07.75**）— Phase 24 **1I** principal audit + rotation hook；SaaS MVP 仍 **sealed**。  
+- **版本**：`package.json` **1.7.76**（**Pro_v1.07.76**）— Phase 24 **1J** auth cutline / deprecation prep；SaaS MVP 仍 **sealed**。  
 - **当前 Phase**：**24 — SaaS v1 Hardening**（**当前主线**）。  
 - **已关闭**：**Phase 23**（SaaS MVP Final Closure）— **主线 closed**，后续 **不算 MVP 扩功能**。  
 - **本轮 git / push**：`c2a08cc` → `8cae7d4` → `bb5d17e` 已上 **`main`**，**push success**。  
@@ -19,7 +19,7 @@
   - **Phase 22C** — SaaS 行为全面接管（已完成，**Pro_v1.07.65**）
   - **Phase 22D** — SaaS / Legacy 收口（主目标已完成，**Pro_v1.07.67**）
   - **Phase 22E** — CI / 文档 / 边界说明收尾（**✅ 已收口**，见下节）
-- **当前版本（package.json）**：**1.7.75**（**Pro_v1.07.75**）— Phase 24 **1I**；SaaS MVP 封板语义不变。
+- **当前版本（package.json）**：**1.7.76**（**Pro_v1.07.76**）— Phase 24 **1J**；SaaS MVP 封板语义不变。
 - **任务归属（Phase 24）**：**租户认证 / RBAC**；**Postgres + migration**；**多实例下 session / store 收口**；**凭证安全**（加密、轮换、审计）。拆包顺序由规划与风险决定，**不**在本文件预写死交付日。
 - **提交标注约定**（历史）：22D/22E/23 前缀仍见于已合并提交；**Phase 24**：`feat(phase-24):` · `chore(phase-24):` · `docs(phase-24):`。
 - Previous major milestone in this log: **Phase 16.2** - HTTP access observability enhanced (`X-Request-Id`, optional `CHATFLOW_HTTP_ACCESS_LOG`, webhook `phases_ms`, verification type narrowing)
@@ -267,7 +267,8 @@
 - **包 1F**：Tenant **readonly** bridge — **已完成**（`CHATFLOW_SAAS_TENANT_READONLY_TOKENS`）。  
 - **包 1G**：**DB-backed tenant principal** — **已完成**（`verify:saas-admin-db-principal-bridge`）。  
 - **包 1H**：**`bridge_token` hash-at-rest** — **已完成**（`verify:saas-admin-db-principal-token-hardening`）。  
-- **包 1I（当前）**：**principal 审计表** + **`PUT .../principals` diff 写审计**（含 **`rotated`**）；**`GET .../principals/audit`**（platform_admin）；验证 **`verify:saas-admin-principal-audit`**。  
+- **包 1I**：principal 审计 + rotation 钩子 — **已完成**（`verify:saas-admin-principal-audit`）。  
+- **包 1J（当前）**：**auth cutline / deprecation prep** — `admin-auth-sources` 元数据 + **`GET /saas/v1/admin/auth/summary`**；**1A–1J 后 Admin bridge 子线可收束**，下一步应 **单独立项真实 tenant auth 产品化**，而非继续叠 bridge。验证 **`verify:saas-admin-auth-cutline`**。  
 - **未开始**：真实多用户身份源、密码、JWT、session、**完整登录审计**；**不**开 Postgres、不**动 webhook 主链与 legacy。
 
 **建议方向（立项时拆包）**：

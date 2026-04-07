@@ -454,6 +454,12 @@ export async function replaceTenantAdminPrincipals(
   persistSaaSDatabase();
 }
 
+export async function countAllTenantAdminPrincipals(): Promise<number> {
+  const db = await getSaaSDatabase();
+  const row = stmtGet(db, 'SELECT COUNT(*) AS c FROM tenant_admin_principals', []);
+  return row ? Number(row.c) : 0;
+}
+
 export async function listTenantPrincipalAuditLogs(
   tenantId: string,
   limit: number,
