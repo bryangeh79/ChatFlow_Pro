@@ -6,7 +6,7 @@
 
 ## 1. 当前项目一句话状态
 
-**ChatFlow Pro**：七通道统一入站 + 出站、Legacy `/webhooks/:channel` 与 **多租户** `/webhooks/t/:slug/:channel` 并存；**多租户 SaaS MVP 已封板**（Phase 23 关闭），`package.json` **1.7.90**（以仓库为准）。**Phase 24**：**Postgres Foundation checkpoint 已封**；**Postgres runtime 底座切片** ✅；**Postgres `saas_schema_migrations` ledger persistence** ✅；**migration execution wired** ✅；**controlled reachability stabilization** ✅；**tenant_settings 单一只读入口 adapter 化** ✅；**runtime_wired 在受控前置满足时已升级为硬门禁** ✅；**受控 PG 实测脚本已补齐且不属于默认链** ✅；**Phase 24 收官证据材料已齐备** ✅（默认链 / 受控链 / `overall_go_not_implied` 复核口径已固化，默认链稳定性未受影响）。**≠ Postgres ready**，**整体 `evaluatePostgresGoNoGo()` 仍为 `NO_GO`**（按完整门禁为准）。**当前仍为 Phase 24，等待正式收官判断**。**默认 SaaS DB live 路径仍为 sqljs**（**未**切换 Postgres）；session **仍 in-memory**；**3A–3C** 同上。**未** 开工 Redis/外置队列。下一：仅准备 Phase 24 正式收官单点判断材料。
+**ChatFlow Pro**：七通道统一入站 + 出站、Legacy `/webhooks/:channel` 与 **多租户** `/webhooks/t/:slug/:channel` 并存；**多租户 SaaS MVP 已封板**（Phase 23 关闭），`package.json` **1.7.90**（以仓库为准）。**Phase 24**：**Postgres Foundation checkpoint 已封**；**Postgres runtime 底座切片** ✅；**Postgres `saas_schema_migrations` ledger persistence** ✅；**migration execution wired** ✅；**controlled reachability stabilization** ✅；**tenant_settings 单一只读入口 adapter 化** ✅；**runtime_wired 在受控前置满足时已升级为硬门禁** ✅；**受控 PG 实测脚本已补齐且不属于默认链** ✅；**Phase 24 收官证据材料已齐备** ✅；**Phase 24 收官签核记录已归档并入库** ✅（`docs/181`，默认链 / 受控链 / `overall_go_not_implied` 复核口径已固化，默认链稳定性未受影响）。**≠ Postgres ready**，**整体 `evaluatePostgresGoNoGo()` 仍为 `NO_GO`**（按完整门禁为准）。**当前仍为 Phase 24，等待正式收官判断**。**默认 SaaS DB live 路径仍为 sqljs**（**未**切换 Postgres）；session **仍 in-memory**；**3A–3C** 同上。**未** 开工 Redis/外置队列。下一：仅等待“正式关闭 Phase 24 / 切换下一 phase”的最终口径判断。
 
 ---
 

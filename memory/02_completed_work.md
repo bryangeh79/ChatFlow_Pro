@@ -1,5 +1,14 @@
 # Completed Work
 
+## Phase 24 — closeout signoff record archived ✅
+
+**名称**：`Phase 24 / closeout signoff record archived` — **非** Postgres ready、**非** `go` 已达成。  
+**交付摘要**：`docs/181_phase24_closeout_signoff_record.md` 已归档并入库，收官评审口径固定：默认链 / 受控链 / `overall_go_not_implied`。  
+**门禁状态**：当前整体 `go/no-go` 仍按完整门禁为 `NO_GO`。  
+**阶段状态**：建议结束 Phase 24 强化收口工作，并把后续剩余项转入下一阶段管理；当前仍保持 Phase 24，待正式关闭判断。  
+
+---
+
 ## Phase 24 — controlled PG evidence package ✅
 
 **名称**：`Phase 24 / controlled PG evidence package` — **非** Postgres ready、**非** `go` 已达成。  
