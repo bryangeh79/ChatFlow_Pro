@@ -1,7 +1,8 @@
 # ADR — Phase 24 / 包 3A — Multi-instance session / store（仅决策，无实现）
 
 > **状态**：Accepted（**3A = ADR 文档**；**不**改 `sql.js` / Postgres foundation 行为、**不**动租户 webhook runtime、**不**改 auth/RBAC 主行为）。  
-> **真源**：`package.json` **1.7.89+**；SaaS MVP **sealed**（`docs/175`）。**Postgres Foundation（2A–2M）** 已封（`docs/177` §13、`memory/01`）— **`go/no-go` 仍为 `no_go`**；**本 ADR 不替代 Postgres runtime 专线**。  
+> **真源**：`package.json` **1.7.90+**；SaaS MVP **sealed**（`docs/175`）。**Postgres Foundation（2A–2M）** 已封（`docs/177` §13、`memory/01`）— **`go/no-go` 仍为 `no_go`**；**本 ADR 不替代 Postgres runtime 专线**。  
+> **工程进度**：**3B** — **`SessionStore` 接口** + **`getSessionStore()`** 默认 **in-memory**；**未** 接 Redis / **未** 实现多实例一致性。  
 > **关联蓝图**：`docs/GPT_PLANNER_HANDOFF_BLUEPRINT.md`（多实例一句指向 Phase 24）。
 
 ---

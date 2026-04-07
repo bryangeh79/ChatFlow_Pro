@@ -1,7 +1,7 @@
 import type { UnifiedInboundMessage } from '../../../shared/types/unified-inbound-message';
 import type { UnifiedSessionContext } from '../../../shared/types/unified-session-context';
 import { getTenantIdOrNull } from '../../saas/tenant-context';
-import { sessionStore } from './in-memory-store';
+import { getSessionStore } from './store-factory';
 
 export function namespacedSessionIdForMessage(message: UnifiedInboundMessage): string {
   const base = `${message.channel}:${message.external_user_id}:${message.external_session_id}`;
@@ -13,9 +13,9 @@ export function createOrUpdateSessionContext(
   message: UnifiedInboundMessage,
 ): UnifiedSessionContext {
   const sessionId = namespacedSessionIdForMessage(message);
-  
-  // 尝试从存储中获取现有 session
-  const existing = sessionStore.get(sessionId);
+
+  const store = getSessionStore();
+  const existing = store.get(sessionId);
   
   if (existing) {
     // 更新现有 session
@@ -47,5 +47,5 @@ export function createOrUpdateSessionContext(
  * 提交 session 到存储（必须在 pipeline 后调用）
  */
 export function commitSessionContext(session: UnifiedSessionContext): void {
-  sessionStore.set(session);
+  getSessionStore().set(session);
 }

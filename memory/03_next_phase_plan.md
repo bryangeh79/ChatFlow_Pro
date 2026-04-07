@@ -2,7 +2,7 @@
 
 ## 战报顶栏（2026-04-07 — 下一聊天室）
 
-- **版本**：`package.json` **1.7.89**（**Pro_v1.07.89**）— Phase 24：**Postgres Foundation checkpoint 已封**；**包 3A ✅** — **`docs/179`** multi-instance session/store ADR；**下一 3B/3C** 实现。**`go/no-go` 仍为 `NO_GO`**。SaaS MVP 仍 **sealed**。  
+- **版本**：`package.json` **1.7.90**（**Pro_v1.07.90**）— Phase 24：**包 3A ✅**；**包 3B 推进中** — **`SessionStore` 抽象 + 默认 in-memory**（`verify:session-store-abstraction`）；**下一 3C** JSONL/notify。**`go/no-go` 仍为 `NO_GO`**。SaaS MVP 仍 **sealed**。  
 - **当前 Phase**：**24 — SaaS v1 Hardening**（**当前主线**）。  
 - **已关闭**：**Phase 23**（SaaS MVP Final Closure）— **主线 closed**，后续 **不算 MVP 扩功能**。  
 - **本轮 git / push**：`c2a08cc` → `8cae7d4` → `bb5d17e` 已上 **`main`**，**push success**。  
@@ -19,7 +19,7 @@
   - **Phase 22C** — SaaS 行为全面接管（已完成，**Pro_v1.07.65**）
   - **Phase 22D** — SaaS / Legacy 收口（主目标已完成，**Pro_v1.07.67**）
   - **Phase 22E** — CI / 文档 / 边界说明收尾（**✅ 已收口**，见下节）
-- **当前版本（package.json）**：**1.7.89**（**Pro_v1.07.89**）— Phase 24 **3A ADR 已交付**；**推进中：3B/3C**（session / JSONL-notify）。SaaS MVP 封板语义不变。
+- **当前版本（package.json）**：**1.7.90**（**Pro_v1.07.90**）— Phase 24 **3B**：session store **接口骨架**（live 仍 in-memory）；**下一 3C**。SaaS MVP 封板语义不变。
 - **任务归属（Phase 24）**：**租户认证 / RBAC**；**Postgres + migration**；**多实例下 session / store 收口**；**凭证安全**（加密、轮换、审计）。拆包顺序由规划与风险决定，**不**在本文件预写死交付日。
 - **提交标注约定**（历史）：22D/22E/23 前缀仍见于已合并提交；**Phase 24**：`feat(phase-24):` · `chore(phase-24):` · `docs(phase-24):`。
 - Previous major milestone in this log: **Phase 16.2** - HTTP access observability enhanced (`X-Request-Id`, optional `CHATFLOW_HTTP_ACCESS_LOG`, webhook `phases_ms`, verification type narrowing)

@@ -1,6 +1,6 @@
 {
   "name": "chatflow-pro",
-  "version": "1.7.89",
+  "version": "1.7.90",
   "private": true,
   "type": "commonjs",
   "scripts": {
@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "smoke:webhooks": "node scripts/smoke-webhooks.mjs",
     "verify:lead-capture-states": "node scripts/verify-lead-capture-states.mjs",
+    "verify:session-store-abstraction": "node scripts/verify-session-store-abstraction.mjs",
     "verify:saas-handoff-disabled": "node scripts/verify-saas-handoff-disabled.mjs",
     "verify:saas-notify-disabled": "node scripts/verify-saas-notify-disabled.mjs",
     "verify:saas-lead-capture-disabled": "node scripts/verify-saas-lead-capture-disabled.mjs",
