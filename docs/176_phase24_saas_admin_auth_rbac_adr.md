@@ -1,8 +1,8 @@
 # ADR — Phase 24 / SaaS Admin Auth & RBAC（最小落地）
 
-> **状态**：Accepted；**包 1G** 已接入 **DB-backed tenant principal bridge**；仍为 **dev/ops 过渡**，**非**产品化登录  
+> **状态**：Accepted；**包 1H** 已接入 **bridge token hash-at-rest**；仍为 **dev/ops 过渡**，**非**产品化登录  
 > **范围**：SaaS **控制面**（`/saas/*` Admin API + Admin UI），**非** MVP 功能补完  
-> **真源**：`package.json` **1.7.73+**（Phase 24 小步）；SaaS MVP **sealed**（`docs/175`）；本 ADR 属于 **Phase 24 — SaaS v1 Hardening**
+> **真源**：`package.json` **1.7.74+**（Phase 24 小步）；SaaS MVP **sealed**（`docs/175`）；本 ADR 属于 **Phase 24 — SaaS v1 Hardening**
 
 ---
 
@@ -52,12 +52,23 @@
 
 ## Phase 24 — 包 1G（DB-backed tenant principal source，过渡方案）
 
-- **目的**：把部分 **tenant bridge** 从纯 env 迁到 **SaaS DB**；**不是**最终多用户登录、**不是**密码/JWT/session 产品化；**明文 `bridge_token`** 仅为 Phase 24 过渡，与 1E/1F 同级风险口径。
-- **表**：`tenant_admin_principals`（`src/saas/db.ts`）— `tenant_id`、`role`（`tenant_admin` | `tenant_operator_readonly`）、**全局唯一** `bridge_token`、`is_enabled`、可选 `display_name`、时间戳；`bridge_token` 唯一保证 Bearer 查找无二义性。
-- **鉴权优先级（固定）**：**1** break-glass **`platform_admin`** → **2** DB 启用行（**`auth_source: tenant_bridge_db`**，`tenant_slug` / `tenant_id` **来自 DB 与 `tenants` 联表，不靠 header 猜**）→ **3** `CHATFLOW_SAAS_TENANT_ADMIN_TOKENS` → **4** `CHATFLOW_SAAS_TENANT_READONLY_TOKENS` → **5** 未认证。DB 命中后 **优先于** env map（同 token 同时配置时以 DB 为准）。
-- **Admin API（仅 `platform_admin`）**：`GET` / `PUT /saas/v1/admin/tenants/:slug/principals` — `PUT` body `{ principals: [{ role, bridge_token, is_enabled, display_name? }] }` **整租户替换**列表。
-- **兼容**：未配置 DB 行时行为与 1E/1F 一致；env bridge 保留为 **break-glass / 过渡**。
+- **目的**：把部分 **tenant bridge** 从纯 env 迁到 **SaaS DB**；**不是**最终多用户登录、**不是**密码/JWT/session 产品化。
+- **表**：`tenant_admin_principals` — 见 **包 1H**（持久化形态以 hash 为主）；1G 语义仍适用。
+- **鉴权优先级（固定）**：**1** break-glass **`platform_admin`** → **2** DB 启用行（**`auth_source: tenant_bridge_db`**，`tenant_slug` / `tenant_id` **来自 DB**）→ **3** `CHATFLOW_SAAS_TENANT_ADMIN_TOKENS` → **4** `CHATFLOW_SAAS_TENANT_READONLY_TOKENS` → **5** 未认证。
+- **Admin API（仅 `platform_admin`）**：`GET` / `PUT /saas/v1/admin/tenants/:slug/principals` — `PUT` 仍接受 **明文 token 输入**（仅此传输/配置瞬间），**不落库明文**（1H）。
 - **验证**：`npm run verify:saas-admin-db-principal-bridge`。
+
+---
+
+## Phase 24 — 包 1H（bridge token hash-at-rest，存储硬化）
+
+- **目的**：将 DB principal 的 **静态存储**从明文 secret 改为 **SHA-256 十六进制小写**（`hashBridgeToken`，`src/saas/bridge-token.ts`）；**不加盐、无 pepper/KMS** — **不是**最终凭证安全终态，仅为降低「库文件泄露即裸奔」面。
+- **列**：`bridge_token_hash`（唯一索引，部分索引忽略空）；**保留** `bridge_token` 列 **不删除** — 新写入用 **行 `id` 占位**满足 NOT NULL/UNIQUE，**不存真实 secret**；历史行可仍为明文直至 **首次成功鉴权后懒迁移**（写入 hash + 占位 `bridge_token`）。
+- **读**：`findEnabledPrincipalByBridgeToken` — 先按 **hash** 命中；否则 **legacy** `bridge_token = Bearer` 等值匹配并触发懒迁移。
+- **写**：`replaceTenantAdminPrincipals` — 仅写 `bridge_token_hash` + 占位 `bridge_token`。
+- **GET principals**：响应 **不含** `bridge_token`；含 `has_token`、`token_state`（`hash_at_rest` | `legacy_plaintext_at_rest`）及 `role` / `is_enabled` / `display_name` / 时间戳。
+- **兼容**：break-glass、env bridge **不变**；无 DB principal 时行为与 1G 前一致。
+- **验证**：`npm run verify:saas-admin-db-principal-token-hardening`。
 
 ---
 
@@ -72,12 +83,12 @@
 | 区域 | 行为 |
 |------|------|
 | **Token 读取** | `breakGlassAdminToken()`；**`parseTenantAdminTokenMap()`** / **`parseTenantReadonlyTokenMap()`**（JSON slug→secret） |
-| **鉴权** | `resolveSaasAdminAuth`（async）：break-glass **全串** → **DB** `tenant_admin_principals`（启用 + `bridge_token`）→ admin map **secret** → readonly map **secret** → 未认证；来源含 **`break_glass_env` / `tenant_bridge_db` / `tenant_bridge_env` / `tenant_readonly_bridge_env`** |
+| **鉴权** | `resolveSaasAdminAuth`（async）：break-glass **全串** → **DB**（启用行：按 **`bridge_token_hash`** 匹配 Bearer 的 SHA-256；legacy 明文列兼容）→ admin map **secret** → readonly map **secret** → 未认证；来源含 **`break_glass_env` / `tenant_bridge_db` / `tenant_bridge_env` / `tenant_readonly_bridge_env`** |
 | **授权** | `authorizeAdminRouteAfterAuth`：**`allowed_roles`** + **`resource_scope`**；`tenant_targeted` 时 **`tenant_admin` / `readonly` 须 slug 匹配**；`platform_admin` 全放行。未匹配策略 → 不 403 |
 | **`/saas/v1/health`** | **不**校验 Bearer；返回 `admin_configured: Boolean(breakGlassAdminToken())` |
 | **`GET /saas/admin`** | 静态返回 `public/saas-admin.html`，**无**服务端会话 gate |
 | **Admin UI** | `public/saas-admin.html`：用户粘贴 token，`fetch(..., { headers: { Authorization: 'Bearer ' + token } })` 调所有 admin REST |
-| **数据模型** | `src/saas/db.ts` schema：含 **`tenant_admin_principals`**（过渡 bridge 行，**非**最终用户表）；另 `tenants`、`tenant_credentials`、`tenant_faq_entries`、`tenant_settings` |
+| **数据模型** | `src/saas/db.ts`：`tenant_admin_principals` 含 **`bridge_token_hash`** + 遗留 **`bridge_token`**（新行仅占位）；另 `tenants`、`tenant_credentials`、`tenant_faq_entries`、`tenant_settings` |
 | **CI / 脚本** | 多个 `verify:*` 与 `tenant-boundary-verify` 使用 env 中的 `CHATFLOW_SAAS_ADMIN_TOKEN` 调用 Admin API（与实现演进需后续对齐，不在本 ADR 包内改脚本） |
 
 ## 3. 为什么先做 Auth / RBAC 而不是 Postgres

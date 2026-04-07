@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS tenant_admin_principals (
   tenant_id TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('tenant_admin', 'tenant_operator_readonly')),
   bridge_token TEXT NOT NULL UNIQUE,
+  bridge_token_hash TEXT,
   is_enabled INTEGER NOT NULL DEFAULT 1,
   display_name TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -88,6 +89,24 @@ CREATE TABLE IF NOT EXISTS tenant_admin_principals (
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
 );
 `;
+
+function applyTenantPrincipalHashColumnMigration(db: SqlJsDatabase): void {
+  const stmt = db.prepare('PRAGMA table_info(tenant_admin_principals)');
+  const names = new Set<string>();
+  while (stmt.step()) {
+    const o = stmt.getAsObject() as Record<string, unknown>;
+    names.add(String(o.name));
+  }
+  stmt.free();
+  if (!names.has('bridge_token_hash')) {
+    db.run('ALTER TABLE tenant_admin_principals ADD COLUMN bridge_token_hash TEXT');
+  }
+  db.run(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_tap_bridge_token_hash
+     ON tenant_admin_principals(bridge_token_hash)
+     WHERE bridge_token_hash IS NOT NULL AND length(bridge_token_hash) > 0`,
+  );
+}
 
 export async function getSaaSDatabase(): Promise<SqlJsDatabase> {
   if (dbInstance) return dbInstance;
@@ -108,6 +127,7 @@ export async function getSaaSDatabase(): Promise<SqlJsDatabase> {
       }
       const db = new SQL.Database(data);
       db.exec(SCHEMA);
+      applyTenantPrincipalHashColumnMigration(db);
       dbInstance = db;
       return db;
     })();

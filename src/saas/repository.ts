@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { SqlJsDatabase } from './db';
 import { getSaaSDatabase, persistSaaSDatabase } from './db';
+import { hashBridgeToken } from './bridge-token';
 import type { UnifiedFaqSeedEntry } from '../channels/unified-inbound-pipeline/faq-seed';
 
 export interface TenantRow {
@@ -183,35 +184,90 @@ export async function getTenantSettingsJson(tenantId: string): Promise<Record<st
   }
 }
 
-/** Phase 24 / 1G — DB-backed tenant admin / readonly bridge principals (plaintext token; transition only). */
+/** Phase 24 / 1G+1H — DB-backed tenant admin / readonly bridge principals. */
 export type TenantPrincipalRole = 'tenant_admin' | 'tenant_operator_readonly';
 
-export interface TenantPrincipalRow {
+/** 1H — API / list shape: never includes raw bearer material. */
+export type TenantPrincipalTokenState = 'hash_at_rest' | 'legacy_plaintext_at_rest';
+
+export interface TenantPrincipalListRow {
   id: string;
   tenant_id: string;
   role: TenantPrincipalRole;
-  bridge_token: string;
   is_enabled: boolean;
   display_name: string | null;
   created_at: string;
   updated_at: string;
+  has_token: boolean;
+  token_state: TenantPrincipalTokenState;
+}
+
+function principalRowFromDb(r: Record<string, unknown>): TenantPrincipalListRow {
+  const hashRaw = r.bridge_token_hash;
+  const hashStr =
+    hashRaw == null || String(hashRaw).trim() === '' ? '' : String(hashRaw).trim().toLowerCase();
+  const token_state: TenantPrincipalTokenState =
+    hashStr.length > 0 ? 'hash_at_rest' : 'legacy_plaintext_at_rest';
+  return {
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    role: String(r.role) as TenantPrincipalRole,
+    is_enabled: Number(r.is_enabled) !== 0,
+    display_name: r.display_name == null ? null : String(r.display_name),
+    created_at: String(r.created_at),
+    updated_at: String(r.updated_at),
+    has_token: true,
+    token_state,
+  };
 }
 
 export async function findEnabledPrincipalByBridgeToken(
   token: string,
 ): Promise<{ tenant_id: string; tenant_slug: string; role: TenantPrincipalRole } | null> {
+  const trimmed = token.trim();
+  if (!trimmed) return null;
+  const h = hashBridgeToken(trimmed);
+  if (!h) return null;
   const db = await getSaaSDatabase();
-  const row = stmtGet(
+
+  let row = stmtGet(
     db,
     `SELECT p.tenant_id, p.role, t.slug AS tenant_slug
      FROM tenant_admin_principals p
      INNER JOIN tenants t ON t.id = p.tenant_id
-     WHERE p.bridge_token = ? AND p.is_enabled = 1`,
-    [token],
+     WHERE p.bridge_token_hash = ? AND p.is_enabled = 1`,
+    [h],
+  );
+  if (row) {
+    const role = String(row.role);
+    if (role !== 'tenant_admin' && role !== 'tenant_operator_readonly') return null;
+    return {
+      tenant_id: String(row.tenant_id),
+      tenant_slug: String(row.tenant_slug).trim().toLowerCase(),
+      role,
+    };
+  }
+
+  row = stmtGet(
+    db,
+    `SELECT p.id, p.tenant_id, p.role, t.slug AS tenant_slug
+     FROM tenant_admin_principals p
+     INNER JOIN tenants t ON t.id = p.tenant_id
+     WHERE (p.bridge_token_hash IS NULL OR p.bridge_token_hash = '')
+       AND p.bridge_token = ? AND p.is_enabled = 1`,
+    [trimmed],
   );
   if (!row) return null;
   const role = String(row.role);
   if (role !== 'tenant_admin' && role !== 'tenant_operator_readonly') return null;
+  const id = String(row.id);
+  db.run(
+    `UPDATE tenant_admin_principals
+     SET bridge_token_hash = ?, bridge_token = ?, updated_at = datetime('now')
+     WHERE id = ?`,
+    [h, id, id],
+  );
+  persistSaaSDatabase();
   return {
     tenant_id: String(row.tenant_id),
     tenant_slug: String(row.tenant_slug).trim().toLowerCase(),
@@ -219,24 +275,15 @@ export async function findEnabledPrincipalByBridgeToken(
   };
 }
 
-export async function listTenantAdminPrincipals(tenantId: string): Promise<TenantPrincipalRow[]> {
+export async function listTenantAdminPrincipals(tenantId: string): Promise<TenantPrincipalListRow[]> {
   const db = await getSaaSDatabase();
   const rows = stmtAll(
     db,
-    `SELECT id, tenant_id, role, bridge_token, is_enabled, display_name, created_at, updated_at
+    `SELECT id, tenant_id, role, bridge_token, bridge_token_hash, is_enabled, display_name, created_at, updated_at
      FROM tenant_admin_principals WHERE tenant_id = ? ORDER BY created_at ASC`,
     [tenantId],
   );
-  return rows.map((r) => ({
-    id: String(r.id),
-    tenant_id: String(r.tenant_id),
-    role: String(r.role) as TenantPrincipalRole,
-    bridge_token: String(r.bridge_token),
-    is_enabled: Number(r.is_enabled) !== 0,
-    display_name: r.display_name == null ? null : String(r.display_name),
-    created_at: String(r.created_at),
-    updated_at: String(r.updated_at),
-  }));
+  return rows.map((r) => principalRowFromDb(r));
 }
 
 export async function replaceTenantAdminPrincipals(
@@ -252,17 +299,13 @@ export async function replaceTenantAdminPrincipals(
   db.run('DELETE FROM tenant_admin_principals WHERE tenant_id = ?', [tenantId]);
   for (const it of items) {
     const id = randomUUID();
+    const secret = it.bridge_token.trim();
+    const h = hashBridgeToken(secret);
+    if (!h) continue;
     db.run(
-      `INSERT INTO tenant_admin_principals (id, tenant_id, role, bridge_token, is_enabled, display_name, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
-      [
-        id,
-        tenantId,
-        it.role,
-        it.bridge_token.trim(),
-        it.is_enabled ? 1 : 0,
-        it.display_name?.trim() || null,
-      ],
+      `INSERT INTO tenant_admin_principals (id, tenant_id, role, bridge_token, bridge_token_hash, is_enabled, display_name, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      [id, tenantId, it.role, id, h, it.is_enabled ? 1 : 0, it.display_name?.trim() || null],
     );
   }
   persistSaaSDatabase();

@@ -1,6 +1,6 @@
 {
   "name": "chatflow-pro",
-  "version": "1.7.73",
+  "version": "1.7.74",
   "private": true,
   "type": "commonjs",
   "scripts": {
@@ -22,6 +22,7 @@
     "verify:saas-admin-tenant-bridge": "node scripts/verify-saas-admin-tenant-bridge.mjs",
     "verify:saas-admin-tenant-readonly-bridge": "node scripts/verify-saas-admin-tenant-readonly-bridge.mjs",
     "verify:saas-admin-db-principal-bridge": "node scripts/verify-saas-admin-db-principal-bridge.mjs",
+    "verify:saas-admin-db-principal-token-hardening": "node scripts/verify-saas-admin-db-principal-token-hardening.mjs",
     "dev:website-outbound-echo": "node scripts/website-outbound-echo.mjs",
     "dev:notify-echo": "node scripts/notify-echo-server.mjs",
     "check:agent-env": "node scripts/agent-env-check.mjs",
