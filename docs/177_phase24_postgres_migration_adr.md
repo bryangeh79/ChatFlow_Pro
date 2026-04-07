@@ -1,7 +1,7 @@
 # ADR — Phase 24 / 包 2A — Postgres + migration（仅决策，无实现）
 
 > **状态**：Accepted（**2A = ADR 文档**；**不**含 Postgres runtime、**不**改 sql.js live 路径、**不**动租户 webhook / 现有 auth 实现）。  
-> **真源**：`package.json` **1.7.88+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。**2M** 提供 **`evaluatePostgresGoNoGo()` / `npm run saas:db:postgres:go-no-go`** — **当前默认 `no_go`**；**`probe_connect_ok` ≠ 可投产 runtime**；见 **`docs/178`**。
+> **真源**：`package.json` **1.7.88+**；SaaS MVP **sealed**（`docs/175`）；**Auth-RBAC Foundation（1A–1J）** 已封（`docs/176`、`memory/01`）。**Postgres Foundation checkpoint（2A–2M）** 已叙事封板（`memory/01` / `memory/02`）— **契约与门禁齐备**，**`evaluatePostgresGoNoGo()` 仍为 `no_go`**；**勿解读为可切生产 Postgres runtime**。下一工程线见 **`docs/179`**（multi-instance session/store）。**2M** CLI 见 **`docs/178`**。
 
 ---
 
@@ -247,3 +247,11 @@ SaaS 控制面与租户元数据当前落在 **sql.js 内存 SQLite + 单文件�
 - `src/saas/db.ts` — SCHEMA、`applyTenantPrincipalHashColumnMigration`  
 - `src/saas/repository.ts` — 全部 DB 访问  
 - `src/server.ts` — `getSaaSDatabase` warm-up  
+
+---
+
+## 13. Postgres Foundation checkpoint（叙事已封）
+
+- **范围**：**2A–2M** — ADR、**`SaaSDbAdapter`** 双路径、migration **registry / SQL / checksum / execution contract / fake ledger**、**Postgres client gate + loader**、**connection config**、**optional TCP probe**、**go/no-go boundary + verify**。  
+- **未完成（仍阻塞生产 Postgres）**：**real runtime wiring**、**ledger 落库**、**migration apply**、**repository 全量切 Postgres** — 以 **`npm run saas:db:postgres:go-no-go`** 为准。  
+- **与 multi-instance 关系**：先 **`docs/179`** 收口 **session / JSONL / 单写者** 假设，再推进 Postgres runtime，可降低「多副本 + 文件库」组合风险。

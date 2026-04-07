@@ -6,7 +6,7 @@
 
 ## 1. 当前项目一句话状态
 
-**ChatFlow Pro**：七通道统一入站 + 出站、Legacy `/webhooks/:channel` 与 **多租户** `/webhooks/t/:slug/:channel` 并存；**多租户 SaaS MVP 已封板**（Phase 23 关闭），`package.json` **1.7.76**（以仓库为准）。**Phase 24 / Auth-RBAC Foundation（1A–1J）子里程碑已封**（`docs/176`、`memory/01`）；当前主线在 **Phase 24 — SaaS v1 Hardening** 下推进 **Postgres + migration ADR/实现**（**`docs/177_phase24_postgres_migration_adr.md`**，包 **2A+**）。
+**ChatFlow Pro**：七通道统一入站 + 出站、Legacy `/webhooks/:channel` 与 **多租户** `/webhooks/t/:slug/:channel` 并存；**多租户 SaaS MVP 已封板**（Phase 23 关闭），`package.json` **1.7.88+**（以仓库为准）。**Phase 24**：**Auth-RBAC（1A–1J）** 已封；**Postgres Foundation（2A–2M）checkpoint 已封** — **`go/no-go` 仍为 `NO_GO`**，**勿当已可切生产 Postgres**。当前主线下一包：**3A** — **`docs/179`** multi-instance session/store ADR。
 
 ---
 
@@ -22,8 +22,8 @@
 
 ## 3. 已完成的最近关键 checkpoint（git）
 
-1. **Phase 24 / Auth-RBAC Foundation（1A–1J）** — **子里程碑已封**（`docs/176` + `verify:saas-admin-*`）；封板提交见 `git log`（`chore(phase-24): seal auth rbac foundation checkpoint`）。  
-2. **`f508d38`** — `docs(phase-24): define saas auth cutline and bridge deprecation prep`（包 **1J**）。  
+1. **Phase 24 / Auth-RBAC Foundation（1A–1J）** — **子里程碑已封**（`docs/176` + `verify:saas-admin-*`）。  
+2. **Phase 24 / Postgres Foundation（2A–2M）** — **checkpoint 已封**（`docs/177`、`docs/178`、`saas:db:postgres:go-no-go`）；**runtime 仍 NO_GO**。  
 3. 更早：**Phase 23 关闭**、**Phase 24 开 v1 Hardening** — 仍见 `memory/02` 与 `git log`。
 
 **Push**：以 **`git log origin/main`** 为准。
@@ -32,9 +32,9 @@
 
 ## 4. 下一步唯一优先动作
 
-**Phase 24 包 2A+**：按 **`docs/177_phase24_postgres_migration_adr.md`**（**2A ADR**）推进 **Postgres + migration**（**先 ADR，再 adapter/双实现/迁移**）；**local/dev 可继续 sql.js**，**hosted/prod 目标 Postgres**。  
+**Phase 24 包 3A+**：读完 **`docs/179_phase24_multi_instance_session_store_adr.md`**，再按 **3B/3C** 拆 **session 外置 / JSONL 单写者边界 / notify 幂等** 等实现；**与 Postgres runtime 专线正交** — 先做 ADR 边界，避免多副本下「内存 session + 本地文件」 silent 分叉。  
 
-**原因**：**Auth-RBAC bridge 子线（1A–1J）已封 checkpoint**，不应再堆 bridge；托管规模与多实例一致性需要 **服务端 DB**，与 sql.js 文件库路径分离。
+**Postgres**：Foundation 已封；**真实 runtime** 仍以 **`npm run saas:db:postgres:go-no-go`** 为门禁，**当前默认 `no_go`**。
 
 **合并门禁（不变）**：**T0** `npm run build` + **T1** `npm run staging:docker-smoke`（或 CI `docker-smoke` 绿）。
 
