@@ -5,8 +5,8 @@
 | 项 | 值 |
 |----|-----|
 | **package.json / Pro** | **1.7.90** / **Pro_v1.07.90**（以 `package.json` 为准） |
-| **当前 Phase** | **Phase 24 — SaaS v1 Hardening**（当前主线） |
-| **子里程碑** | **Auth-RBAC（1A–1J）** ✅；**Postgres Foundation（2A–2M）** ✅ checkpoint；**Postgres runtime 底座切片** ✅；**Postgres `saas_schema_migrations` ledger persistence** ✅；**migration execution wired** ✅；**controlled reachability stabilization** ✅；**tenant_settings 单一只读入口已 adapter 化** ✅；**runtime_wired 在受控前置满足时已升级为硬门禁** ✅（前置不足仍 skip）；**受控 PG 实测脚本已补齐且不属于默认链** ✅（默认链稳定性未受影响）；**Phase 24 收官证据材料已齐备** ✅；**Phase 24 收官签核记录已归档并入库** ✅（`docs/181`，默认链 / 受控链 / `overall_go_not_implied` 复核口径固化）。**默认 SaaS DB live 路径仍为 sqljs**（**未**切换 Postgres）；`settings_json` 坏 JSON/非对象/缺失仍兜底 `{}`；**空表/可读 ≠ migration 已应用**；**默认 session 仍 in-memory**；**仍非** MI-ready、**无** Redis。**当前仍为 Phase 24，等待正式收官判断**；整体 `evaluatePostgresGoNoGo()` 仍为 `NO_GO`（以完整门禁为准）。下一：见 `memory/03`。 |
+| **当前 Phase** | **Phase 25**（由 Phase 24 强化收口阶段正式关闭后切换） |
+| **子里程碑** | **Auth-RBAC（1A–1J）** ✅；**Postgres Foundation（2A–2M）** ✅ checkpoint；**Postgres runtime 底座切片** ✅；**Postgres `saas_schema_migrations` ledger persistence** ✅；**migration execution wired** ✅；**controlled reachability stabilization** ✅；**tenant_settings 单一只读入口已 adapter 化** ✅；**runtime_wired 在受控前置满足时已升级为硬门禁** ✅（前置不足仍 skip）；**受控 PG 实测脚本已补齐且不属于默认链** ✅（默认链稳定性未受影响）；**Phase 24 收官证据材料已齐备** ✅；**Phase 24 收官签核记录已归档并入库** ✅（`docs/181`，默认链 / 受控链 / `overall_go_not_implied` 复核口径固化）；**Phase 25 首刀已完成：`listTenants()` 只读 adapter 化** ✅（`getTenantBySlug()` 因进入 tenant webhook 运行时链暂缓）。**默认 SaaS DB live 路径仍为 sqljs**（**未**切换 Postgres）；`settings_json` 坏 JSON/非对象/缺失仍兜底 `{}`；**空表/可读 ≠ migration 已应用**；**默认 session 仍 in-memory**；**仍非** MI-ready、**无** Redis。**Phase 24 已正式关闭（强化收口阶段）**；整体 `evaluatePostgresGoNoGo()` 仍为 `NO_GO`（以完整门禁为准）。下一：见 `memory/03`。 |
 | **已关闭主线** | **Phase 23 — SaaS MVP Final Closure** ✅；**SaaS MVP 交付口径 = 完成**（非「未完 MVP」） |
 | **本轮 git（已 push `main`）** | 以 `git log origin/main` 为准；含 **controlled reachability stabilization** `db0e024`、**migration execution wired** `c142da3`、**Postgres ledger persistence** `22ffc2d`、**Postgres Pool/adapter 切片** `0b540f4`、**3C** `30bdc57`、**3B** `9f76785` 等。 |
 | **push** | **success**（远端与本地一致以 `git log` 为准） |
@@ -17,7 +17,7 @@
 ---
 
 - Project Name: ChatFlow Pro
-- Current Phase: **Phase 24 — SaaS v1 Hardening**（**非** MVP 扩功能主线，而是托管/安全/规模强化）。**Phase 23 — SaaS MVP Final Closure** ✅ **已关闭**；Phase **22（22A–22E）** ✅。
+- Current Phase: **Phase 25**（Phase 24 强化收口阶段已关闭）。**Phase 23 — SaaS MVP Final Closure** ✅ **已关闭**；Phase **22（22A–22E）** ✅。
 - Current Version: **Pro_v1.07.90** (package.json: **1.7.90**；**SaaS MVP 口径已完成**；**3B** + **3C** 同上；**SaaS DB 默认仍为 sqljs**，**Pool + Postgres adapter 最小接线已落地**（**runtime_wired** 前进一步，**整体 Postgres `go/no-go` 仍为 `NO_GO`**)；**session 仍 in-memory**；**非** MI-ready)
 - Execution Root: C:\AI_WORKSPACE\Chatflow\ChatFlow_Pro
 - Current Project State: 

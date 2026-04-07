@@ -71,8 +71,11 @@ export async function createTenant(slug: string, name: string): Promise<TenantRo
 }
 
 export async function listTenants(): Promise<TenantRow[]> {
-  const db = await getSaaSDatabase();
-  const rows = stmtAll(db, 'SELECT id, slug, name, created_at FROM tenants ORDER BY created_at DESC');
+  const adapter = await getSaasDbAdapter();
+  const rows = await adapter.queryAll(
+    'SELECT id, slug, name, created_at FROM tenants ORDER BY created_at DESC',
+    [],
+  );
   return rows.map((r) => ({
     id: String(r.id),
     slug: String(r.slug),

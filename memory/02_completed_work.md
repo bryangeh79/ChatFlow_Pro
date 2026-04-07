@@ -1,5 +1,22 @@
 # Completed Work
 
+## Phase 25 — first minimal repository read-path slice ✅
+
+**名称**：`Phase 25 / listTenants read-path adapterization`。  
+**交付摘要**：`listTenants()` 已从 sqljs 直连读取切到 `SaaSDbAdapter.queryAll`（只读、语义不变）。  
+**边界保留**：`getTenantBySlug()` 已识别进入 tenant webhook 运行时链，按低风险策略暂不推进。  
+**门禁口径**：整体 `evaluatePostgresGoNoGo()` 仍按完整门禁为 `NO_GO`；默认 live 路径仍为 sqljs。  
+
+---
+
+## Phase 24 — closure decision sealed ✅
+
+**名称**：`Phase 24 / closure decision sealed`。  
+**结论**：Phase 24（强化收口阶段）已正式关闭。  
+**边界保留**：当前整体 `evaluatePostgresGoNoGo()` 仍按完整门禁为 `NO_GO`；默认 SaaS DB live 路径仍为 sqljs；本结论不等于 Postgres ready。  
+
+---
+
 ## Phase 24 — closeout signoff record archived ✅
 
 **名称**：`Phase 24 / closeout signoff record archived` — **非** Postgres ready、**非** `go` 已达成。  

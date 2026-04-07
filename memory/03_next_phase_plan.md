@@ -5,7 +5,7 @@
 - **版本**：`package.json` **1.7.90**（**Pro_v1.07.90**）— Phase 24：**3A ✅**；**3B ✅**；**3C ✅** — **`event_type` + `idempotency_key` 契约**（`docs/179` §9、`verify:phase24-3c-jsonl-notify-contract`），**仍** at-least-once / **非** MI-ready。**Postgres 线**：共享 **Pool** + **`PostgresSaaSDbAdapter`** + **`saas_schema_migrations` 真实 ledger** + **migration execution wired**（apply 真实执行；**`execution_wired`** 基于 runtime+ledger+assets）；**默认 sqljs 不变**；**`evaluatePostgresGoNoGo()` 仍为 `NO_GO`**。SaaS MVP 仍 **sealed**。  
 - **受控可达性稳定化**：readiness 证据字段 + verify 固定文案（`default_no_go_ok` / `controlled_reachability_ok` / `overall_go_not_implied`）；受控链需显式开关，前置不足统一 `skip`。  
 - **状态口径固定**：默认 `NO_GO`、受控可达、整体 GO 不被局部门槛替代（按 `saas:db:postgres:go-no-go` 全量门禁判定）。  
-- **当前 Phase**：**24 — SaaS v1 Hardening**（**当前主线**）。  
+- **当前 Phase**：**25**（由 Phase 24 强化收口阶段正式关闭后切换）。  
 - **已关闭**：**Phase 23**（SaaS MVP Final Closure）— **主线 closed**，后续 **不算 MVP 扩功能**。  
 - **本轮 git / push**：**以 `git log origin/main` 为准**；**migration execution wired** **`c142da3`**（**已 push**）；**Postgres ledger persistence** **`22ffc2d`**；**Postgres Pool/adapter 切片** **`0b540f4`**；**3C** **`30bdc57`**；**3B** **`9f76785`**。  
 - **下一阶段建议**（24 拆包）：① 租户认证/RBAC ② Postgres 线余下（**controlled reachability stabilization 已交付**；下一建议最小切口：**repository 某一极小路径 PG 化**；**未开工**）③ 多实例 session/store ④ 凭证 KMS/轮换/审计。  
@@ -13,7 +13,8 @@
 - **本轮校准（窄硬门禁）**：受控 PG 分支下，当前置满足时 `postgres_client_runtime_wired` 必须达成；未达成按 hard fail，前置不足维持 skip。  
 - **本轮补强（受控实测）**：新增专用实测脚本覆盖 `controlled_runtime_wired_ok/hard_fail`；默认 verify 链与 CI 默认链保持不变。  
 - **收官前证据材料**：已补 runbook + 固定记录模板 + 复核口径（`docs/180`）；收官判断优先看“材料齐备度”，非功能扩面。  
-- **收官签核归档**：`docs/181_phase24_closeout_signoff_record.md` 已入库；当前仍按完整门禁维持 `NO_GO`，建议进入 Phase 24 正式关闭判断（不直接写已进入下一 phase）。  
+- **收官签核归档**：`docs/181_phase24_closeout_signoff_record.md` 已入库；Phase 24 强化收口阶段已正式关闭。当前仍按完整门禁维持 `NO_GO`，默认 live 路径仍为 sqljs。  
+- **Phase 25 首刀进展**：`listTenants()` 已完成 adapter 化（只读、低风险）；`getTenantBySlug()` 因进入 tenant webhook 运行时链暂缓。  
 - **新发现风险**：本轮无新增 P0；24 将引入 **规模/合规/运维复杂度**，需按包写风险条目入 **`memory/04`**。  
 - **已知边界**：**冻结** — idle GET 200（A）、hub verify 租户 token、`faq.fallback_enabled` partial、slug/idle 信息面。**待 24** — 明文凭证、内存 session、sql.js。
 
