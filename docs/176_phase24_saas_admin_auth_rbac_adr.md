@@ -1,14 +1,14 @@
 # ADR — Phase 24 / SaaS Admin Auth & RBAC（最小落地）
 
-> **状态**：Accepted；**包 1D** 已落位 tenant-scoped RBAC **语义**（策略 + 纯函数）；live 身份仍仅 break-glass `platform_admin`  
+> **状态**：Accepted；**包 1E** 已接入 **tenant principal bridge**（env JSON map）；**非**最终多用户登录设计  
 > **范围**：SaaS **控制面**（`/saas/*` Admin API + Admin UI），**非** MVP 功能补完  
-> **真源**：`package.json` **1.7.70+**（Phase 24 小步）；SaaS MVP **sealed**（`docs/175`）；本 ADR 属于 **Phase 24 — SaaS v1 Hardening**
+> **真源**：`package.json` **1.7.71+**（Phase 24 小步）；SaaS MVP **sealed**（`docs/175`）；本 ADR 属于 **Phase 24 — SaaS v1 Hardening**
 
 ---
 
 ## Phase 24 — 包 1B（auth abstraction bridge，已落地）
 
-- **代码**：`src/saas/admin-auth.ts` — `breakGlassAdminToken`、`resolveSaasAdminAuth`、`requireSaasAdmin`；命中 env token 时 context：**`role: platform_admin`**、**`auth_source: break_glass_env`**、**`scope_type: platform`**、**`tenant_id: null`**（无 `tenant_slug`）。`admin-routes` 仅调用该模块。
+- **代码**：`src/saas/admin-auth.ts` — `breakGlassAdminToken`、`parseTenantAdminTokenMap`、`resolveSaasAdminAuth`、`requireSaasAdmin`；break-glass 命中时 **`platform_admin` / `break_glass_env` / `scope_type: platform`**（详见包 1E 可增 **`tenant_bridge_env`**）。
 - **未变**：`/saas/v1/health`、`GET /saas/admin` 仍**不**要求 Bearer；`/saas/v1/admin/*` 仍 401 / 放行规则与 1B 前一致；**无**用户表、**无** JWT、**无**租户级 RBAC；legacy 与租户 webhook 边界不动。
 - **验证**：`npm run verify:saas-admin-auth-break-glass`（需已 `npm run build`）。
 
@@ -25,8 +25,18 @@
 
 - **语义**：**platform-only** — `GET|POST /saas/v1/admin/tenants` → 仅 **`platform_admin`**。**tenant-targeted** — 单租户路径：list/create 以外；`tenant_admin` 仅 **`scope_type: tenant` + `tenant_slug` 与 URL slug 一致** 时可读写 creds/faq/settings 与读 tenant；`tenant_operator_readonly` 仅可读 **get tenant / get faq**，写路由与 platform 路由拒绝。
 - **纯函数**：`resolveAdminRouteTargetTenantSlug`、`isAdminRouteTenantScoped`、`doesAdminScopeMatchRouteTarget`、`authorizeAdminRouteAfterAuth`（在 `allowed_roles` 之后做 slug 对齐）。
-- **Live**：仍 **无** 新登录源；break-glass 仍仅产出 **`platform_admin` / `scope_type: platform`**，故现网行为与 1C 等价。
+- **Live（1D 当时）**：策略语义先行；**包 1E** 起可经 **`CHATFLOW_SAAS_TENANT_ADMIN_TOKENS`** 产出 **`tenant_admin`**（见下节）。未配置 bridge 时仍仅 break-glass。
 - **验证**：`npm run verify:saas-admin-rbac-tenant-scope`（纯合成 principal，不启服务）。
+
+---
+
+## Phase 24 — 包 1E（tenant principal bridge，过渡方案）
+
+- **目的**：验证 **`tenant_admin` 可穿过 auth → authorization 全链路**；**不是**生产级多用户登录，仅为 **dev/ops bridge**，可整体移除或替换为 DB/JWT。
+- **机制**：环境变量 **`CHATFLOW_SAAS_TENANT_ADMIN_TOKENS`** — JSON 对象 **`slug → secret`**（键名小写归一）。`Authorization: Bearer <secret>` 命中某 slug 的 secret 时产出 **`role: tenant_admin`**、**`auth_source: tenant_bridge_env`**、**`scope_type: tenant`**、**`tenant_slug`**、**`tenant_id: null`**。
+- **优先级**：**先** `CHATFLOW_SAAS_ADMIN_TOKEN`（`platform_admin`）**再** tenant map；同一 secret 若与 break-glass 相同，break-glass 优先。
+- **未做**：DB user、密码、JWT、session、`public/saas-admin.html` 改造、审计登录。
+- **验证**：`npm run verify:saas-admin-tenant-bridge`（见 `.env.example` 注释）。
 
 ---
 
@@ -40,8 +50,8 @@
 
 | 区域 | 行为 |
 |------|------|
-| **Token 读取** | `src/saas/admin-auth.ts`：`breakGlassAdminToken()` → `process.env.CHATFLOW_SAAS_ADMIN_TOKEN` |
-| **鉴权** | `requireSaasAdmin` / `resolveSaasAdminAuth`：Bearer 精确匹配；成功 context 含 **`scope_type`**（break-glass 为 **`platform`**）、可选 **`tenant_slug`** / **`tenant_id`** |
+| **Token 读取** | `breakGlassAdminToken()`；**`parseTenantAdminTokenMap()`** ← `CHATFLOW_SAAS_TENANT_ADMIN_TOKENS`（JSON） |
+| **鉴权** | `resolveSaasAdminAuth`：**先** break-glass **全串**匹配 **`Bearer ${CHATFLOW_SAAS_ADMIN_TOKEN}`**；**再** tenant map 中 **secret** 与 Bearer 体匹配 → **`tenant_bridge_env`** + **`tenant_slug`** |
 | **授权** | `authorizeAdminRouteAfterAuth`：**`allowed_roles`** + **`resource_scope`**；`tenant_targeted` 时 **`tenant_admin` / `readonly` 须 slug 匹配**；`platform_admin` 全放行。未匹配策略 → 不 403 |
 | **`/saas/v1/health`** | **不**校验 Bearer；返回 `admin_configured: Boolean(breakGlassAdminToken())` |
 | **`GET /saas/admin`** | 静态返回 `public/saas-admin.html`，**无**服务端会话 gate |
