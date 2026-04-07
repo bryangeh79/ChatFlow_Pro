@@ -1,5 +1,13 @@
 # Project Status
 
+## Phase 25 正式关闭（2026-04-07）
+
+- 当前阶段状态：**Phase 25（已正式关闭 / sealed）**。
+- 口径保留：默认 live 路径仍为 `sqljs`（未切到 `postgres`）。
+- 受控结论：受控 Postgres 闭环已达 `go`（apply 成功、ledger ready、受控 go-no-go=go）。
+- 严格边界：受控 `go` **不等于** 默认链/整体已 GO。
+- 当前版本保持：`1.7.90 / Pro_v1.07.90`。
+
 ## Phase 25 受控 PG 闭环证据收口（2026-04-07）
 
 - 受控闭环结果：`migration apply` 成功、`saas_schema_migrations` `ledger` 为 `ready`、受控 `go-no-go` 为 `go`。

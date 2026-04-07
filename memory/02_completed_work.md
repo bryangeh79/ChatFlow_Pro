@@ -1,5 +1,14 @@
 # Completed Work
 
+## Phase 25 — closure decision sealed ✅
+
+**名称**：`Phase 25 / closure decision sealed`。  
+**结论**：Phase 25 已正式关闭。  
+**边界口径**：默认 live 路径仍为 `sqljs`；受控 Postgres 闭环已达 `go`；受控 `go` 不等于默认链/整体已 GO。  
+**版本**：`1.7.90 / Pro_v1.07.90`（不变）。  
+
+---
+
 ## Phase 25 — controlled postgres closure evidence ✅
 
 **名称**：`Phase 25 / controlled postgres closure evidence`。  

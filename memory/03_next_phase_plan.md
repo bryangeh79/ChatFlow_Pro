@@ -1,5 +1,12 @@
 # Next Phase Plan
 
+## Phase 25 最终关闭结论（sealed）
+
+- Phase 25 已正式关闭（本条为关闭口径，不扩新实现）。
+- 默认 live 路径仍为 `sqljs`，未切换到 `postgres`。
+- 受控 Postgres 闭环已达 `go`，但该受控结果不等于默认链/整体已 GO。
+- 当前版本保持 `1.7.90 / Pro_v1.07.90`。
+
 ## Phase 25 受控闭环收口（本轮）
 
 - 已固化受控 PG 闭环证据：apply 成功、ledger ready、受控 go-no-go=go。

@@ -1,5 +1,11 @@
 # Handoff for New Chat（下一聊天室可直接接手）
 
+## Phase 25 关闭状态（正式）
+
+- 当前阶段：**Phase 25 已正式关闭 / sealed**。
+- 口径锁定：默认 live 路径仍为 `sqljs`；受控 Postgres 闭环已达 `go`；受控 `go` 不等于默认链/整体已 GO。
+- 版本保持：`1.7.90 / Pro_v1.07.90`。
+
 ## Phase 25 受控 PG 闭环证据（已固化）
 
 - 受控环境结果：`migration apply` 成功、`ledger ready`、受控 `go-no-go=go`。
