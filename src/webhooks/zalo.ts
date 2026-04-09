@@ -7,6 +7,7 @@ import { createMinimalTraceContext } from '../channels/errors/observability';
 import { createSafeFallbackResponse } from '../channels/errors';
 import type { WebhookHandlerOptions } from './telegram';
 import { webhookObservabilityPhases } from './webhook-timing';
+import { guardInboundDedupe } from './inbound-dedupe';
 
 /**
  * 解析 Zalo Webhook 载荷
@@ -78,8 +79,12 @@ export async function handleZaloWebhook(rawRequestBody: unknown, opts?: WebhookH
       };
     }
 
-    const session = createOrUpdateSessionContext(message);
-    const result = runUnifiedInboundPipeline(message, session, {
+    const inboundDedupe = await guardInboundDedupe(message);
+    if (inboundDedupe.duplicateResponse) {
+      return inboundDedupe.duplicateResponse;
+    }
+    const session = await createOrUpdateSessionContext(message);
+    const result = await runUnifiedInboundPipeline(message, session, {
       traceContext: {
         request_id: opts?.httpRequestId,
       },
@@ -88,7 +93,8 @@ export async function handleZaloWebhook(rawRequestBody: unknown, opts?: WebhookH
         ? { tenantRuntimeSettings: opts.tenantRuntimeSettings }
         : {}),
     });
-    commitSessionContext(result.session);
+    await commitSessionContext(result.session);
+    await inboundDedupe.completeIfAccepted();
 
     const trace = createMinimalTraceContext({
       channel: 'zalo',

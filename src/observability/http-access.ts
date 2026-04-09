@@ -51,6 +51,8 @@ export function webhookPhasesFromHandlerResult(result: unknown): WebhookPhaseMs 
 export interface HttpAccessLogFields {
   ts: string;
   type: 'http_access';
+  /** Phase D-C1 — unified service field for log routing. */
+  service: 'chatflow-pro';
   request_id: string;
   method: string;
   path: string;
@@ -60,7 +62,8 @@ export interface HttpAccessLogFields {
   phases_ms?: WebhookPhaseMs;
 }
 
-export function writeHttpAccessLog(fields: HttpAccessLogFields): void {
+export function writeHttpAccessLog(fields: Omit<HttpAccessLogFields, 'service'> & { service?: 'chatflow-pro' }): void {
+  const row: HttpAccessLogFields = { ...fields, service: 'chatflow-pro' };
   // eslint-disable-next-line no-console
-  console.log(JSON.stringify(fields));
+  console.log(JSON.stringify(row));
 }

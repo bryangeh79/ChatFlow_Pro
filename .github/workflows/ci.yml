@@ -25,6 +25,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: D-C4C readonly governance bundle (block merge on failure)
+        run: npm run verify:d-c4c-readonly-governance-bundle:ci
+
       - name: Staging env summary (SET/MISSING only, no secret values)
         run: npm run check:staging-env
 

@@ -32,7 +32,11 @@ async function main() {
     const child = spawn(process.execPath, [pathJoin(root, 'scripts', 'verify-saas-sqljs-adapter-principals.mjs')], {
       cwd: root,
       stdio: 'inherit',
-      env: { ...process.env },
+      env: {
+        ...process.env,
+        CHATFLOW_SAAS_DB_DRIVER: 'sqljs',
+        CHATFLOW_SAAS_SQLJS_COMPAT: '1',
+      },
     });
     child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error('verify-saas-sqljs-adapter-principals failed'))));
   });

@@ -19,8 +19,8 @@ function trim(s: string | undefined): string {
 function readDbDriverForProbe(): SaaSDbDriver {
   const raw = process.env.CHATFLOW_SAAS_DB_DRIVER;
   const t = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
-  if (t === '' || t === 'sqljs') return 'sqljs';
-  if (t === 'postgres') return 'postgres';
+  if (t === '' || t === 'postgres') return 'postgres';
+  if (t === 'sqljs') return 'sqljs';
   throw new Error(`invalid_chatflow_saas_db_driver:${t}`);
 }
 

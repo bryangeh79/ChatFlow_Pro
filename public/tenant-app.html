@@ -681,7 +681,7 @@
           <span class="avatar" title="账户菜单（占位）"></span>
         </div>
       </header>
-      <details class="connection">
+      <details class="connection" id="connectionPanel">
         <summary>API 连接 · Tenant ID 与 Token</summary>
         <div class="connection-body">
           <div>
@@ -691,6 +691,13 @@
           <div>
             <label class="legacy" for="token">Bearer token</label>
             <input class="legacy" type="password" id="token" autocomplete="off" />
+          </div>
+          <div>
+            <label class="legacy">Connection</label>
+            <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+              <button type="button" class="btn" id="applyConn">Apply connection</button>
+              <span id="connStatus" class="muted">未应用</span>
+            </div>
           </div>
         </div>
       </details>
@@ -765,6 +772,19 @@
 
     function esc(s) {
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function fmtTime(ts) {
+      if (!ts) return '--';
+      const d = new Date(ts);
+      if (Number.isNaN(d.getTime())) return String(ts);
+      return d.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
     }
 
     function updateWorkspaceLabel() {
@@ -1295,8 +1315,20 @@
         body = '<p class="muted" style="margin:0 0 0.75rem"><strong>' + esc(def.name) + '</strong> — 对外消息入口。完成四步后即可在接入中心查看状态并发起测试。</p>' +
           '<ul class="check"><li>适合：客服收件、自动化接待与人工交接</li><li>本轮：仅结构占位，不接真实写入</li></ul>';
       } else if (step === 1) {
-        body = '<p class="muted" style="margin:0 0 0.75rem">凭证与 Token 将分块收集、默认折叠展示；保存时由后端密封处理。</p>' +
-          '<div class="placeholder-notice">占位：此处将放置分步表单（API Key / Bot Token / Page Token 等），<strong>不</strong>在本轮展示真实输入框与提交逻辑。</div>';
+        if (channelId === 'telegram') {
+          body =
+            '<p class="muted" style="margin:0 0 0.75rem">在这里填写 Telegram Bot Token。保存后可在第 4 步执行连通性测试。</p>' +
+            '<label class="legacy" for="wizTelegramToken">Telegram Bot Token</label>' +
+            '<input class="legacy" type="password" id="wizTelegramToken" autocomplete="off" placeholder="123456789:AA..." />' +
+            '<div class="quick-row" style="margin-top:0.75rem">' +
+            '<button type="button" class="btn btn-primary" id="wizSaveTelegramToken">Save token</button>' +
+            '<button type="button" class="btn" id="wizTestTelegramToken">Test connection</button>' +
+            '</div>' +
+            '<p class="muted" id="wizTelegramCredentialStatus" style="margin-top:0.65rem">未保存</p>';
+        } else {
+          body = '<p class="muted" style="margin:0 0 0.75rem">凭证与 Token 将分块收集、默认折叠展示；保存时由后端密封处理。</p>' +
+            '<div class="placeholder-notice">占位：该渠道的凭证表单将在后续迭代接入。当前可用底部旧版配置区临时写入 token。</div>';
+        }
       } else if (step === 2) {
         body = '<p class="muted" style="margin:0 0 0.75rem">Webhook / Callback URL 与校验事件将在此汇总，便于运维复制到各平台控制台。</p>' +
           '<div class="placeholder-notice">占位：租户级 Webhook URL、Verify token、订阅字段检查清单 — 不接真实校验。</div>';
@@ -1327,6 +1359,51 @@
       bindSpaLinks(document.getElementById('view'));
       const tp = document.getElementById('wizTestPlaceholder');
       if (tp) tp.onclick = () => window.alert('测试消息流程占位：下一轮可接统一 Test API 与消息轨迹。');
+      const saveTg = document.getElementById('wizSaveTelegramToken');
+      const testTg = document.getElementById('wizTestTelegramToken');
+      const statusTg = document.getElementById('wizTelegramCredentialStatus');
+      if (saveTg && statusTg) {
+        const setWizStatus = (msg, ok) => {
+          statusTg.textContent = msg;
+          statusTg.style.color = ok ? 'var(--success)' : 'var(--danger)';
+        };
+        saveTg.onclick = async () => {
+          try {
+            const token = String(document.getElementById('wizTelegramToken')?.value || '').trim();
+            if (!token) {
+              setWizStatus('Telegram Bot Token 不能为空', false);
+              return;
+            }
+            await api(base() + '/credentials', {
+              method: 'PUT',
+              body: JSON.stringify({ credentials: { TELEGRAM_BOT_TOKEN: token } }),
+            });
+            setWizStatus('已保存 Telegram token', true);
+          } catch (e) {
+            setWizStatus('保存失败：' + e.message, false);
+          }
+        };
+      }
+      if (testTg && statusTg) {
+        testTg.onclick = async () => {
+          const token = String(document.getElementById('wizTelegramToken')?.value || '').trim();
+          if (!token) {
+            statusTg.textContent = '请先输入 Telegram Bot Token，再测试';
+            statusTg.style.color = 'var(--danger)';
+            return;
+          }
+          try {
+            const r = await api(base() + '/channels/telegram/test', { method: 'POST', body: '{}' });
+            statusTg.textContent = r.ok
+              ? '测试通过：Telegram 连接可用（若刚改 token，请先点 Save token）'
+              : '测试失败';
+            statusTg.style.color = r.ok ? 'var(--success)' : 'var(--danger)';
+          } catch (e) {
+            statusTg.textContent = '测试失败：' + e.message;
+            statusTg.style.color = 'var(--danger)';
+          }
+        };
+      }
     }
 
     function tagForSetupStatus(st) {
@@ -2853,6 +2930,8 @@
     async function route() {
       setNav();
       updateWorkspaceLabel();
+      const connPanel = document.getElementById('connectionPanel');
+      if (connPanel) connPanel.open = false;
       let p = location.pathname;
       if (p === '/app' || p === '/app/') {
         history.replaceState(null, '', '/app/overview');
@@ -2904,9 +2983,46 @@
 
     document.getElementById('tenantId').value = localStorage.getItem(TID_KEY) || '';
     document.getElementById('token').value = localStorage.getItem(TOK_KEY) || '';
-    document.getElementById('tenantId').onchange = () => { localStorage.setItem(TID_KEY, document.getElementById('tenantId').value.trim()); updateWorkspaceLabel(); };
-    document.getElementById('token').onchange = () => localStorage.setItem(TOK_KEY, document.getElementById('token').value.trim());
-    document.getElementById('tenantId').oninput = updateWorkspaceLabel;
+    function persistConnectionFields() {
+      localStorage.setItem(TID_KEY, document.getElementById('tenantId').value.trim());
+      localStorage.setItem(TOK_KEY, document.getElementById('token').value.trim());
+      updateWorkspaceLabel();
+    }
+    function setConnStatus(msg, ok) {
+      const el = document.getElementById('connStatus');
+      if (!el) return;
+      el.textContent = msg;
+      el.style.color = ok ? 'var(--success)' : 'var(--danger)';
+    }
+    document.getElementById('tenantId').onchange = persistConnectionFields;
+    document.getElementById('token').onchange = persistConnectionFields;
+    document.getElementById('tenantId').oninput = () => {
+      persistConnectionFields();
+      setConnStatus('连接参数已更新（自动生效）', true);
+    };
+    document.getElementById('token').oninput = () => {
+      persistConnectionFields();
+      setConnStatus('连接参数已更新（自动生效）', true);
+    };
+    document.getElementById('applyConn').onclick = async () => {
+      persistConnectionFields();
+      const rawId = document.getElementById('tenantId').value.trim().toLowerCase();
+      const rawToken = document.getElementById('token').value.trim();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(rawId);
+      if (!isUuid) {
+        setConnStatus('Tenant ID 格式错误（需 UUID）', false);
+        return;
+      }
+      if (!rawToken) {
+        setConnStatus('Bearer token 不能为空', false);
+        return;
+      }
+      setConnStatus('连接已应用，正在刷新...', true);
+      await route();
+      setConnStatus('连接已应用', true);
+      const connPanel = document.getElementById('connectionPanel');
+      if (connPanel) connPanel.open = false;
+    };
 
     window.addEventListener('popstate', route);
     document.querySelectorAll('aside a[data-nav]').forEach((a) => {

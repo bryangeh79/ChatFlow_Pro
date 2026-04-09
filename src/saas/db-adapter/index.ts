@@ -55,13 +55,13 @@ let cachedAdapter: Promise<SaaSDbAdapter> | null = null;
 
 /**
  * Read-only: effective SaaS DB driver from `CHATFLOW_SAAS_DB_DRIVER`.
- * Default `sqljs`; unknown values fail fast.
+ * Default `postgres`; unknown values fail fast.
  */
 export function getSaaSDbDriver(): SaaSDbDriver {
   const raw = process.env.CHATFLOW_SAAS_DB_DRIVER;
   const t = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
-  if (t === '' || t === 'sqljs') return 'sqljs';
-  if (t === 'postgres') return 'postgres';
+  if (t === '' || t === 'postgres') return 'postgres';
+  if (t === 'sqljs') return 'sqljs';
   throw new Error(`invalid_chatflow_saas_db_driver:${t}`);
 }
 
@@ -72,7 +72,7 @@ function resolveAdapterPromise(driver: SaaSDbDriver): Promise<SaaSDbAdapter> {
   return getSaaSDatabase().then((db) => new SqlJsSaaSDbAdapter(db));
 }
 
-/** Resolves adapter for current driver; default remains sql.js + file-backed DB. */
+/** Resolves adapter for current driver; default live chain is postgres. */
 export async function getSaasDbAdapter(): Promise<SaaSDbAdapter> {
   const driver = getSaaSDbDriver();
   if (cachedDriver !== driver) {

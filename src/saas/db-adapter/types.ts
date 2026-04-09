@@ -1,7 +1,7 @@
 /** Row shape returned by the SaaS DB adapter (driver-agnostic). */
 export type DbRow = Record<string, unknown>;
 
-/** `CHATFLOW_SAAS_DB_DRIVER` — default `sqljs`. */
+/** `CHATFLOW_SAAS_DB_DRIVER` — default `postgres`. */
 export type SaaSDbDriver = 'sqljs' | 'postgres';
 
 /**

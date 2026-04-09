@@ -3,7 +3,7 @@ import { websiteMockNormalized } from '../adapters/website/mock';
 import { runUnifiedInboundPipeline } from './index';
 
 export const websiteMockPipelineResult: {
-  response: UnifiedResponse;
+  response: Promise<UnifiedResponse>;
 } = {
-  response: runUnifiedInboundPipeline(websiteMockNormalized).response,
+  response: runUnifiedInboundPipeline(websiteMockNormalized).then((r) => r.response),
 };

@@ -1,5 +1,16 @@
 # Completed Work
 
+## 第一课测试现场修复（Knowledge 页面）✅（2026-04-09）
+
+**名称**：`Lesson 1 live debug / Knowledge page runtime error fix`  
+**触发场景**：新聊天室第一课（认识系统与进入后台）中，Bryan 点击 `Knowledge` 页面出现前端错误。  
+**报错原文**：`fmtTime is not defined`。  
+**根因**：`public/tenant-app.html` 在 Knowledge 视图调用 `fmtTime(...)`，但页面内缺失该函数定义，导致运行时异常。  
+**修复**：在 `public/tenant-app.html` 补充最小 `fmtTime(ts)`（空值/非法值保护 + 本地化时间显示），未扩改其它业务逻辑。  
+**验证**：Bryan 复测反馈 `Knowledge 正常`。  
+**边界**：本次为现场最小修复，不扩主线、不改后端、不升版本。  
+**版本**：**1.7.108**。  
+
 ## Hosted v1 最终门禁前补强（knowledge publish 服务端硬校验）✅（2026-04-09）
 
 **名称**：`Hosted v1 gate hardening / knowledge transition authz`  

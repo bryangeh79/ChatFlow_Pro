@@ -102,7 +102,7 @@ function main() {
   const base = scrub(process.env);
 
   const r0 = execReadiness(base);
-  if (r0.driver !== 'sqljs') fail('default driver must be sqljs');
+  if (r0.driver !== 'postgres') fail('default driver must be postgres');
   if (r0.postgres_client_runtime_wired !== false) fail('default runtime_wired must be false');
   if (r0.adapter_stub !== true) fail('default adapter_stub must be true');
   const g0 = execGoNoGo(base);

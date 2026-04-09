@@ -14,10 +14,54 @@ import {
   resolveZaloOpenApiConfigForOutbound,
   resolveWebsiteOutboundConfigForOutbound,
 } from '../../saas/tenant-channel-config';
+import { getTenantIdOrNull } from '../../saas/tenant-context';
+import { getSaaSDbDriver } from '../../saas/db-adapter';
+import {
+  getTenantDeliveryState,
+  upsertTenantDeliveryStateWithCas,
+} from '../../saas/delivery-state-repository';
+import {
+  beginOutboundDedupe,
+  completeOutboundDedupeWithCas,
+} from '../../saas/outbound-dedupe-repository';
+import { emitOpsAlert } from '../../observability/ops-alert';
+import { observabilityFingerprint, writeStructuredLog } from '../../observability/structured-log';
 import { createSendFailureResult, createSendSuccessResult, createSendFallbackResult, toUnifiedErrorInfo } from '../send-results';
+import type { UnifiedSendResult } from '../../../shared/types/unified-send-result';
 
 export interface ChannelSender {
-  send(response: UnifiedResponse): Promise<{ result: ReturnType<typeof createSendSuccessResult> | ReturnType<typeof createSendFailureResult> }>;
+  send(response: UnifiedResponse): Promise<{
+    result: ReturnType<typeof createSendSuccessResult> | ReturnType<typeof createSendFailureResult>;
+    duplicate?: true;
+    dedupe_status?: 'completed' | 'processing';
+    http_status?: 200 | 202 | 409;
+  }>;
+}
+
+async function persistDeliveryStateIfNeeded(result: UnifiedSendResult): Promise<void> {
+  const tenantId = getTenantIdOrNull();
+  if (!tenantId) return;
+  if (getSaaSDbDriver() !== 'postgres') return;
+  const existing = await getTenantDeliveryState(tenantId, result.session_id);
+  const saved = await upsertTenantDeliveryStateWithCas({
+    tenant_id: tenantId,
+    session_id: result.session_id,
+    channel: result.channel,
+    delivery_status: result.status,
+    state: {
+      status: result.status,
+      retryable: Boolean(result.retryable),
+      provider_message_id: result.provider_message_id ?? null,
+      error_code: result.error?.code ?? null,
+      request_id: result.request_id ?? null,
+      message_trace_id: result.message_trace_id,
+      completed_at: result.completed_at,
+    },
+    expected_version: existing?.version ?? null,
+  });
+  if (!saved.ok) {
+    throw new Error('delivery_state_cas_conflict');
+  }
 }
 
 function createSyntheticChannelSender(channel: UnifiedResponse['channel']): ChannelSender {
@@ -707,23 +751,130 @@ function createWebsiteRealChannelSender(): ChannelSender {
 }
 
 export function createChannelSender(channel: UnifiedResponse['channel']): ChannelSender {
+  let baseSender: ChannelSender;
   if (channel === 'telegram') {
-    return createTelegramRealChannelSender();
+    baseSender = createTelegramRealChannelSender();
+  } else if (channel === 'whatsapp') {
+    baseSender = createWhatsAppRealChannelSender();
+  } else if (channel === 'messenger') {
+    baseSender = createMessengerRealChannelSender();
+  } else if (channel === 'line') {
+    baseSender = createLineRealChannelSender();
+  } else if (channel === 'zalo') {
+    baseSender = createZaloRealChannelSender();
+  } else if (channel === 'website') {
+    baseSender = createWebsiteRealChannelSender();
+  } else {
+    baseSender = createSyntheticChannelSender(channel);
   }
-  if (channel === 'whatsapp') {
-    return createWhatsAppRealChannelSender();
-  }
-  if (channel === 'messenger') {
-    return createMessengerRealChannelSender();
-  }
-  if (channel === 'line') {
-    return createLineRealChannelSender();
-  }
-  if (channel === 'zalo') {
-    return createZaloRealChannelSender();
-  }
-  if (channel === 'website') {
-    return createWebsiteRealChannelSender();
-  }
-  return createSyntheticChannelSender(channel);
+  return {
+    async send(response: UnifiedResponse) {
+      const begin = await beginOutboundDedupe(response);
+      if (begin.decision === 'duplicate_completed') {
+        const msgTrace =
+          (response.debug_metadata?.message_trace_id as string | undefined) ?? `msg-${Date.now().toString(36)}`;
+        return {
+          result: createSendFallbackResult({
+            channel: response.channel,
+            session_id: response.session_id,
+            message_trace_id: msgTrace,
+            provider_message_id: null,
+            retryable: false,
+            error: null,
+            sent_at: null,
+            debug_steps: ['outbound_dedupe_duplicate_completed'],
+            trace_id: (response.debug_metadata?.trace_id as string | undefined) ?? null,
+            request_id: (response.debug_metadata?.request_id as string | undefined) ?? null,
+          }),
+          duplicate: true,
+          dedupe_status: 'completed',
+          http_status: 200,
+        };
+      }
+      if (begin.decision === 'duplicate_processing') {
+        const msgTrace =
+          (response.debug_metadata?.message_trace_id as string | undefined) ?? `msg-${Date.now().toString(36)}`;
+        return {
+          result: createSendFallbackResult({
+            channel: response.channel,
+            session_id: response.session_id,
+            message_trace_id: msgTrace,
+            provider_message_id: null,
+            retryable: false,
+            error: null,
+            sent_at: null,
+            debug_steps: ['outbound_dedupe_duplicate_processing'],
+            trace_id: (response.debug_metadata?.trace_id as string | undefined) ?? null,
+            request_id: (response.debug_metadata?.request_id as string | undefined) ?? null,
+          }),
+          duplicate: true,
+          dedupe_status: 'processing',
+          http_status: 202,
+        };
+      }
+      const out = await baseSender.send(response);
+      if (begin.decision === 'accepted' && begin.tenant_id && begin.idempotency_key && begin.version !== null) {
+        const completed = await completeOutboundDedupeWithCas({
+          tenant_id: begin.tenant_id,
+          channel: begin.channel,
+          idempotency_key: begin.idempotency_key,
+          expected_version: begin.version,
+        });
+        if (!completed.ok) {
+          writeStructuredLog({
+            type: 'outbound_dedupe_cas_conflict',
+            phase: 'outbound',
+            outcome: 'cas_conflict',
+            tenant_id: begin.tenant_id,
+            channel: begin.channel,
+            idempotency_key_fp: observabilityFingerprint(begin.idempotency_key),
+            session_fp: observabilityFingerprint(response.session_id),
+            message_trace_id: (response.debug_metadata?.message_trace_id as string | undefined) ?? null,
+            request_id: (response.debug_metadata?.request_id as string | undefined) ?? null,
+          });
+          emitOpsAlert({
+            severity: 'P2',
+            code: 'outbound_dedupe_cas_conflict',
+            message: 'Outbound provider send path completed but outbound dedupe CAS failed',
+            tenant_id: begin.tenant_id,
+            channel: begin.channel,
+            phase: 'outbound',
+            message_trace_id: (response.debug_metadata?.message_trace_id as string | undefined) ?? null,
+            request_id: (response.debug_metadata?.request_id as string | undefined) ?? null,
+            context: { idempotency_key_fp: observabilityFingerprint(begin.idempotency_key) },
+          });
+          return {
+            result: createSendFailureResult({
+              channel: response.channel,
+              session_id: response.session_id,
+              message_trace_id:
+                (response.debug_metadata?.message_trace_id as string | undefined) ??
+                `msg-${Date.now().toString(36)}`,
+              provider_message_id: null,
+              retryable: false,
+              error: toUnifiedErrorInfo('outbound_dedupe_cas_conflict', 'outbound_dedupe_cas_conflict', false),
+              failed_at: new Date().toISOString(),
+              debug_steps: ['outbound_dedupe_cas_conflict'],
+              trace_id: (response.debug_metadata?.trace_id as string | undefined) ?? null,
+              request_id: (response.debug_metadata?.request_id as string | undefined) ?? null,
+            }),
+            http_status: 409,
+          };
+        }
+          writeStructuredLog({
+            type: 'outbound_milestone',
+            phase: 'outbound',
+            outcome: 'dedupe_marked_completed',
+            tenant_id: begin.tenant_id,
+            channel: begin.channel,
+            idempotency_key_fp: observabilityFingerprint(begin.idempotency_key),
+            session_fp: observabilityFingerprint(response.session_id),
+            message_trace_id: (response.debug_metadata?.message_trace_id as string | undefined) ?? null,
+            request_id: (response.debug_metadata?.request_id as string | undefined) ?? null,
+          });
+      }
+      await persistDeliveryStateIfNeeded(out.result);
+      return out;
+    },
+  };
 }

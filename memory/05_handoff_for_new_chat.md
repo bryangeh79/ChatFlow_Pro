@@ -1,5 +1,13 @@
 # Handoff for New Chat（下一聊天室可直接接手）
 
+## 测试教学新阶段现场记录（第一课 · 2026-04-09）
+
+- 第一课（认识系统与进入后台）现场测试中，`Knowledge` 页面出现前端错误：`fmtTime is not defined`。
+- 根因已定位：`public/tenant-app.html` 的 Knowledge 视图调用 `fmtTime(...)`，但未定义该函数。
+- 已做最小修复：补充 `fmtTime(ts)` 时间格式化函数（含空值/非法值保护），不改后端、不扩功能、不升版本。
+- Bryan 复测结果：`Knowledge 正常`。
+- 当前建议：继续按第一课顺序完成 `Channels -> Reports -> Settings`，收口后进入第二课（Settings Setup 六步）。
+
 ## Phase E overall closed + Phase D-C4 closed + D-C3 Sealed（2026-04-09）
 
 - **租户后台 UI**：`public/tenant-app.html` — 七个主面（Overview / Settings / Channels / Inbox / Leads / Knowledge / Reports）已完成最终一致性收口：统一文案系统、动作命名、状态语义（`st-*`）、workbench 层（`wb-*`）、以及 `ov-*`/`stg-*` 在首页与设置页的扩展。后端 **未**改 `src/`。

@@ -20,7 +20,15 @@ import { emitLeadCaptured, emitQualificationTagsUpdated } from '../conversation-
 import { determineOwnerAssignment } from '../handoff-trigger/assign';
 import { appendHandoffAssignmentRecord } from '../handoff-trigger/assignment-persistence';
 import type { TenantRuntimeSettings } from '../../saas/tenant-runtime-settings';
+import { getTenantIdOrNull } from '../../saas/tenant-context';
+import { getSaaSDbDriver } from '../../saas/db-adapter';
+import {
+  getTenantProcessingState,
+  upsertTenantProcessingStateWithCas,
+} from '../../saas/processing-state-repository';
 import { buildHandoffPendingNotifyIdempotencyKey } from '../../shared/outbound-idempotency';
+import { maybeGenerateOpenAiReply } from './openai-reply';
+import { observabilityFingerprint, writeStructuredLog } from '../../observability/structured-log';
 
 export interface PipelineOptions {
   traceContext?: {
@@ -47,11 +55,12 @@ function buildFaqResolverOptions(options?: PipelineOptions): UnifiedFaqResolverO
   return out;
 }
 
-export function runUnifiedInboundPipeline(
+export async function runUnifiedInboundPipeline(
   message: UnifiedInboundMessage,
   session?: UnifiedSessionContext,
   options?: PipelineOptions,
-): { session: UnifiedSessionContext; response: UnifiedResponse } {
+): Promise<{ session: UnifiedSessionContext; response: UnifiedResponse }> {
+  const PROCESSING_STATE_VERSION_META_KEY = '__processing_state_version';
   const faqResolverOpts = buildFaqResolverOptions(options);
 
   let nextSession: UnifiedSessionContext =
@@ -76,6 +85,20 @@ export function runUnifiedInboundPipeline(
         enabled: handoffEnabled,
       },
     };
+  }
+
+  let processingStateExpectedVersion: number | null = null;
+  const tenantId = getTenantIdOrNull();
+  const dbDriver = getSaaSDbDriver();
+  if (tenantId && dbDriver === 'postgres') {
+    const row = await getTenantProcessingState(tenantId, nextSession.session_id);
+    processingStateExpectedVersion = row?.version ?? null;
+    if (row?.version !== undefined) {
+      nextSession.metadata = {
+        ...(nextSession.metadata ?? {}),
+        [PROCESSING_STATE_VERSION_META_KEY]: row.version,
+      };
+    }
   }
 
   // 准备意图分类
@@ -175,6 +198,18 @@ export function runUnifiedInboundPipeline(
       );
       break;
   }
+
+  writeStructuredLog({
+    type: 'pipeline_milestone',
+    phase: 'pipeline',
+    outcome: 'dispatch_resolved',
+    code: String(dispatchResult.nextStage),
+    tenant_id: tenantId,
+    channel: message.channel,
+    message_trace_id: options?.traceContext?.message_trace_id ?? null,
+    request_id: options?.traceContext?.request_id ?? null,
+    session_fp: observabilityFingerprint(nextSession.session_id),
+  });
 
   const debug_steps = [
     'welcome_hook',
@@ -276,11 +311,52 @@ export function runUnifiedInboundPipeline(
   };
   
   const turnPlan = planTurn(policyContext);
+  let finalReplyText = turnPlan.reply_text;
+  let finalShouldSend = turnPlan.should_send;
+
+  let llmResult:
+    | {
+        used: boolean;
+        reason: string;
+        provider: 'openai';
+        model: string;
+        error_message?: string;
+      }
+    | undefined;
+  if (
+    options?.tenantRuntimeSettings?.llm?.enabled === true &&
+    turnPlan.policy_path === 'default' &&
+    !faqResult.matched &&
+    message.text
+  ) {
+    const r = await maybeGenerateOpenAiReply({
+      userText: message.text,
+      language: message.language ?? sessionAfterHandoffCheck.current_language,
+      config: {
+        enabled: options.tenantRuntimeSettings.llm.enabled,
+        model: options.tenantRuntimeSettings.llm.model,
+      },
+    });
+    llmResult = {
+      used: r.used,
+      reason: r.reason,
+      provider: r.provider,
+      model: r.model,
+      error_message: r.error_message,
+    };
+    if (r.used && r.reply_text) {
+      finalReplyText = r.reply_text;
+      finalShouldSend = true;
+      debug_steps.push('llm_openai_used');
+    } else {
+      debug_steps.push(`llm_openai_skipped:${r.reason}`);
+    }
+  }
 
   const botReplyAllowed =
     options?.tenantRuntimeSettings === undefined ||
     options.tenantRuntimeSettings.bot.enabled !== false;
-  const effectiveShouldSend = botReplyAllowed && turnPlan.should_send;
+  const effectiveShouldSend = botReplyAllowed && finalShouldSend;
 
   // 确定是否需要 handoff
   const handoffRequired = shouldTriggerHandoff(message, sessionAfterHandoffCheck);
@@ -317,7 +393,7 @@ export function runUnifiedInboundPipeline(
     channel: message.channel,
     session_id: sessionAfterHandoffCheck.session_id,
     kind: faqResult.matched ? 'text' : 'text',
-    reply_text: turnPlan.reply_text,
+    reply_text: finalReplyText,
     should_send: effectiveShouldSend,
     handoff_required: handoffRequired,
     lead_capture_prompt: turnPlan.lead_capture_prompt,
@@ -352,6 +428,9 @@ export function runUnifiedInboundPipeline(
               suppress_reply_suppressed: options.tenantRuntimeSettings.suppress_reply.enabled === false,
               faq_fallback_enabled: options.tenantRuntimeSettings.faq.fallback_enabled !== false,
               faq_fallback_suppressed: options.tenantRuntimeSettings.faq.fallback_enabled === false,
+              llm_enabled: options.tenantRuntimeSettings.llm.enabled === true,
+              llm_provider: options.tenantRuntimeSettings.llm.provider,
+              llm_model: options.tenantRuntimeSettings.llm.model,
               ...(options.tenantPostSignatureSaasControl !== undefined
                 ? {
                     tenant_post_secret_present: options.tenantPostSignatureSaasControl.tenant_post_secret_present,
@@ -360,6 +439,11 @@ export function runUnifiedInboundPipeline(
                   }
                 : {}),
             },
+          }
+        : {}),
+      ...(llmResult
+        ? {
+            llm: llmResult,
           }
         : {}),
       ...turnPlan.debug_metadata_patch,
@@ -371,6 +455,44 @@ export function runUnifiedInboundPipeline(
     matched: faqResult.matched,
     confidence: faqResult.confidence,
   };
+
+  if (tenantId && dbDriver === 'postgres') {
+    const processingPayload = {
+      phase: phaseContext.phase,
+      dispatch_stage: dispatchResult.nextStage,
+      policy_path: turnPlan.policy_path,
+      faq_matched: Boolean(faqResult.matched),
+      handoff_required: handoffRequired,
+      request_id: options?.traceContext?.request_id,
+      message_trace_id: options?.traceContext?.message_trace_id,
+    };
+    const saved = await upsertTenantProcessingStateWithCas({
+      tenant_id: tenantId,
+      session_id: sessionAfterHandoffCheck.session_id,
+      processing_stage: phaseContext.phase,
+      state: processingPayload,
+      expected_version: processingStateExpectedVersion,
+    });
+    if (!saved.ok) {
+      throw new Error('processing_state_cas_conflict');
+    }
+    sessionAfterHandoffCheck.metadata = {
+      ...(sessionAfterHandoffCheck.metadata ?? {}),
+      [PROCESSING_STATE_VERSION_META_KEY]: saved.version,
+    };
+  }
+
+  writeStructuredLog({
+    type: 'pipeline_milestone',
+    phase: 'pipeline',
+    outcome: 'pipeline_complete',
+    code: String(phaseContext.phase),
+    tenant_id: tenantId,
+    channel: message.channel,
+    message_trace_id: options?.traceContext?.message_trace_id ?? null,
+    request_id: options?.traceContext?.request_id ?? null,
+    session_fp: observabilityFingerprint(sessionAfterHandoffCheck.session_id),
+  });
 
   return {
     session: sessionAfterHandoffCheck,

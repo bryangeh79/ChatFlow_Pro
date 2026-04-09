@@ -117,7 +117,7 @@ async function main() {
         ? 'Summary: dry-run preview only; no SQL executed.'
         : `Summary: apply attempted; status=${runResult.status}.`,
   );
-  console.log('Default sqljs path remains unchanged unless explicit postgres driver is selected.');
+  console.log('Default live chain is postgres; sqljs is compat-only when explicitly enabled.');
 }
 
 main().catch((e) => {

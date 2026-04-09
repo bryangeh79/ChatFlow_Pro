@@ -77,8 +77,8 @@ export interface PostgresExecutionReadiness {
 function readDbDriverForMetadata(): SaaSDbDriver {
   const raw = process.env.CHATFLOW_SAAS_DB_DRIVER;
   const t = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
-  if (t === '' || t === 'sqljs') return 'sqljs';
-  if (t === 'postgres') return 'postgres';
+  if (t === '' || t === 'postgres') return 'postgres';
+  if (t === 'sqljs') return 'sqljs';
   throw new Error(`invalid_chatflow_saas_db_driver:${t}`);
 }
 
@@ -189,7 +189,7 @@ export async function getPostgresExecutionReadiness(): Promise<PostgresExecution
   } else if (driver === 'postgres' && postgres_client_gate_enabled && postgres_client_module_available) {
     message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: ${runtime.message}`;
   } else if (postgres_client_gate_enabled && driver === 'sqljs') {
-    message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: gate=on, driver=sqljs — live path stays sql.js; \`pg\` probe=${postgres_client_module_available ? 'ok' : 'unavailable'} (not used for default driver).`;
+    message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: gate=on, driver=sqljs (compat mode); \`pg\` probe=${postgres_client_module_available ? 'ok' : 'unavailable'} (default live driver is postgres).`;
   } else {
     message = `${POSTGRES_METADATA_QUERY_NOT_WIRED}: postgres runner and ledger persistence not wired; contract stub only (postgres client gate off).`;
   }
@@ -211,7 +211,7 @@ export async function getPostgresExecutionReadiness(): Promise<PostgresExecution
           : 'postgres_runtime_wired_ledger_not_ready';
   const reachability_basis =
     controlled_reachability === 'default_path_no_postgres'
-      ? 'driver=sqljs(default) or non-postgres; controlled PG reachability not evaluated on live path.'
+      ? 'driver=sqljs(compat) or non-postgres; controlled PG reachability not evaluated on live path.'
       : controlled_reachability === 'postgres_runtime_unwired'
         ? 'driver=postgres but runtime_wired=false (gate/config/probe/pool preconditions not fully met).'
         : controlled_reachability === 'postgres_runtime_wired_ledger_ready'

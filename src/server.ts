@@ -1,4 +1,6 @@
 import http from 'node:http';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { URL } from 'node:url';
 import {
   channelFromPathname,
@@ -31,8 +33,23 @@ import { initHandoffRuntimeConfig } from './config/handoff-assign';
 import { handleSaaSAdminRequest } from './saas/admin-routes';
 import { tryHandleTenantWebhook } from './saas/tenant-webhook-http';
 import { getSaaSDatabase } from './saas/db';
+import { evaluateHostedReadiness } from './saas/hosted-readiness';
+import { emitOpsAlert } from './observability/ops-alert';
+import { appendPlatformAuditEvent } from './observability/platform-audit';
 
 const port = Number(process.env.PORT ?? 3030);
+
+function logWebhookSignatureRejected(requestId: string, channel: string, kind: string): void {
+  emitOpsAlert({
+    severity: 'P3',
+    code: 'webhook_signature_invalid',
+    message: 'Webhook POST rejected: invalid or missing signature',
+    request_id: requestId,
+    channel,
+    phase: 'security',
+    context: { kind },
+  });
+}
 
 // Load webhook config once at startup
 const metaConfig = loadMetaWebhookConfig();
@@ -114,6 +131,32 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
     return;
   }
 
+  if (method === 'GET' && pathname.startsWith('/platform/')) {
+    const htmlPath = path.join(process.cwd(), 'public', 'platform-admin.html');
+    if (!fs.existsSync(htmlPath)) {
+      res.writeHead(404, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'platform_ui_missing' }));
+      return;
+    }
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    res.end(html);
+    return;
+  }
+
+  if (method === 'GET' && pathname.startsWith('/app/')) {
+    const htmlPath = path.join(process.cwd(), 'public', 'tenant-app.html');
+    if (!fs.existsSync(htmlPath)) {
+      res.writeHead(404, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'tenant_app_ui_missing' }));
+      return;
+    }
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    res.end(html);
+    return;
+  }
+
   if (pathname.startsWith('/saas/')) {
     let bodyText = '';
     if (method !== 'GET' && method !== 'HEAD') {
@@ -126,6 +169,7 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
       bodyText,
       req.headers.authorization,
       url.searchParams,
+      requestId,
     );
     if (adminResult) {
       const ct = adminResult.contentType ?? 'application/json';
@@ -227,7 +271,9 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
     const { parsed: body } = await readRequestBody(req);
     const result = await handleTelegramWebhook(body, { httpRequestId: requestId });
     webhookPhases = webhookPhasesFromHandlerResult(result);
-    res.writeHead(result.ok ? 200 : 400, { 'content-type': 'application/json' });
+    res.writeHead((result as { http_status?: number }).http_status ?? (result.ok ? 200 : 400), {
+      'content-type': 'application/json',
+    });
     res.end(JSON.stringify(result, null, 2));
     return;
   }
@@ -240,6 +286,7 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
     const isValid = verifyWebsiteSignature(raw, signatureHeader, websiteSigningSecret);
     
     if (!isValid) {
+      logWebhookSignatureRejected(requestId, 'website', 'x_webhook_signature');
       // 403 Forbidden for invalid signature
       res.writeHead(403, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ ok: false, error: 'signature_invalid' }));
@@ -248,7 +295,9 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
     
     const result = await handleWebsiteWebhook(parsed, { httpRequestId: requestId });
     webhookPhases = webhookPhasesFromHandlerResult(result);
-    res.writeHead(result.ok ? 200 : 400, { 'content-type': 'application/json' });
+    res.writeHead((result as { http_status?: number }).http_status ?? (result.ok ? 200 : 400), {
+      'content-type': 'application/json',
+    });
     res.end(JSON.stringify(result, null, 2));
     return;
   }
@@ -261,6 +310,7 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
     const isValid = verifyMetaSignature(raw, signatureHeader, metaConfig.whatsappAppSecret);
     
     if (!isValid) {
+      logWebhookSignatureRejected(requestId, 'whatsapp', 'x_hub_signature_256');
       // 403 Forbidden for invalid signature
       res.writeHead(403, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ ok: false, error: 'signature_invalid' }));
@@ -269,7 +319,7 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
     
     const result = await handleWhatsAppWebhook(parsed, { httpRequestId: requestId });
     webhookPhases = webhookPhasesFromHandlerResult(result);
-    const status = result.ok ? 200 : 400;
+    const status = (result as { http_status?: number }).http_status ?? (result.ok ? 200 : 400);
     res.writeHead(status, { 'content-type': 'application/json' });
     res.end(JSON.stringify(result, null, 2));
     return;
@@ -283,6 +333,7 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
     const isValid = verifyMetaSignature(raw, signatureHeader, metaConfig.messengerAppSecret);
     
     if (!isValid) {
+      logWebhookSignatureRejected(requestId, 'messenger', 'x_hub_signature_256');
       // 403 Forbidden for invalid signature
       res.writeHead(403, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ ok: false, error: 'signature_invalid' }));
@@ -291,7 +342,7 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
     
     const result = await handleMessengerWebhook(parsed, { httpRequestId: requestId });
     webhookPhases = webhookPhasesFromHandlerResult(result);
-    const status = result.ok ? 200 : 400;
+    const status = (result as { http_status?: number }).http_status ?? (result.ok ? 200 : 400);
     res.writeHead(status, { 'content-type': 'application/json' });
     res.end(JSON.stringify(result, null, 2));
     return;
@@ -305,6 +356,7 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
     const isValid = verifyLineSignature(raw, signatureHeader, lineChannelSecret);
     
     if (!isValid) {
+      logWebhookSignatureRejected(requestId, 'line', 'x_line_signature');
       // 403 Forbidden for invalid signature
       res.writeHead(403, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ ok: false, error: 'signature_invalid' }));
@@ -313,7 +365,7 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
     
     const result = await handleLineWebhook(parsed, { httpRequestId: requestId });
     webhookPhases = webhookPhasesFromHandlerResult(result);
-    const status = result.ok ? 200 : 400;
+    const status = (result as { http_status?: number }).http_status ?? (result.ok ? 200 : 400);
     res.writeHead(status, { 'content-type': 'application/json' });
     res.end(JSON.stringify(result, null, 2));
     return;
@@ -323,7 +375,7 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
     const { parsed: body } = await readRequestBody(req);
     const result = await handleZaloWebhook(body, { httpRequestId: requestId });
     webhookPhases = webhookPhasesFromHandlerResult(result);
-    const status = result.ok ? 200 : 400;
+    const status = (result as { http_status?: number }).http_status ?? (result.ok ? 200 : 400);
     res.writeHead(status, { 'content-type': 'application/json' });
     res.end(JSON.stringify(result, null, 2));
     return;
@@ -333,14 +385,38 @@ async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
   res.end(JSON.stringify({ ok: false, error: 'not_found' }));
 }
 
-export function startServer() {
+export async function startServer() {
   // Initialize handoff runtime config (Phase 21)
   initHandoffRuntimeConfig();
 
-  void getSaaSDatabase().catch((err) => {
-    // eslint-disable-next-line no-console
-    console.error('[saas] database init failed', err);
-  });
+  const hostedReadiness = await evaluateHostedReadiness();
+  if (!hostedReadiness.ready) {
+    emitOpsAlert({
+      severity: 'P1',
+      code: 'hosted_readiness_failed',
+      message: 'Process startup blocked: hosted readiness not satisfied',
+      phase: 'readiness',
+      context: {
+        reasons: hostedReadiness.reasons,
+        db_driver: hostedReadiness.db_driver,
+        migration_in_progress: hostedReadiness.migration_in_progress,
+      },
+    });
+    appendPlatformAuditEvent({
+      action: 'service.start_blocked',
+      actor_type: 'system',
+      resource: 'hosted_readiness',
+      detail: { reasons: hostedReadiness.reasons },
+    });
+    throw new Error(`hosted_readiness_failed:${hostedReadiness.reasons.join(',')}`);
+  }
+
+  if (process.env.CHATFLOW_SAAS_DB_DRIVER?.trim().toLowerCase() === 'sqljs') {
+    void getSaaSDatabase().catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error('[saas] sqljs database init failed', err);
+    });
+  }
 
   const server = http.createServer((req, res) => {
     void handler(req, res);
@@ -348,6 +424,12 @@ export function startServer() {
 
   const host = process.env.CHATFLOW_HTTP_HOST ?? '0.0.0.0';
   server.listen(port, host, () => {
+    appendPlatformAuditEvent({
+      action: 'service.listen',
+      actor_type: 'system',
+      resource: `http://${host}:${port}`,
+      detail: { transport: 'http' },
+    });
     // eslint-disable-next-line no-console
     console.log(`server listening on ${host}:${port}`);
   });
@@ -356,5 +438,5 @@ export function startServer() {
 }
 
 if (require.main === module) {
-  startServer();
+  void startServer();
 }

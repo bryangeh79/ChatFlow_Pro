@@ -1,0 +1,17 @@
+{
+  "_comment": "D-C4C — 极小证据示例（只读 bundle / 演练归档）。勿提交真实密钥。overall_tier 仅当另附 saas:recovery:readonly-check 输出时填写。",
+  "schema": "chatflow.d-c4c.evidence_run_record.v1",
+  "bundle_name": "verify:d-c4c-readonly-governance-bundle",
+  "package_version": "1.7.108",
+  "git_sha": "<optional>",
+  "timestamp_iso": "<RFC3339>",
+  "environment": "ci | rc | staging | tabletop",
+  "steps": [
+    { "id": "build", "result": "pass" },
+    { "id": "verify_migration_assets", "result": "pass" },
+    { "id": "verify_d4a_readonly", "result": "pass" },
+    { "id": "verify_c4c_docs_present", "result": "pass" }
+  ],
+  "overall_tier_from_live_recovery_check": null,
+  "operator": "<id or service account, no secrets>"
+}

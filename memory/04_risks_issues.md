@@ -1,5 +1,12 @@
 # Risks and Issues
 
+## 第一课测试暴露风险（Knowledge 页面运行时）与处置（2026-04-09）
+
+- **前端运行时遗漏风险（已触发并已修复）**：`Knowledge` 页面存在调用未定义函数 `fmtTime` 导致页面报错 `fmtTime is not defined`。
+- **影响范围**：租户后台 `Knowledge` 页面可用性，属于页面层错误，非启动/端口/路由层。
+- **处置结果**：已在 `public/tenant-app.html` 补充最小 `fmtTime(ts)`，Bryan 现场复测 `Knowledge 正常`。
+- **剩余风险（低）**：同类“页面函数调用遗漏”仍可能在其它主页面出现；测试课应继续按逐页点击方式暴露并闭环。
+
 ## Hosted v1 最终门禁前补强后风险（2026-04-09）
 
 - **权限争议风险（已消除）**：knowledge publish/review 已有服务端硬拒绝，readonly 不再依赖前端限制。

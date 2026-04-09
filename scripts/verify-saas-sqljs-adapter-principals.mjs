@@ -17,6 +17,8 @@ const root = pathJoin(__dirname, '..');
 const tmpDir = mkdtempSync(pathJoin(tmpdir(), 'cf-saas-adapter-p-'));
 const dbFile = pathJoin(tmpDir, 'saas.sqlite');
 process.env.CHATFLOW_SAAS_DB_PATH = dbFile;
+process.env.CHATFLOW_SAAS_DB_DRIVER = 'sqljs';
+process.env.CHATFLOW_SAAS_SQLJS_COMPAT = '1';
 
 const require = createRequire(import.meta.url);
 const repo = require(pathJoin(root, 'dist', 'src', 'saas', 'repository.js'));

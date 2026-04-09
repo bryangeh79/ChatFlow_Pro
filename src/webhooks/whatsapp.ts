@@ -7,6 +7,7 @@ import { createMinimalTraceContext } from '../channels/errors/observability';
 import { createSafeFallbackResponse } from '../channels/errors';
 import type { WebhookHandlerOptions } from './telegram';
 import { webhookObservabilityPhases } from './webhook-timing';
+import { guardInboundDedupe } from './inbound-dedupe';
 
 export async function handleWhatsAppWebhook(rawRequestBody: unknown, opts?: WebhookHandlerOptions) {
   try {
@@ -21,8 +22,12 @@ export async function handleWhatsAppWebhook(rawRequestBody: unknown, opts?: Webh
       };
     }
 
-    const session = createOrUpdateSessionContext(message);
-    const result = runUnifiedInboundPipeline(message, session, {
+    const inboundDedupe = await guardInboundDedupe(message);
+    if (inboundDedupe.duplicateResponse) {
+      return inboundDedupe.duplicateResponse;
+    }
+    const session = await createOrUpdateSessionContext(message);
+    const result = await runUnifiedInboundPipeline(message, session, {
       traceContext: {
         request_id: opts?.httpRequestId,
       },
@@ -34,7 +39,8 @@ export async function handleWhatsAppWebhook(rawRequestBody: unknown, opts?: Webh
         ? { tenantPostSignatureSaasControl: opts.tenantPostSignatureSaasControl }
         : {}),
     });
-    commitSessionContext(result.session);
+    await commitSessionContext(result.session);
+    await inboundDedupe.completeIfAccepted();
 
     const trace = createMinimalTraceContext({
       channel: 'whatsapp',

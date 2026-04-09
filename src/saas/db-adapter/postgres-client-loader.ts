@@ -65,8 +65,8 @@ export interface PostgresClientRuntimeSummary {
 function readDbDriverForLoader(): 'sqljs' | 'postgres' {
   const raw = process.env.CHATFLOW_SAAS_DB_DRIVER;
   const t = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
-  if (t === '' || t === 'sqljs') return 'sqljs';
-  if (t === 'postgres') return 'postgres';
+  if (t === '' || t === 'postgres') return 'postgres';
+  if (t === 'sqljs') return 'sqljs';
   throw new Error(`invalid_chatflow_saas_db_driver:${t}`);
 }
 
@@ -81,7 +81,7 @@ export async function getPostgresClientRuntimeSummary(): Promise<PostgresClientR
       module_available: false,
       gate_enabled: false,
       runtime_wired: false,
-      message: `${POSTGRES_CLIENT_RUNTIME_NOT_WIRED}: gate off — \`pg\` not loaded (by design); sql.js default path unaffected.`,
+      message: `${POSTGRES_CLIENT_RUNTIME_NOT_WIRED}: gate off — \`pg\` not loaded (by design).`,
     };
   }
 
@@ -108,7 +108,7 @@ export async function getPostgresClientRuntimeSummary(): Promise<PostgresClientR
       module_available: true,
       gate_enabled: true,
       runtime_wired: false,
-      message: `${POSTGRES_CLIENT_RUNTIME_NOT_WIRED}: gate on, driver=sqljs — live path stays sql.js; \`pg\` resolvable only for probes. ${POSTGRES_METADATA_QUERY_NOT_WIRED}: no postgres pool.`,
+      message: `${POSTGRES_CLIENT_RUNTIME_NOT_WIRED}: gate on, driver=sqljs (compat mode) — default live chain remains postgres. ${POSTGRES_METADATA_QUERY_NOT_WIRED}: no postgres pool.`,
     };
   }
 

@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ChatFlow Pro — Platform</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a222c;
+      --border: #2d3a47;
+      --text: #e7edf4;
+      --muted: #8b9aab;
+      --accent: #3b82f6;
+      --ok: #22c55e;
+      --warn: #eab308;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+    aside {
+      width: 200px; border-right: 1px solid var(--border); padding: 1rem 0.75rem; flex-shrink: 0;
+      background: var(--panel);
+    }
+    aside a {
+      display: block; padding: 0.45rem 0.6rem; color: var(--muted); text-decoration: none; border-radius: 6px; font-size: 0.9rem;
+    }
+    aside a:hover, aside a.active { color: var(--text); background: rgba(59, 130, 246, 0.12); }
+    main { flex: 1; padding: 1.25rem 1.5rem; overflow: auto; max-width: 1100px; }
+    .top-auth { display: flex; align-items: end; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+    .auth-actions { display: flex; align-items: center; gap: 0.45rem; }
+    .auth-status { font-size: 0.78rem; color: var(--muted); }
+    h1 { font-size: 1.15rem; margin: 0 0 1rem; font-weight: 600; }
+    label { font-size: 0.75rem; color: var(--muted); display: block; margin-bottom: 0.25rem; }
+    input[type="password"], input[type="text"] {
+      width: 100%; max-width: 360px; padding: 0.45rem 0.5rem; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); margin-bottom: 0.75rem;
+    }
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
+    .card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 0.85rem;
+    }
+    .card .v { font-size: 1.35rem; font-weight: 700; }
+    .card .k { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 0.5rem 0.4rem; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .compact-col { font-size: 0.68rem; line-height: 1.15; color: var(--muted); width: 74px; max-width: 74px; vertical-align: top; }
+    .ts-two { display: grid; gap: 0.08rem; }
+    .ts-two .d { white-space: nowrap; }
+    .ts-two .t { white-space: nowrap; opacity: 0.9; }
+    .err-two {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      word-break: break-word;
+      max-width: 74px;
+      line-height: 1.15;
+    }
+    .guide-note { margin: 0 0 0.75rem; padding: 0.6rem 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: rgba(59,130,246,0.06); }
+    .guide-note p { margin: 0.25rem 0; font-size: 0.78rem; color: var(--muted); }
+    .tenant-name { font-weight: 600; color: var(--text); }
+    .tenant-slug { font-size: 0.72rem; color: var(--muted); margin-top: 0.15rem; }
+    a.link { color: var(--accent); cursor: pointer; text-decoration: none; }
+    a.link:hover { text-decoration: underline; }
+    .pill { display: inline-block; padding: 0.15rem 0.45rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+    .pill.live { background: rgba(34, 197, 94, 0.2); color: var(--ok); }
+    .pill.setup { background: rgba(139, 154, 171, 0.2); color: var(--muted); }
+    .pill.paused { background: rgba(234, 179, 8, 0.2); color: var(--warn); }
+    .tabs { display: flex; gap: 0.25rem; flex-wrap: wrap; margin: 1rem 0; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    .tabs button {
+      background: transparent; border: none; color: var(--muted); padding: 0.35rem 0.65rem; cursor: pointer; border-radius: 6px; font-size: 0.85rem;
+    }
+    .tabs button.on { color: var(--text); background: rgba(59, 130, 246, 0.15); }
+    .panel { display: none; }
+    .panel.show { display: block; }
+    .checklist li { margin: 0.35rem 0; color: var(--muted); font-size: 0.9rem; }
+    .checklist li.done { color: var(--ok); }
+    .activity { font-size: 0.8rem; color: var(--muted); }
+    .activity li { margin: 0.35rem 0; }
+    .ch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.65rem; }
+    .ch-card { border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem; background: var(--panel); }
+    .ch-card h4 { margin: 0 0 0.35rem; font-size: 0.9rem; }
+    .row { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.5rem; }
+    button.sm {
+      padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); cursor: pointer;
+    }
+    button.sm.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    button.sm.danger { border-color: #ef4444; color: #f87171; }
+    pre.raw { background: var(--panel); padding: 0.75rem; border-radius: 8px; overflow: auto; font-size: 11px; border: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <aside>
+    <div style="font-size:0.7rem;color:var(--muted);margin-bottom:0.75rem;">PLATFORM</div>
+    <a href="/platform/dashboard" data-nav>Dashboard</a>
+    <a href="/platform/tenants" data-nav>Tenants</a>
+    <a href="/platform/settings" data-nav>Settings</a>
+    <a href="/platform/logs" data-nav>Logs</a>
+    <a href="/saas/admin" style="margin-top:1rem;">Legacy admin</a>
+  </aside>
+  <main>
+    <div class="top-auth">
+      <div>
+        <label>Admin Bearer Token</label>
+        <input type="password" id="token" placeholder="CHATFLOW_SAAS_ADMIN_TOKEN" autocomplete="off" />
+      </div>
+      <div class="auth-actions">
+        <button type="button" class="sm primary" id="loginBtn">Login</button>
+        <button type="button" class="sm" id="logoutBtn">Logout</button>
+        <span class="auth-status" id="authStatus">未登录</span>
+      </div>
+    </div>
+    <div id="view"></div>
+  </main>
+  <script>
+    const TOKEN_KEY = 'chatflow_platform_admin_token';
+    const api = (path, opts) => {
+      const t = document.getElementById('token').value.trim();
+      const headers = { authorization: 'Bearer ' + t, ...(opts && opts.headers) };
+      if (opts && opts.body) headers['content-type'] = 'application/json';
+      return fetch(path, { ...opts, headers }).then(async (r) => {
+        const text = await r.text();
+        let j = null;
+        try { j = JSON.parse(text); } catch (_) {}
+        if (!r.ok) throw new Error((j && j.error) || text || r.status);
+        return j;
+      });
+    };
+
+    function setActiveNav() {
+      const p = location.pathname;
+      document.querySelectorAll('aside a[data-nav]').forEach((a) => {
+        a.classList.toggle('active', a.getAttribute('href') === p || (p.startsWith('/platform/tenants/') && a.getAttribute('href') === '/platform/tenants'));
+      });
+    }
+
+    function statusPill(s) {
+      const c = s === 'live' ? 'live' : s === 'paused' ? 'paused' : 'setup';
+      return '<span class="pill ' + c + '">' + s + '</span>';
+    }
+
+    async function viewDashboard() {
+      const d = await api('/saas/v1/admin/platform/dashboard');
+      const st = d.stats;
+      document.getElementById('view').innerHTML =
+        '<h1>Dashboard</h1>' +
+        '<div class="cards">' +
+        '<div class="card"><div class="v">' + st.tenants_total + '</div><div class="k">Tenants</div></div>' +
+        '<div class="card"><div class="v">' + st.tenants_live + '</div><div class="k">Live</div></div>' +
+        '<div class="card"><div class="v">' + st.channels_total + '</div><div class="k">Channels (sum)</div></div>' +
+        '<div class="card"><div class="v">' + st.ai_enabled_count + '</div><div class="k">AI ready</div></div>' +
+        '</div>' +
+        '<h2 style="font-size:1rem;margin:0 0 0.5rem;">Setup checklist</h2>' +
+        '<ul class="checklist">' + d.checklist.map((c) =>
+          '<li class="' + (c.done ? 'done' : '') + '">' + (c.done ? '✓ ' : '○ ') + c.label +
+          (c.href ? ' — <a class="link" href="' + c.href + '">open</a>' : '') + '</li>'
+        ).join('') + '</ul>' +
+        '<h2 style="font-size:1rem;margin:1rem 0 0.5rem;">Recent activity</h2>' +
+        '<ul class="activity">' + (d.recent_activity || []).map((e) =>
+          '<li>' + e.ts_iso + ' · tenant <code>' + e.tenant_id.slice(0, 8) + '…</code> · ' + e.action + ' · ' + e.actor_role + '</li>'
+        ).join('') + '</ul>';
+    }
+
+    async function viewTenants() {
+      const r = await api('/saas/v1/admin/platform/tenants-index');
+      const rows = r.tenants || [];
+      document.getElementById('view').innerHTML =
+        '<h1>Tenants</h1>' +
+        '<div class="guide-note">' +
+        '<p><strong>Name</strong> = 租户展示名（给人看）。</p>' +
+        '<p><strong>Slug</strong> = 系统租户标识（用于路由/webhook），与 Name 分列显示。</p>' +
+        '<p><strong>Open</strong> = 打开该租户详情页。<strong>Suspend</strong> = 暂停该租户（阻断运行）。</p>' +
+        '</div>' +
+        '<p style="color:var(--muted);font-size:0.82rem;margin:0 0 0.75rem;">Data from DB (settings + credentials). Click Open for tenant detail.</p>' +
+        '<table><thead><tr><th>Name</th><th>Slug</th><th>Status</th><th>Setup %</th><th>Go-live</th><th>Channels ready</th><th>AI ready</th><th>Knowledge ready</th><th class="compact-col">Last active</th><th class="compact-col">Last error</th><th class="compact-col">Created</th><th>Actions</th></tr></thead><tbody>' +
+        rows.map((t) =>
+          '<tr>' +
+          '<td><a class="link tenant-name" href="/platform/tenants/' + t.id + '">' + escapeHtml(t.name) + '</a></td>' +
+          '<td><div class="tenant-slug" style="margin-top:0;">' + escapeHtml(t.slug) + '</div></td>' +
+          '<td>' + statusPill(t.status) + '</td>' +
+          '<td>' + t.setup_percentage + '%</td>' +
+          '<td>' + t.go_live_status + '</td>' +
+          '<td>' + (t.channels_ready ? 'yes' : 'no') + '</td>' +
+          '<td>' + (t.ai_enabled ? 'yes' : 'no') + '</td>' +
+          '<td>' + (t.knowledge_ready ? 'yes' : 'no') + '</td>' +
+          '<td class="compact-col" title="' + escapeHtml(t.last_active || '—') + '">' + compactTsHtml(t.last_active) + '</td>' +
+          '<td class="compact-col"><span class="err-two" title="' + escapeHtml(t.last_error || '—') + '">' + escapeHtml(t.last_error || '—') + '</span></td>' +
+          '<td class="compact-col" title="' + escapeHtml(t.created_at || '—') + '">' + compactTsHtml(t.created_at) + '</td>' +
+          '<td><button type="button" class="sm" data-open="' + t.id + '">Open detail</button> ' +
+          (t.lifecycle_status === 'suspended'
+            ? '<button type="button" class="sm primary" data-activate="' + t.id + '">Activate</button>'
+            : '<button type="button" class="sm danger" data-suspend="' + t.id + '">Suspend tenant</button>') +
+          '</td>' +
+          '</tr>'
+        ).join('') + '</tbody></table>';
+      document.querySelectorAll('[data-open]').forEach((b) => {
+        b.onclick = () => { history.pushState(null, '', '/platform/tenants/' + b.dataset.open); route(); };
+      });
+      document.querySelectorAll('[data-suspend]').forEach((b) => {
+        b.onclick = async () => {
+          if (!confirm('Suspend tenant?')) return;
+          await api('/saas/v1/admin/platform/tenants/' + b.dataset.suspend + '/suspend', { method: 'POST', body: '{}' });
+          await viewTenants();
+        };
+      });
+      document.querySelectorAll('[data-activate]').forEach((b) => {
+        b.onclick = async () => {
+          await api('/saas/v1/admin/platform/tenants/' + b.dataset.activate + '/activate', { method: 'POST', body: '{}' });
+          await viewTenants();
+        };
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function compactTsHtml(value) {
+      if (!value) return '—';
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return '<span class="err-two" title="' + escapeHtml(String(value)) + '">' + escapeHtml(String(value)) + '</span>';
+      const date = d.toLocaleDateString('en-GB', { month: 'short', day: '2-digit' });
+      const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+      return '<div class="ts-two"><span class="d">' + escapeHtml(date) + '</span><span class="t">' + escapeHtml(time) + '</span></div>';
+    }
+
+    let overviewCache = null;
+    let tenantIdDetail = null;
+    function setAuthStatus(ok, msg) {
+      const el = document.getElementById('authStatus');
+      if (!el) return;
+      el.textContent = msg || (ok ? '已登录' : '未登录');
+      el.style.color = ok ? 'var(--ok)' : 'var(--muted)';
+    }
+
+    async function viewTenantDetail(id) {
+      tenantIdDetail = id;
+      const ov = await api('/saas/v1/admin/platform/tenants/' + id + '/overview');
+      overviewCache = ov.overview;
+      const t = overviewCache.tenant;
+      const tab = (new URL(location.href)).searchParams.get('tab') || 'summary';
+      document.getElementById('view').innerHTML =
+        '<h1>' + escapeHtml(t.name) + '</h1>' +
+        '<p style="color:var(--muted);font-size:0.82rem;">slug: <strong style="color:var(--text);font-weight:600;">' + escapeHtml(t.slug) + '</strong> · tenant_id (UUID): <code>' + t.id + '</code></p>' +
+        '<div class="tabs">' +
+        ['summary','inbox','leads','reports','channels','ai','knowledge','activity','team','go-live-check'].map((x) =>
+          '<button type="button" class="' + (tab === x ? 'on' : '') + '" data-tab="' + x + '">' + x + '</button>'
+        ).join('') +
+        '</div>' +
+        '<div id="td-panel"></div>';
+      document.querySelectorAll('.tabs button').forEach((b) => {
+        b.onclick = () => { history.replaceState(null, '', '/platform/tenants/' + id + '?tab=' + b.dataset.tab); renderTenantTab(id, b.dataset.tab); document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('on', x === b)); };
+      });
+      renderTenantTab(id, tab);
+    }
+
+    async function renderTenantTab(id, tab) {
+      const el = document.getElementById('td-panel');
+      if (!overviewCache || overviewCache.tenant.id !== id) return;
+      const o = overviewCache;
+      if (tab === 'summary') {
+        el.innerHTML =
+          '<div class="cards">' +
+          '<div class="card"><div class="v">' + o.channels.filter((c) => c.connected).length + '</div><div class="k">Channels connected</div></div>' +
+          '<div class="card"><div class="v">' + o.faq_active_count + '</div><div class="k">FAQ entries</div></div>' +
+          '<div class="card"><div class="v">' + o.principals_count + '</div><div class="k">Team principals</div></div>' +
+          '<div class="card"><div class="v">' + (o.runtime.llm.enabled ? 'on' : 'off') + '</div><div class="k">LLM toggle</div></div>' +
+          '<div class="card"><div class="v">' + o.setup_percentage + '%</div><div class="k">Setup progress</div></div>' +
+          '<div class="card"><div class="v">' + o.go_live_status + '</div><div class="k">Go-live status</div></div>' +
+          '</div>' +
+          '<p style="font-size:0.82rem;color:var(--muted);margin-top:0.5rem;">' +
+          'Current status: ' + (o.runtime_health && o.runtime_health.live_status ? o.runtime_health.live_status : 'inactive') +
+          ' · Last error: ' + (o.runtime_health && o.runtime_health.last_error_message ? escapeHtml(o.runtime_health.last_error_message) : 'none') +
+          '</p>';
+        if (o.tenant && o.tenant.status === 'suspended') {
+          el.innerHTML += '<p style="margin-top:0.4rem;color:#f59e0b;font-size:0.82rem;">Suspended: test disabled</p>';
+        }
+        return;
+      }
+      if (tab === 'channels') {
+        const base = '/saas/v1/admin/platform/tenants/' + id;
+        el.innerHTML = '<div class="ch-grid" id="ch-root"></div><p style="color:var(--muted);font-size:0.8rem;margin-top:0.75rem;">Webhook base: <code>/webhooks/t/' + escapeHtml(o.tenant.slug) + '/&lt;channel&gt;</code></p>';
+        const root = document.getElementById('ch-root');
+        const r2 = await api(base + '/channels');
+        root.innerHTML = (r2.channels || []).map((c) =>
+          '<div class="ch-card">' +
+          '<h4>' + escapeHtml(c.label) + '</h4>' +
+          '<div>' + (c.connected ? '<span class="pill live">connected</span>' : '<span class="pill setup">disconnected</span>') + '</div>' +
+          '<div class="row">' +
+          '<button type="button" class="sm primary" data-test="' + c.id + '"' + (c.connected ? '' : ' disabled') + '>Test</button>' +
+          '<button type="button" class="sm danger" data-dis="' + c.id + '"' + (c.connected ? '' : ' disabled') + '>Disconnect</button>' +
+          '</div></div>'
+        ).join('');
+        root.querySelectorAll('[data-test]').forEach((btn) => {
+          btn.onclick = async () => {
+            try {
+              const t = await api(base + '/channels/' + btn.dataset.test + '/test', { method: 'POST', body: '{}' });
+              alert('Test: ' + (t.ok ? 'OK' : 'FAIL') + '\n' + JSON.stringify(t.checks, null, 2));
+            } catch (e) { alert(e.message); }
+          };
+        });
+        root.querySelectorAll('[data-dis]').forEach((btn) => {
+          btn.onclick = async () => {
+            if (!confirm('Remove stored credentials for this channel?')) return;
+            try {
+              await api(base + '/channels/' + btn.dataset.dis + '/disconnect', { method: 'POST', body: '{}' });
+              alert('Disconnected');
+              viewTenantDetail(id);
+            } catch (e) { alert(e.message); }
+          };
+        });
+        return;
+      }
+      if (tab === 'ai') {
+        el.innerHTML =
+          '<h2 style="font-size:0.95rem;">Base</h2><pre class="raw">' + escapeHtml(JSON.stringify(o.runtime.llm, null, 2)) + '</pre>' +
+          '<h2 style="font-size:0.95rem;">Rules (bot / faq / suppress)</h2><pre class="raw">' + escapeHtml(JSON.stringify({ bot: o.runtime.bot, faq: o.runtime.faq, suppress_reply: o.runtime.suppress_reply, handoff: o.runtime.handoff, notify: o.runtime.notify }, null, 2)) + '</pre>' +
+          '<h2 style="font-size:0.95rem;">Lead collection</h2><pre class="raw">' + escapeHtml(JSON.stringify(o.runtime.lead_capture, null, 2)) + '</pre>' +
+          '<p style="color:var(--muted);font-size:0.8rem;">Edit via Tenant app → AI (merge settings JSON) or legacy <code>/saas/admin</code>.</p>';
+        return;
+      }
+      if (tab === 'knowledge') {
+        const k = await api('/saas/v1/admin/platform/tenants/' + id + '/knowledge');
+        const s = k.status_cards || {};
+        el.innerHTML =
+          '<div class="cards">' +
+          '<div class="card"><div class="v">' + s.total_entries + '</div><div class="k">Total</div></div>' +
+          '<div class="card"><div class="v">' + s.active_entries + '</div><div class="k">Active</div></div>' +
+          '<div class="card"><div class="v">' + s.inactive_entries + '</div><div class="k">Inactive</div></div>' +
+          '<div class="card"><div class="v">' + (s.knowledge_ready ? 'ready' : 'not_ready') + '</div><div class="k">Knowledge ready</div></div>' +
+          '</div>' +
+          '<div class="card" style="margin:0.75rem 0;">' +
+          '<h4 style="margin:0 0 0.4rem;">Add / Edit</h4>' +
+          '<input id="kq" placeholder="question" />' +
+          '<input id="ka" placeholder="answer" />' +
+          '<input id="kc" placeholder="category" value="general" />' +
+          '<input id="kid" placeholder="entry id (optional for edit)" />' +
+          '<div class="row"><button type="button" class="sm primary" id="kSave">Save</button></div>' +
+          '<h4 style="margin:0.8rem 0 0.4rem;">Bulk import (upsert)</h4>' +
+          '<input id="kjson" placeholder=\'[{"id":"x","question":"q","answer":"a","category":"c"}]\' />' +
+          '<div class="row"><button type="button" class="sm primary" id="kImport">Import</button></div>' +
+          '</div>' +
+          '<table><thead><tr><th>Question</th><th>Category</th><th>Source</th><th>Status</th><th>Updated</th><th>Action</th></tr></thead><tbody>' +
+          (k.entries || []).map((e) =>
+            '<tr><td>' + escapeHtml(e.question) + '</td><td>' + escapeHtml(e.category) + '</td><td>' + escapeHtml(e.source_type) + '</td><td>' + (e.is_active ? 'active' : 'inactive') + '</td><td>' + escapeHtml(e.updated_at || '') + '</td><td>' +
+            (e.is_active
+              ? '<button type="button" class="sm danger" data-kd="' + e.id + '">Disable</button>'
+              : '<button type="button" class="sm primary" data-ke="' + e.id + '">Enable</button>') +
+            '</td></tr>'
+          ).join('') + '</tbody></table>' +
+          '<p class="small">Rule: active_entries >= 1</p>';
+        document.getElementById('kSave').onclick = async () => {
+          const payload = {
+            language: 'en',
+            category: document.getElementById('kc').value.trim() || 'general',
+            question: document.getElementById('kq').value.trim(),
+            answer: document.getElementById('ka').value.trim(),
+            source_type: 'manual',
+            is_active: true
+          };
+          const eid = document.getElementById('kid').value.trim();
+          if (eid) {
+            await api('/saas/v1/admin/platform/tenants/' + id + '/knowledge/' + eid, { method: 'PUT', body: JSON.stringify(payload) });
+          } else {
+            await api('/saas/v1/admin/platform/tenants/' + id + '/knowledge', { method: 'POST', body: JSON.stringify(payload) });
+          }
+          await renderTenantTab(id, 'knowledge');
+        };
+        document.getElementById('kImport').onclick = async () => {
+          const raw = document.getElementById('kjson').value.trim();
+          const entries = raw ? JSON.parse(raw) : [];
+          await api('/saas/v1/admin/platform/tenants/' + id + '/knowledge/import', { method: 'POST', body: JSON.stringify({ entries }) });
+          await renderTenantTab(id, 'knowledge');
+        };
+        el.querySelectorAll('[data-kd]').forEach((b) => b.onclick = async () => { await api('/saas/v1/admin/platform/tenants/' + id + '/knowledge/' + b.dataset.kd + '/disable', { method: 'POST', body: '{}' }); await renderTenantTab(id, 'knowledge'); });
+        el.querySelectorAll('[data-ke]').forEach((b) => b.onclick = async () => { await api('/saas/v1/admin/platform/tenants/' + id + '/knowledge/' + b.dataset.ke + '/enable', { method: 'POST', body: '{}' }); await renderTenantTab(id, 'knowledge'); });
+        return;
+      }
+      if (tab === 'activity') {
+        const a = await api('/saas/v1/admin/platform/tenants/' + id + '/activity?limit=50&offset=0');
+        el.innerHTML = '<h3 style="margin:0 0 0.5rem;">Activity timeline</h3><ul class="activity">' +
+          (a.entries || []).map((e) => '<li>' + e.created_at + ' · ' + e.event_type + ' · ' + escapeHtml(e.message) + ' · actor=' + escapeHtml(e.actor_id) + '</li>').join('') +
+          '</ul>';
+        return;
+      }
+      if (tab === 'team') {
+        const pr = await api('/saas/v1/admin/platform/tenants/' + id + '/principals');
+        el.innerHTML = '<pre class="raw">' + escapeHtml(JSON.stringify(pr.principals || [], null, 2)) + '</pre>';
+        return;
+      }
+      if (tab === 'inbox') {
+        const q = '/saas/v1/admin/platform/tenants/' + id + '/conversations?limit=50&offset=0';
+        const r = await api(q);
+        el.innerHTML =
+          '<h3 style="margin:0 0 0.5rem;">Inbox</h3>' +
+          '<table><thead><tr><th>Status</th><th>Channel</th><th>Customer</th><th>Owner</th><th>Last message</th><th>Actions</th></tr></thead><tbody>' +
+          (r.conversations || []).map((c) =>
+            '<tr><td>' + escapeHtml(c.status) + '</td><td>' + escapeHtml(c.channel) + '</td><td>' + escapeHtml(c.customer_name || c.external_contact_id) + '</td><td>' + escapeHtml(c.current_owner_principal_id || 'unassigned') + '</td><td>' + escapeHtml(c.last_message_at || c.updated_at || '') + '</td>' +
+            '<td><button type="button" class="sm primary" data-cv="' + c.id + '">Convert</button> <button type="button" class="sm" data-rs="' + c.id + '">Resolve</button></td></tr>'
+          ).join('') +
+          '</tbody></table>';
+        el.querySelectorAll('[data-cv]').forEach((b) => b.onclick = async () => {
+          const res = await api('/saas/v1/admin/platform/tenants/' + id + '/conversations/' + b.dataset.cv + '/convert-to-lead', { method: 'POST', body: '{}' });
+          alert(res.ui_message || (res.created ? 'Lead created' : 'Lead already exists'));
+          await renderTenantTab(id, 'inbox');
+        });
+        el.querySelectorAll('[data-rs]').forEach((b) => b.onclick = async () => {
+          await api('/saas/v1/admin/platform/tenants/' + id + '/conversations/' + b.dataset.rs + '/resolve', { method: 'POST', body: '{}' });
+          await renderTenantTab(id, 'inbox');
+        });
+        return;
+      }
+      if (tab === 'leads') {
+        const r = await api('/saas/v1/admin/platform/tenants/' + id + '/leads?limit=50&offset=0');
+        el.innerHTML =
+          '<h3 style="margin:0 0 0.5rem;">Leads</h3>' +
+          '<table><thead><tr><th>Name</th><th>Channel</th><th>Status</th><th>Owner</th><th>Updated</th><th>Action</th></tr></thead><tbody>' +
+          (r.leads || []).map((l) =>
+            '<tr><td>' + escapeHtml(l.name || '—') + '</td><td>' + escapeHtml(l.source_channel) + '</td><td>' + escapeHtml(l.status) + '</td><td>' + escapeHtml(l.owner_principal_id || 'unassigned') + '</td><td>' + escapeHtml(l.updated_at || '') + '</td>' +
+            '<td><button type="button" class="sm" data-lq="' + l.id + '">to qualified</button></td></tr>'
+          ).join('') +
+          '</tbody></table>';
+        el.querySelectorAll('[data-lq]').forEach((b) => b.onclick = async () => {
+          await api('/saas/v1/admin/platform/tenants/' + id + '/leads/' + b.dataset.lq + '/status', { method: 'POST', body: JSON.stringify({ to_status: 'qualified' }) });
+          await renderTenantTab(id, 'leads');
+        });
+        return;
+      }
+      if (tab === 'reports') {
+        const r = await api('/saas/v1/admin/platform/tenants/' + id + '/reports/summary?range=last7d');
+        const cards = r.cards || {};
+        el.innerHTML =
+          '<div class="cards">' +
+          '<div class="card"><div class="v">' + (cards.total_conversations || 0) + '</div><div class="k">total conversations</div></div>' +
+          '<div class="card"><div class="v">' + (cards.open_conversations || 0) + '</div><div class="k">open conversations</div></div>' +
+          '<div class="card"><div class="v">' + (cards.resolved_conversations || 0) + '</div><div class="k">resolved conversations</div></div>' +
+          '<div class="card"><div class="v">' + (cards.total_leads || 0) + '</div><div class="k">total leads</div></div>' +
+          '<div class="card"><div class="v">' + (cards.new_leads || 0) + '</div><div class="k">new leads</div></div>' +
+          '<div class="card"><div class="v">' + (cards.qualified_leads || 0) + '</div><div class="k">qualified leads</div></div>' +
+          '<div class="card"><div class="v">' + (cards.handoff_count || 0) + '</div><div class="k">handoff count</div></div>' +
+          '</div>' +
+          '<h4>channel breakdown</h4><ul class="activity">' +
+          (r.channel_breakdown || []).map((x) => '<li>' + escapeHtml(x.channel) + ': ' + x.conversations + '</li>').join('') +
+          '</ul><h4>owner breakdown</h4><ul class="activity">' +
+          (r.owner_breakdown || []).map((x) => '<li>' + escapeHtml(x.owner_principal_id || 'unassigned') + ': ' + x.conversations + '</li>').join('') +
+          '</ul>';
+        return;
+      }
+      if (tab === 'go-live-check') {
+        const base = '/saas/v1/admin/platform/tenants/' + id;
+        const latest = await api(base + '/go-live-check/latest');
+        el.innerHTML =
+          '<h3 style="margin:0 0 0.5rem;">Go Live Check</h3>' +
+          '<button type="button" class="sm primary" id="runGoLive">Run Check</button>' +
+          '<div id="gRes" style="margin-top:0.7rem;"></div>';
+        const gRes = document.getElementById('gRes');
+        if (o.tenant && o.tenant.status === 'suspended') {
+          gRes.innerHTML = '<p style="color:#f59e0b;">Suspended: test disabled. Go-live forced to not_ready.</p>';
+        }
+        const draw = (data) => {
+          if (!data) { gRes.innerHTML = '<p class="muted">No run yet.</p>'; return; }
+          gRes.innerHTML = '<p>Status: <strong>' + escapeHtml(data.status) + '</strong></p><ul class="activity">' +
+            (data.items || []).map((i) => '<li>' + i.check_key + ' => ' + i.status + ' (' + i.message + ')</li>').join('') + '</ul>';
+        };
+        draw(latest.latest);
+        document.getElementById('runGoLive').onclick = async () => {
+          const r = await api(base + '/go-live-check/run', { method: 'POST', body: '{}' });
+          draw(r);
+        };
+      }
+    }
+
+    async function route() {
+      setActiveNav();
+      const p = location.pathname;
+      try {
+        if (p === '/platform/dashboard') await viewDashboard();
+        else if (p === '/platform/tenants') await viewTenants();
+        else if (p === '/platform/settings') {
+          const s = await api('/saas/v1/admin/platform/settings');
+          const d = await api('/saas/v1/admin/platform/deployment-info');
+          const info = d.deployment_info || {};
+          document.getElementById('view').innerHTML =
+            '<h1>Platform settings</h1>' +
+            '<div class="card" style="margin-bottom:0.8rem;"><h4 style="margin:0 0 0.4rem;">Deployment info</h4>' +
+            '<div class="small">version=' + escapeHtml(info.version || 'n/a') +
+            ' | build_time=' + escapeHtml(info.build_time || 'n/a') +
+            ' | git_commit=' + escapeHtml(info.git_commit || 'n/a') +
+            ' | migration_target=' + escapeHtml(info.migration_target || 'n/a') +
+            '</div></div>' +
+            '<label>knowledge_ready_threshold</label><input type="text" id="ps_k" value="' + escapeHtml(s.settings.knowledge_ready_threshold || '1') + '" />' +
+            '<label>latest_test_freshness_days</label><input type="text" id="ps_t" value="' + escapeHtml(s.settings.latest_test_freshness_days || '7') + '" />' +
+            '<label>go_live_warning_error_window_hours</label><input type="text" id="ps_w" value="' + escapeHtml(s.settings.go_live_warning_error_window_hours || '24') + '" />' +
+            '<button type="button" class="sm primary" id="ps_save">Save</button>';
+          document.getElementById('ps_save').onclick = async () => {
+            await api('/saas/v1/admin/platform/settings', { method: 'PUT', body: JSON.stringify({ settings: {
+              knowledge_ready_threshold: document.getElementById('ps_k').value.trim(),
+              latest_test_freshness_days: document.getElementById('ps_t').value.trim(),
+              go_live_warning_error_window_hours: document.getElementById('ps_w').value.trim()
+            }})});
+            alert('Saved');
+          };
+        }
+        else if (p === '/platform/logs') {
+          document.getElementById('view').innerHTML =
+            '<h1>Platform logs</h1>' +
+            '<label>Severity</label><select id="ls"><option value="">all</option><option value="info">info</option><option value="warning">warning</option><option value="error">error</option></select>' +
+            '<label>Tenant ID</label><input id="lt" placeholder="optional tenant id" />' +
+            '<button type="button" class="sm primary" id="lrun">Run</button>' +
+            '<div id="ltable"></div>';
+          const renderLogs = async () => {
+            const sev = document.getElementById('ls').value;
+            const tid = document.getElementById('lt').value.trim();
+            const q = '?limit=100&offset=0' + (sev ? '&severity=' + encodeURIComponent(sev) : '') + (tid ? '&tenant_id=' + encodeURIComponent(tid) : '');
+            const l = await api('/saas/v1/admin/platform/logs' + q);
+            document.getElementById('ltable').innerHTML = '<table><thead><tr><th>time</th><th>tenant</th><th>severity</th><th>source</th><th>message</th></tr></thead><tbody>' +
+            (l.logs || []).map((x) => '<tr><td>' + x.created_at + '</td><td>' + (x.tenant_id || '—') + '</td><td>' + x.severity + '</td><td>' + x.source + '</td><td>' + escapeHtml(x.message) + '</td></tr>').join('') +
+            '</tbody></table>';
+          };
+          document.getElementById('lrun').onclick = renderLogs;
+          await renderLogs();
+        }
+        else if (p.startsWith('/platform/tenants/')) {
+          const id = p.slice('/platform/tenants/'.length).split('/')[0];
+          if (!/^[0-9a-f-]{36}$/i.test(id)) {
+            document.getElementById('view').innerHTML = '<p>Invalid tenant id</p>';
+            return;
+          }
+          await viewTenantDetail(id.toLowerCase());
+        } else {
+          document.getElementById('view').innerHTML = '<p>Unknown route</p>';
+        }
+        setAuthStatus(true, '已登录');
+      } catch (e) {
+        if (String(e.message || '').toLowerCase().includes('unauthorized')) {
+          setAuthStatus(false, '未授权，请先 Login');
+        }
+        document.getElementById('view').innerHTML = '<p style="color:#f87171;">' + escapeHtml(e.message) + '</p>';
+      }
+    }
+
+    document.getElementById('token').value = localStorage.getItem(TOKEN_KEY) || '';
+    document.getElementById('token').onchange = () => localStorage.setItem(TOKEN_KEY, document.getElementById('token').value.trim());
+    document.getElementById('token').oninput = () => localStorage.setItem(TOKEN_KEY, document.getElementById('token').value.trim());
+    document.getElementById('loginBtn').onclick = async () => {
+      localStorage.setItem(TOKEN_KEY, document.getElementById('token').value.trim());
+      await route();
+    };
+    document.getElementById('logoutBtn').onclick = () => {
+      document.getElementById('token').value = '';
+      localStorage.removeItem(TOKEN_KEY);
+      setAuthStatus(false, '已退出');
+      document.getElementById('view').innerHTML = '<p style="color:var(--muted);">请先 Login 后继续操作。</p>';
+    };
+
+    window.addEventListener('popstate', route);
+    document.querySelectorAll('aside a[data-nav]').forEach((a) => {
+      a.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        history.pushState(null, '', a.getAttribute('href'));
+        route();
+      });
+    });
+    document.addEventListener('click', (ev) => {
+      const t = ev.target;
+      if (t.matches && t.matches('a.link[href^="/platform/"]')) {
+        ev.preventDefault();
+        history.pushState(null, '', t.getAttribute('href'));
+        route();
+      }
+    });
+    setAuthStatus(Boolean(document.getElementById('token').value.trim()), document.getElementById('token').value.trim() ? '待验证' : '未登录');
+    route();
+  </script>
+</body>
+</html>
+

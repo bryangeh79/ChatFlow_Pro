@@ -12,6 +12,8 @@ import {
   SAAS_ADMIN_AUTH_SOURCE_REGISTRY,
 } from './admin-auth-sources';
 import { findEnabledPrincipalByBridgeToken, countAllTenantAdminPrincipals } from './repository';
+import { isBreakGlassTtlModeActive, parseBreakGlassExpiresAtIso } from './break-glass-policy';
+import { insertBreakGlassAuditEvent, maybeAuditBreakGlassTtlEnabled } from './break-glass-audit';
 
 export type { AuthSourceStability, SaasAdminAuthSource } from './admin-auth-sources';
 export {
@@ -38,7 +40,8 @@ export interface SaasAdminAuthContext {
 
 export type ResolvedSaasAdminAuth =
   | { ok: true; context: SaasAdminAuthContext }
-  | { ok: false };
+  | { ok: false }
+  | { ok: false; error: 'break_glass_ttl_expired' | 'break_glass_ttl_misconfigured' };
 
 /** Env token used for break-glass / CI (unchanged contract). */
 export function breakGlassAdminToken(): string | undefined {
@@ -133,9 +136,43 @@ function resolveTenantReadonlyBridgeContext(authHeader: string | undefined): Saa
  * 4. `CHATFLOW_SAAS_TENANT_READONLY_TOKENS` → `tenant_operator_readonly`
  * 5. unauthenticated
  */
-export async function resolveSaasAdminAuth(authHeader: string | undefined): Promise<ResolvedSaasAdminAuth> {
+export async function resolveSaasAdminAuth(
+  authHeader: string | undefined,
+  opts?: { httpRequestId?: string | null },
+): Promise<ResolvedSaasAdminAuth> {
   const bg = breakGlassAdminToken();
   if (bg && authHeader === `Bearer ${bg}`) {
+    if (!isBreakGlassTtlModeActive()) {
+      return {
+        ok: true,
+        context: {
+          role: 'platform_admin',
+          auth_source: 'break_glass_env',
+          scope_type: 'platform',
+          tenant_id: null,
+        },
+      };
+    }
+    const reqId = opts?.httpRequestId ?? null;
+    const expIso = parseBreakGlassExpiresAtIso();
+    if (!expIso) {
+      await insertBreakGlassAuditEvent({
+        action: 'break_glass_ttl_denied_misconfigured',
+        request_id: reqId,
+        detail: { reason: 'expires_at_missing_or_invalid' },
+      });
+      return { ok: false, error: 'break_glass_ttl_misconfigured' };
+    }
+    if (Date.now() > Date.parse(expIso)) {
+      await insertBreakGlassAuditEvent({
+        action: 'break_glass_ttl_denied_expired',
+        expires_at_iso: expIso,
+        request_id: reqId,
+        detail: { gate: 'ttl_expired' },
+      });
+      return { ok: false, error: 'break_glass_ttl_expired' };
+    }
+    await maybeAuditBreakGlassTtlEnabled({ expires_at_iso: expIso, request_id: reqId });
     return {
       ok: true,
       context: {
@@ -170,8 +207,11 @@ export async function resolveSaasAdminAuth(authHeader: string | undefined): Prom
 }
 
 /** Gate helper for `/saas/v1/admin/*` (same resolution as `resolveSaasAdminAuth`). */
-export async function requireSaasAdmin(authHeader: string | undefined): Promise<ResolvedSaasAdminAuth> {
-  return resolveSaasAdminAuth(authHeader);
+export async function requireSaasAdmin(
+  authHeader: string | undefined,
+  opts?: { httpRequestId?: string | null },
+): Promise<ResolvedSaasAdminAuth> {
+  return resolveSaasAdminAuth(authHeader, opts);
 }
 
 /** Phase 24 / 1J — read-only summary for platform_admin introspection (no secrets). */

@@ -141,10 +141,10 @@ async function main() {
   const base = scrub(process.env);
 
   const d0 = execReadiness(base);
-  if (d0.driver !== 'sqljs') fail('default driver sqljs');
+  if (d0.driver !== 'postgres') fail('default driver postgres');
   if (d0.ledger_persistence_wired !== false) fail('default ledger_persistence_wired false');
   if (d0.ledger_status !== 'not_wired') fail('default ledger_status not_wired');
-  if (d0.controlled_reachability !== 'default_path_no_postgres') fail('default controlled_reachability');
+  if (d0.controlled_reachability !== 'postgres_runtime_unwired') fail('default controlled_reachability');
   const g0 = execGoNoGo(base);
   if (g0.overall_status !== 'no_go') fail('default go/no-go no_go');
   if (!g0.blocking_reasons.includes('postgres_ledger_persistence_not_wired')) fail('default missing ledger blocker');

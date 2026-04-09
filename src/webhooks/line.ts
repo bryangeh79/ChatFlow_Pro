@@ -7,6 +7,7 @@ import { createMinimalTraceContext } from '../channels/errors/observability';
 import { createSafeFallbackResponse } from '../channels/errors';
 import type { WebhookHandlerOptions } from './telegram';
 import { webhookObservabilityPhases } from './webhook-timing';
+import { guardInboundDedupe } from './inbound-dedupe';
 
 /**
  * 解析 Line Webhook 载荷
@@ -68,8 +69,12 @@ export async function handleLineWebhook(rawRequestBody: unknown, opts?: WebhookH
       };
     }
 
-    const session = createOrUpdateSessionContext(message);
-    const result = runUnifiedInboundPipeline(message, session, {
+    const inboundDedupe = await guardInboundDedupe(message);
+    if (inboundDedupe.duplicateResponse) {
+      return inboundDedupe.duplicateResponse;
+    }
+    const session = await createOrUpdateSessionContext(message);
+    const result = await runUnifiedInboundPipeline(message, session, {
       traceContext: {
         request_id: opts?.httpRequestId,
       },
@@ -81,7 +86,8 @@ export async function handleLineWebhook(rawRequestBody: unknown, opts?: WebhookH
         ? { tenantPostSignatureSaasControl: opts.tenantPostSignatureSaasControl }
         : {}),
     });
-    commitSessionContext(result.session);
+    await commitSessionContext(result.session);
+    await inboundDedupe.completeIfAccepted();
 
     const trace = createMinimalTraceContext({
       channel: 'line',

@@ -7,12 +7,18 @@
   <style>
     body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
     h1 { font-size: 1.25rem; }
+    h3 { margin: 1rem 0 0.25rem; font-size: 1rem; }
     label { display: block; margin-top: 0.75rem; font-weight: 600; }
     input, textarea, button { width: 100%; box-sizing: border-box; margin-top: 0.25rem; }
     textarea { min-height: 120px; font-family: ui-monospace, monospace; font-size: 12px; }
     button { margin-top: 1rem; padding: 0.5rem; cursor: pointer; }
     pre { background: #f4f4f5; padding: 0.75rem; overflow: auto; font-size: 12px; }
     .hint { color: #52525b; font-size: 0.85rem; margin-top: 0.25rem; }
+    .card { border: 1px solid #e4e4e7; border-radius: 8px; padding: 0.75rem; margin-top: 0.75rem; background: #fafafa; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
+    .pair label { margin-top: 0.25rem; font-size: 0.9rem; }
+    .small { font-size: 0.8rem; color: #71717a; margin-top: 0.25rem; }
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
   </style>
 </head>
 <body>
@@ -34,6 +40,49 @@
   <button type="button" id="btnCreate">创建租户</button>
 
   <label>凭证 JSON（合并写入 tenant_credentials，键名与 .env.example 一致）</label>
+  <div class="card">
+    <h3>快速填充（推荐）</h3>
+    <p class="small">按需填写，留空项不会写入 JSON。填完可点「生成凭证 JSON」。</p>
+
+    <div class="grid" id="credentialFields">
+      <div class="pair"><label>TELEGRAM_BOT_TOKEN</label><input type="text" data-cred-key="TELEGRAM_BOT_TOKEN" placeholder="Telegram Bot Token" /></div>
+
+      <div class="pair"><label>WHATSAPP_ACCESS_TOKEN</label><input type="text" data-cred-key="WHATSAPP_ACCESS_TOKEN" placeholder="WhatsApp Access Token" /></div>
+      <div class="pair"><label>WHATSAPP_PHONE_NUMBER_ID</label><input type="text" data-cred-key="WHATSAPP_PHONE_NUMBER_ID" placeholder="WhatsApp Phone Number ID" /></div>
+      <div class="pair"><label>WHATSAPP_APP_SECRET</label><input type="text" data-cred-key="WHATSAPP_APP_SECRET" placeholder="WhatsApp App Secret" /></div>
+      <div class="pair"><label>WHATSAPP_WEBHOOK_VERIFY_TOKEN</label><input type="text" data-cred-key="WHATSAPP_WEBHOOK_VERIFY_TOKEN" placeholder="WhatsApp Webhook Verify Token" /></div>
+      <div class="pair"><label>WHATSAPP_API_VERSION（可选）</label><input type="text" data-cred-key="WHATSAPP_API_VERSION" placeholder="v19.0" /></div>
+
+      <div class="pair"><label>MESSENGER_PAGE_ACCESS_TOKEN</label><input type="text" data-cred-key="MESSENGER_PAGE_ACCESS_TOKEN" placeholder="Messenger Page Access Token" /></div>
+      <div class="pair"><label>MESSENGER_PAGE_ID</label><input type="text" data-cred-key="MESSENGER_PAGE_ID" placeholder="Messenger Page ID" /></div>
+      <div class="pair"><label>MESSENGER_APP_SECRET</label><input type="text" data-cred-key="MESSENGER_APP_SECRET" placeholder="Messenger App Secret" /></div>
+      <div class="pair"><label>MESSENGER_WEBHOOK_VERIFY_TOKEN</label><input type="text" data-cred-key="MESSENGER_WEBHOOK_VERIFY_TOKEN" placeholder="Messenger Webhook Verify Token" /></div>
+      <div class="pair"><label>MESSENGER_API_VERSION（可选）</label><input type="text" data-cred-key="MESSENGER_API_VERSION" placeholder="v19.0" /></div>
+
+      <div class="pair"><label>LINE_CHANNEL_ACCESS_TOKEN</label><input type="text" data-cred-key="LINE_CHANNEL_ACCESS_TOKEN" placeholder="Line Channel Access Token" /></div>
+      <div class="pair"><label>LINE_CHANNEL_SECRET</label><input type="text" data-cred-key="LINE_CHANNEL_SECRET" placeholder="Line Channel Secret" /></div>
+      <div class="pair"><label>LINE_WEBHOOK_VERIFY_TOKEN</label><input type="text" data-cred-key="LINE_WEBHOOK_VERIFY_TOKEN" placeholder="Line Webhook Verify Token" /></div>
+      <div class="pair"><label>LINE_API_BASE_URL（可选）</label><input type="text" data-cred-key="LINE_API_BASE_URL" placeholder="https://api.line.me" /></div>
+
+      <div class="pair"><label>ZALO_ACCESS_TOKEN</label><input type="text" data-cred-key="ZALO_ACCESS_TOKEN" placeholder="Zalo Access Token" /></div>
+      <div class="pair"><label>ZALO_OA_ID</label><input type="text" data-cred-key="ZALO_OA_ID" placeholder="Zalo OA ID" /></div>
+      <div class="pair"><label>ZALO_WEBHOOK_VERIFY_TOKEN</label><input type="text" data-cred-key="ZALO_WEBHOOK_VERIFY_TOKEN" placeholder="Zalo Webhook Verify Token" /></div>
+      <div class="pair"><label>ZALO_API_BASE_URL（可选）</label><input type="text" data-cred-key="ZALO_API_BASE_URL" placeholder="https://openapi.zalo.me" /></div>
+
+      <div class="pair"><label>WEBSITE_OUTBOUND_URL</label><input type="text" data-cred-key="WEBSITE_OUTBOUND_URL" placeholder="https://example.com/webhook" /></div>
+      <div class="pair"><label>WEBSITE_OUTBOUND_SIGNING_SECRET</label><input type="text" data-cred-key="WEBSITE_OUTBOUND_SIGNING_SECRET" placeholder="Website Outbound Signing Secret" /></div>
+      <div class="pair"><label>WEBSITE_WEBHOOK_SIGNING_SECRET</label><input type="text" data-cred-key="WEBSITE_WEBHOOK_SIGNING_SECRET" placeholder="Website Webhook Signing Secret" /></div>
+      <div class="pair"><label>WEBSITE_WEBHOOK_VERIFY_TOKEN</label><input type="text" data-cred-key="WEBSITE_WEBHOOK_VERIFY_TOKEN" placeholder="Website Webhook Verify Token" /></div>
+
+      <div class="pair"><label>OPENAI_API_KEY（可选）</label><input type="text" data-cred-key="OPENAI_API_KEY" placeholder="OpenAI API Key" /></div>
+    </div>
+
+    <div class="btn-row">
+      <button type="button" id="btnGenerateCredsJson">Export</button>
+      <button type="button" id="btnHydrateCredsForm">Import</button>
+    </div>
+  </div>
+
   <textarea id="creds" placeholder='{"TELEGRAM_BOT_TOKEN":"...","OPENAI_API_KEY":"..."}'></textarea>
   <button type="button" id="btnCreds">保存凭证</button>
 
@@ -43,6 +92,21 @@
 
   <label>机器人参数 JSON（合并写入 tenant_settings）</label>
   <textarea id="settings" placeholder='{"handoff_keywords":["人工"]}'></textarea>
+  <div class="card">
+    <h3>AI 回复开关（租户级）</h3>
+    <p class="small">不是每个租户都需要 AI。默认关闭，开启后才会尝试使用 OPENAI_API_KEY。</p>
+    <div class="pair">
+      <label><input type="checkbox" id="llmEnabled" /> 启用 AI 回复</label>
+    </div>
+    <div class="pair">
+      <label>AI 模型（可选）</label>
+      <input type="text" id="llmModel" placeholder="gpt-4o-mini" />
+    </div>
+    <div class="btn-row">
+      <button type="button" id="btnApplyAiSettings">应用 AI 设置到 JSON</button>
+      <button type="button" id="btnHydrateAiSettings">从 JSON 读取 AI 设置</button>
+    </div>
+  </div>
   <button type="button" id="btnSettings">保存设置</button>
 
   <button type="button" id="btnLoad">加载租户 FAQ</button>
@@ -52,6 +116,39 @@
 
   <script>
     const out = document.getElementById('out');
+    const credsTextarea = document.getElementById('creds');
+    const credInputs = Array.from(document.querySelectorAll('[data-cred-key]'));
+    const settingsTextarea = document.getElementById('settings');
+    const llmEnabledInput = document.getElementById('llmEnabled');
+    const llmModelInput = document.getElementById('llmModel');
+
+    function buildCredsFromForm() {
+      const obj = {};
+      for (const input of credInputs) {
+        const k = input.getAttribute('data-cred-key');
+        const v = (input.value || '').trim();
+        if (k && v) obj[k] = v;
+      }
+      return obj;
+    }
+
+    function applyCredsToForm(obj) {
+      for (const input of credInputs) {
+        const k = input.getAttribute('data-cred-key');
+        input.value = (k && obj && typeof obj[k] === 'string') ? obj[k] : '';
+      }
+    }
+
+    function parseSettingsJsonSafe() {
+      try {
+        const parsed = JSON.parse(settingsTextarea.value || '{}');
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+        return parsed;
+      } catch {
+        return null;
+      }
+    }
+
     function authHeaders() {
       const t = document.getElementById('token').value.trim();
       const h = { 'Content-Type': 'application/json' };
@@ -59,26 +156,101 @@
       return h;
     }
     function slug() { return document.getElementById('slug').value.trim(); }
-    async function show(p) {
-      const r = await p;
-      const text = await r.text();
-      try { out.textContent = JSON.stringify(JSON.parse(text), null, 2); }
-      catch { out.textContent = text; }
+    async function show(p, actionLabel) {
+      try {
+        const r = await p;
+        const text = await r.text();
+        let payload = null;
+        try {
+          payload = JSON.parse(text);
+          out.textContent = JSON.stringify(payload, null, 2);
+        } catch {
+          out.textContent = text;
+        }
+        if (r.ok) {
+          alert((actionLabel || '操作') + '成功');
+          return;
+        }
+        const msg = payload && payload.error ? String(payload.error) : ('HTTP ' + r.status);
+        alert((actionLabel || '操作') + '失败：' + msg);
+      } catch (e) {
+        out.textContent = e && e.message ? e.message : String(e);
+        alert((actionLabel || '操作') + '失败：网络或请求异常');
+      }
     }
+    document.getElementById('btnGenerateCredsJson').onclick = () => {
+      const creds = buildCredsFromForm();
+      credsTextarea.value = JSON.stringify(creds, null, 2);
+      out.textContent = JSON.stringify({ ok: true, message: 'credentials_json_generated', credentials: creds }, null, 2);
+      alert('已生成凭证 JSON');
+    };
+    document.getElementById('btnHydrateCredsForm').onclick = () => {
+      let creds;
+      try {
+        creds = JSON.parse(credsTextarea.value || '{}');
+      } catch {
+        out.textContent = 'credentials JSON invalid';
+        alert('回填失败：credentials JSON invalid');
+        return;
+      }
+      applyCredsToForm(creds && typeof creds === 'object' && !Array.isArray(creds) ? creds : {});
+      out.textContent = JSON.stringify({ ok: true, message: 'credentials_form_hydrated' }, null, 2);
+      alert('已从 JSON 回填表单');
+    };
+    document.getElementById('btnApplyAiSettings').onclick = () => {
+      const settings = parseSettingsJsonSafe();
+      if (settings === null) {
+        out.textContent = 'settings JSON invalid';
+        alert('应用失败：settings JSON invalid');
+        return;
+      }
+      settings.llm = settings.llm && typeof settings.llm === 'object' && !Array.isArray(settings.llm)
+        ? settings.llm
+        : {};
+      settings.llm.enabled = !!llmEnabledInput.checked;
+      const model = (llmModelInput.value || '').trim();
+      if (model) {
+        settings.llm.model = model;
+      } else {
+        delete settings.llm.model;
+      }
+      settings.llm.provider = 'openai';
+      settingsTextarea.value = JSON.stringify(settings, null, 2);
+      out.textContent = JSON.stringify({ ok: true, message: 'ai_settings_applied' }, null, 2);
+      alert('已应用 AI 设置到 JSON');
+    };
+    document.getElementById('btnHydrateAiSettings').onclick = () => {
+      const settings = parseSettingsJsonSafe();
+      if (settings === null) {
+        out.textContent = 'settings JSON invalid';
+        alert('读取失败：settings JSON invalid');
+        return;
+      }
+      const llm = settings.llm && typeof settings.llm === 'object' && !Array.isArray(settings.llm)
+        ? settings.llm
+        : {};
+      llmEnabledInput.checked = llm.enabled === true;
+      llmModelInput.value = typeof llm.model === 'string' ? llm.model : '';
+      out.textContent = JSON.stringify({ ok: true, message: 'ai_settings_hydrated' }, null, 2);
+      alert('已从 JSON 读取 AI 设置');
+    };
     document.getElementById('btnCreate').onclick = () => show(fetch('/saas/v1/admin/tenants', {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({ slug: slug(), name: document.getElementById('name').value.trim() || slug() }),
-    }));
+    }), '创建租户');
     document.getElementById('btnCreds').onclick = () => {
       let creds;
-      try { creds = JSON.parse(document.getElementById('creds').value || '{}'); }
+      if (!credsTextarea.value.trim()) {
+        credsTextarea.value = JSON.stringify(buildCredsFromForm(), null, 2);
+      }
+      try { creds = JSON.parse(credsTextarea.value || '{}'); }
       catch (e) { out.textContent = 'credentials JSON invalid'; return; }
       show(fetch('/saas/v1/admin/tenants/' + encodeURIComponent(slug()) + '/credentials', {
         method: 'PUT',
         headers: authHeaders(),
         body: JSON.stringify({ credentials: creds }),
-      }));
+      }), '保存凭证');
     };
     document.getElementById('btnFaq').onclick = () => {
       let entries;
@@ -88,7 +260,7 @@
         method: 'PUT',
         headers: authHeaders(),
         body: JSON.stringify({ entries }),
-      }));
+      }), '保存 FAQ');
     };
     document.getElementById('btnSettings').onclick = () => {
       let settings;
@@ -98,9 +270,9 @@
         method: 'PUT',
         headers: authHeaders(),
         body: JSON.stringify({ settings }),
-      }));
+      }), '保存设置');
     };
-    document.getElementById('btnLoad').onclick = () => show(fetch('/saas/v1/admin/tenants/' + encodeURIComponent(slug()) + '/faq', { headers: authHeaders() }));
+    document.getElementById('btnLoad').onclick = () => show(fetch('/saas/v1/admin/tenants/' + encodeURIComponent(slug()) + '/faq', { headers: authHeaders() }), '加载 FAQ');
   </script>
 </body>
 </html>

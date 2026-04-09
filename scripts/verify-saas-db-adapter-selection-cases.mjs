@@ -18,7 +18,7 @@ async function main() {
   switch (caseId) {
     case 'default': {
       delete process.env.CHATFLOW_SAAS_DB_DRIVER;
-      if (mod.getSaaSDbDriver() !== 'sqljs') throw new Error('default: expected sqljs');
+      if (mod.getSaaSDbDriver() !== 'postgres') throw new Error('default: expected postgres');
       break;
     }
     case 'sqljs': {

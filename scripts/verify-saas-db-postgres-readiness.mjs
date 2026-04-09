@@ -43,7 +43,7 @@ async function main() {
   const r0 = await getPostgresExecutionReadiness();
   const ledger = r0.ledger_info;
   if (typeof ledger.ledger_table !== 'string' || !ledger.ledger_table) fail('ledger.ledger_table');
-  if (ledger.exists !== false) fail('ledger.exists must be false (default sqljs path)');
+  if (ledger.exists !== false) fail('ledger.exists must be false (default runtime_wired=false path)');
   if (ledger.status !== 'not_wired') fail('ledger.status must be not_wired');
   if (!ledger.message.includes(POSTGRES_METADATA_QUERY_NOT_WIRED)) fail('ledger.message must reference POSTGRES_METADATA_QUERY_NOT_WIRED');
 
@@ -56,7 +56,7 @@ async function main() {
   }
 
   const r = r0;
-  if (r.driver !== 'sqljs' && r.driver !== 'postgres') fail('readiness.driver');
+  if (r.driver !== 'postgres' && r.driver !== 'sqljs') fail('readiness.driver');
   if (r.adapter_stub !== true) fail('adapter_stub');
   if (r.execution_wired !== false) fail('execution_wired');
   if (r.ledger_persistence_wired !== false) fail('ledger_persistence_wired');

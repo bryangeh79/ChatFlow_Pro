@@ -36,6 +36,14 @@ export interface TenantRuntimeSettings {
   faq: {
     fallback_enabled: boolean;
   };
+  /**
+   * Tenant-level AI reply switch (default off): enable per tenant only when key is configured.
+   */
+  llm: {
+    enabled: boolean;
+    provider: 'openai';
+    model: string;
+  };
 }
 
 const DEFAULT_RUNTIME: TenantRuntimeSettings = {
@@ -45,6 +53,7 @@ const DEFAULT_RUNTIME: TenantRuntimeSettings = {
   bot: { enabled: true },
   suppress_reply: { enabled: true },
   faq: { fallback_enabled: true },
+  llm: { enabled: false, provider: 'openai', model: 'gpt-4o-mini' },
 };
 
 function parseHandoffBlock(raw: unknown): TenantRuntimeSettings['handoff'] {
@@ -107,6 +116,21 @@ function parseFaqBlock(raw: unknown): TenantRuntimeSettings['faq'] {
   return { ...DEFAULT_RUNTIME.faq };
 }
 
+function parseLlmBlock(raw: unknown): TenantRuntimeSettings['llm'] {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const l = raw as Record<string, unknown>;
+    const enabled =
+      typeof l.enabled === 'boolean' ? l.enabled : DEFAULT_RUNTIME.llm.enabled;
+    const provider = l.provider === 'openai' ? 'openai' : DEFAULT_RUNTIME.llm.provider;
+    const model =
+      typeof l.model === 'string' && l.model.trim().length > 0
+        ? l.model.trim()
+        : DEFAULT_RUNTIME.llm.model;
+    return { enabled, provider, model };
+  }
+  return { ...DEFAULT_RUNTIME.llm };
+}
+
 /**
  * Parse DB JSON into runtime settings. Unknown keys ignored; invalid shapes fall back to defaults.
  */
@@ -118,6 +142,7 @@ export function parseTenantRuntimeSettings(raw: Record<string, unknown>): Tenant
     bot: parseBotBlock(raw.bot),
     suppress_reply: parseSuppressReplyBlock(raw.suppress_reply),
     faq: parseFaqBlock(raw.faq),
+    llm: parseLlmBlock(raw.llm),
   };
 }
 
@@ -132,6 +157,7 @@ export function logSaasControlPipelineDebug(args: {
   const botOff = args.parsed.bot.enabled === false;
   const suppressReplyOff = args.parsed.suppress_reply.enabled === false;
   const faqFallbackOff = args.parsed.faq.fallback_enabled === false;
+  const llmEnabled = args.parsed.llm.enabled === true;
   console.debug(
     '[saas-control]',
     JSON.stringify({
@@ -151,6 +177,9 @@ export function logSaasControlPipelineDebug(args: {
       suppress_reply_suppressed: suppressReplyOff,
       faq_fallback_enabled: args.parsed.faq.fallback_enabled,
       faq_fallback_suppressed: faqFallbackOff,
+      llm_enabled: llmEnabled,
+      llm_provider: args.parsed.llm.provider,
+      llm_model: args.parsed.llm.model,
     }),
   );
 }

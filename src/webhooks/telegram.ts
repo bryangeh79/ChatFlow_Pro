@@ -11,6 +11,7 @@ import { runUnifiedInboundPipeline } from '../channels/unified-inbound-pipeline'
 import { createMinimalTraceContext } from '../channels/errors/observability';
 import { createSafeFallbackResponse } from '../channels/errors';
 import { webhookObservabilityPhases } from './webhook-timing';
+import { guardInboundDedupe } from './inbound-dedupe';
 import type { TenantRuntimeSettings } from '../saas/tenant-runtime-settings';
 
 function isTelegramStartOrHelp(text: string | null | undefined): boolean {
@@ -40,7 +41,11 @@ export async function handleTelegramWebhook(rawRequestBody: unknown, opts?: Webh
     const wall0 = Date.now();
     const telegramEvent: TelegramRawInboundEvent = coerceTelegramWebhookBody(rawRequestBody);
     const message = normalizeTelegramInbound(telegramEvent);
-    const session = createOrUpdateSessionContext(message);
+    const inboundDedupe = await guardInboundDedupe(message);
+    if (inboundDedupe.duplicateResponse) {
+      return inboundDedupe.duplicateResponse;
+    }
+    const session = await createOrUpdateSessionContext(message);
 
     const isHelpTrigger = isTelegramStartOrHelp(message.text);
     const inboundMessage = isHelpTrigger
@@ -52,7 +57,7 @@ export async function handleTelegramWebhook(rawRequestBody: unknown, opts?: Webh
         }
       : message;
 
-    const result = runUnifiedInboundPipeline(inboundMessage, session, {
+    const result = await runUnifiedInboundPipeline(inboundMessage, session, {
       traceContext: {
         request_id: opts?.httpRequestId,
       },
@@ -63,7 +68,8 @@ export async function handleTelegramWebhook(rawRequestBody: unknown, opts?: Webh
     });
     
     // 提交 session 到进程内存储（使跨请求 lead 合并生效）
-    commitSessionContext(result.session);
+    await commitSessionContext(result.session);
+    await inboundDedupe.completeIfAccepted();
     
     const trace = createMinimalTraceContext({
       channel: 'telegram',

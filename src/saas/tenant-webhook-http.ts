@@ -64,10 +64,42 @@ function denyTenantPostSignature(args: {
     }),
   );
   args.res.writeHead(403, { 'content-type': 'application/json' });
+  const requiredCredentialKeyByChannel: Record<string, string> = {
+    website: 'WEBSITE_WEBHOOK_SIGNING_SECRET',
+    whatsapp: 'WHATSAPP_APP_SECRET',
+    messenger: 'MESSENGER_APP_SECRET',
+    line: 'LINE_CHANNEL_SECRET',
+  };
+  const requiredCredentialKey = requiredCredentialKeyByChannel[args.channel] ?? 'CHANNEL_WEBHOOK_SECRET';
   args.res.end(
     JSON.stringify({
       ok: false,
       error: args.error,
+      message:
+        args.error === 'tenant_secret_missing'
+          ? `Missing webhook signing secret for channel "${args.channel}".`
+          : `Invalid webhook signature for channel "${args.channel}".`,
+      guidance:
+        args.error === 'tenant_secret_missing'
+          ? {
+              missing_credential_key: requiredCredentialKey,
+              configure_api: `/saas/v1/admin/platform/tenants/${args.tenantId}/credentials`,
+              configure_ui: '/app/channels',
+              next_test_api:
+                args.channel === 'website'
+                  ? `/saas/v1/admin/platform/tenants/${args.tenantId}/channels/website/test-widget`
+                  : `/saas/v1/admin/platform/tenants/${args.tenantId}/channels/${args.channel}/test`,
+              next_step: 'Save the secret, then rerun channel test and resend webhook with valid signature.',
+            }
+          : {
+              expected_header:
+                args.channel === 'website'
+                  ? 'X-Webhook-Signature: sha256=<hmac>'
+                  : args.channel === 'line'
+                    ? 'X-Line-Signature'
+                    : 'X-Hub-Signature-256',
+              next_step: 'Re-sign request with tenant secret and resend.',
+            },
       debug_metadata: {
         saas_control: saasControlTenantPostSignature(args.tenantPostSecretPresent),
       },
@@ -217,7 +249,9 @@ export async function tryHandleTenantWebhook(args: {
       const { parsed: body } = await args.readRequestBody(args.req);
       const result = await handleTelegramWebhook(body, opts);
       args.setWebhookPhases(webhookPhasesFromHandlerResult(result));
-      args.res.writeHead(result.ok ? 200 : 400, { 'content-type': 'application/json' });
+      args.res.writeHead((result as { http_status?: number }).http_status ?? (result.ok ? 200 : 400), {
+        'content-type': 'application/json',
+      });
       args.res.end(JSON.stringify(result, null, 2));
       return;
     }
@@ -254,7 +288,9 @@ export async function tryHandleTenantWebhook(args: {
         tenantPostSignatureSaasControl: TENANT_POST_SIGNATURE_SAAS_OK,
       });
       args.setWebhookPhases(webhookPhasesFromHandlerResult(result));
-      args.res.writeHead(result.ok ? 200 : 400, { 'content-type': 'application/json' });
+      args.res.writeHead((result as { http_status?: number }).http_status ?? (result.ok ? 200 : 400), {
+        'content-type': 'application/json',
+      });
       args.res.end(JSON.stringify(result, null, 2));
       return;
     }
@@ -291,7 +327,9 @@ export async function tryHandleTenantWebhook(args: {
         tenantPostSignatureSaasControl: TENANT_POST_SIGNATURE_SAAS_OK,
       });
       args.setWebhookPhases(webhookPhasesFromHandlerResult(result));
-      args.res.writeHead(result.ok ? 200 : 400, { 'content-type': 'application/json' });
+      args.res.writeHead((result as { http_status?: number }).http_status ?? (result.ok ? 200 : 400), {
+        'content-type': 'application/json',
+      });
       args.res.end(JSON.stringify(result, null, 2));
       return;
     }
@@ -328,7 +366,9 @@ export async function tryHandleTenantWebhook(args: {
         tenantPostSignatureSaasControl: TENANT_POST_SIGNATURE_SAAS_OK,
       });
       args.setWebhookPhases(webhookPhasesFromHandlerResult(result));
-      args.res.writeHead(result.ok ? 200 : 400, { 'content-type': 'application/json' });
+      args.res.writeHead((result as { http_status?: number }).http_status ?? (result.ok ? 200 : 400), {
+        'content-type': 'application/json',
+      });
       args.res.end(JSON.stringify(result, null, 2));
       return;
     }
@@ -365,7 +405,9 @@ export async function tryHandleTenantWebhook(args: {
         tenantPostSignatureSaasControl: TENANT_POST_SIGNATURE_SAAS_OK,
       });
       args.setWebhookPhases(webhookPhasesFromHandlerResult(result));
-      args.res.writeHead(result.ok ? 200 : 400, { 'content-type': 'application/json' });
+      args.res.writeHead((result as { http_status?: number }).http_status ?? (result.ok ? 200 : 400), {
+        'content-type': 'application/json',
+      });
       args.res.end(JSON.stringify(result, null, 2));
       return;
     }
@@ -374,7 +416,9 @@ export async function tryHandleTenantWebhook(args: {
       const { parsed: body } = await args.readRequestBody(args.req);
       const result = await handleZaloWebhook(body, opts);
       args.setWebhookPhases(webhookPhasesFromHandlerResult(result));
-      args.res.writeHead(result.ok ? 200 : 400, { 'content-type': 'application/json' });
+      args.res.writeHead((result as { http_status?: number }).http_status ?? (result.ok ? 200 : 400), {
+        'content-type': 'application/json',
+      });
       args.res.end(JSON.stringify(result, null, 2));
       return;
     }
