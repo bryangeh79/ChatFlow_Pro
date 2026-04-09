@@ -1,5 +1,129 @@
 # Next Phase Plan
 
+## 商业 SaaS 租户后台 UI — 下一迭代（2026-04-09）
+
+- **第 1 轮 ✅**：Shell + Overview（示意数据）。
+- **第 2 轮 ✅**：**Settings IA 壳层**。
+- **第 3 轮 ✅**：**Channels 接入中心**。
+- **第 4 轮 ✅**：**Inbox 工作台壳**。
+- **第 5 轮 ✅**：**Leads 线索中心壳** — KPI + 三栏 + 筛选 + 优先级 mock；列表 **只读** `/leads` 或 mock。
+- **第 6 轮 ✅**：**Reports 管理视角壳** — `/app/reports` 工具条 + KPI + Trend/Breakdown/Exceptions + 分组路由 + 链 Overview/Inbox/Leads/Channels；摘要 **GET `/reports/summary`** 或 mock；**未**改 `src/`。
+- **第 7 轮 ✅**：**Knowledge 内容中心壳** — `/app/knowledge` 工具条 + 列表筛选 + 阅读详情 + 右侧上下文/动作；优先读 `/knowledge`，失败回退 mock；**未**改 `src/`。
+- **第 8 轮 ✅**：**统一列表页细化** — Inbox/Leads/Knowledge 共享 workbench 样式层、统一状态色词典、统一 loading/error/empty/fallback。
+- **第 9 轮 ✅**：**polish Overview / Settings** — Overview/Settings/Setup/Advanced 接入统一 workbench 语言，跨主面一致性明显提升。
+- **最终收口轮 ✅**：**全主面一致性总校** — 七主面文案、动作、状态、间距、empty/loading/banner/fallback 统一完成。
+- **UX 第二阶段（设计真源）✅**：`docs/internal/chatflow-pro-saas-admin-ux-phase2-design-source.md` 已完成，明确首次配置与日常运营动作闭环。
+- **UX 第二阶段（P0 实现）✅**：Setup 六步最小闭环 + Overview/Settings/Setup 联动 + Inbox/Leads/Handoff 最小真实动作闭环已接通。
+- **P0 真实租户冒烟 ✅（部分通过）**：主链可跑通，但已识别阻塞（postgres 建租户语法兼容、tenant webhook secret 门禁、website->conversation 生成断点）。
+- **P1 设计真源 ✅**：`docs/internal/chatflow-pro-saas-admin-ux-phase2-p1-design-source.md`。
+- **P0 阻塞修复 ✅**：A/B/C 已完成并通过 Postgres 二次实租户冒烟。
+- **P0 稳定观察 ✅**：重复冒烟通过，主链稳定。
+- **P1 前置 residual 预修 ✅**：knowledge / faq / platform settings 高概率写路径已做 adapter 化。
+- **P1 首批实现 ✅**：Reports 关键下钻、Knowledge review/publish 最小闭环、Setup/Overview 状态深化已落地。
+- **P1 首批短回归 ✅**：核心链路稳定，无新增明显阻塞。
+- **Hosted v1 门禁补强 ✅**：knowledge 状态推进权限已完成服务端硬校验，readonly 明确拒绝。
+- **下一建议（顺序锁定）**：
+  1. 进入 hosted / production-ready v1 **100% 签核**与证据归档。
+  2. 签核完成后再进入 P1 第二批（保持不扩面节奏）。
+- **蓝图真源**：`docs/internal/chatflow-pro-saas-admin-ui-blueprint.md`。
+
+## Phase E — Overall Closed / Sealed（2026-04-09）
+
+- **状态**：**Phase E overall = closed / sealed** — `docs/internal/phase-e-overall-closeout.md`。
+- **E1 / E2（a~d）/ E3**：**completed**（承诺范围）。
+- **可卖 / 可交付（规程包）**：**100%**。
+- **hosted / production-ready v1（具体环境）**：**须**实际签核；**不**自动随 closeout 达标。
+- **设计总稿（仍读）**：`phase-e-hosted-v1-go-live-gate-design.md`。
+- **禁止**：再扩 **Phase E** 内部真源；**E2-e**、**E3 verify** 等须 **新 phase**。
+- **执行面**：组织侧 **Go-Live / 签核** — **非**仓库内再开 E 子线。
+
+## Phase D-C4 — 总线 ✅ Closed（2026-04-09）
+
+- **状态**：**Phase D-C4 overall = closed** — 见 `docs/internal/d-c4-overall-closeout.md`。
+- **D-C4A / D-C4B / D-C4C**：**completed**；**禁止**在未新立项下以 D-C4 名义加子线或改 A/B/C **语义**。
+- **当前仓库版本**：**1.7.108 / Pro_v1.07.108**（closeout **不**升 patch）。
+- **下一主线**：**Phase E** **亦** **closed**；新工作须 **新 phase 名** 或 **签核执行**（非 E 扩面）。
+
+## Phase D-C4 — 归档参考（条款仍读设计长文）
+
+- **设计**：`d-c4-recovery-consistency-design.md`；**评审包**：`d-c4-design-review-package.md`。
+- **仍禁止（收口后仍真）**：把 D-C4A/bundle 接成修复器、改 D-C3A/B 语义、在未新 ADR 下挂靠 D-C4。
+
+## Phase D-C3 — A+B 已 Closeout；D-C3C — 仍冻结（2026-04-09）
+
+- **D-C3A / D-C3B**：**已交付并 sealed**（真源：`docs/internal/d-c3-closeout.md`）。
+- **验收重复跑**：`npm run verify:d-c3-closeout`。
+- **D-C3C**：极窄自动补偿 — **仍冻结**；须新 ADR 单独立项。
+
+## Phase D-C2B — 已关闭；Phase D-C2C — 当前（2026-04-09）
+
+- **D-C2A**：**已关闭**（`cf1:`、迁移、zero-plaintext）— 版本 **1.7.98** 真源见 `memory/02`。
+- **D-C2B**：**轮换 + break-glass TTL + governance 审计闭合 + verify bundle** — **已正式收口并关闭**（版本 **1.7.101**）。**禁止**再在 D-C2B 名下扩面。
+- **D-C2C**：**数据保留与 cleanup** — dedupe 表、session/processing/delivery state、审计与文件、backup 等；**D-C2C1 已归档**；**D-C2C2 未放行**（勿并行扩线）。
+- **D-C2 与 D-C3 边界**：**D-C3A（只读对账）已启动并交付**；**D-C3B/C（修复/自动补偿）** 须 **单独门禁** — **禁止**在 D-C2C 内偷跑补偿引擎；**禁止**无设计并行 UI / Redis。
+
+## Phase D-B — 已关闭（2026-04-09）
+
+- **D-B1 / D-B2 / D-B3** 均已完成并关闭。
+- **不再**在 D-B 名下新增：幂等表、状态外置、Postgres 默认链、交付脚本扩面 — **D-B 收口冻结**。
+
+## Phase D-C（总线）/ 生产完备化 — 叙事保留（2026-04-09）
+
+- **定位**：在 D-B 已交付「可托管默认链 + 外置状态 + 三线幂等」、D-C1 已交付「可观测 + 最小审计」前提下，**D-C2** 承接 **机密与数据生命周期**；其余如统一外呼告警、SLO、配额、补偿引擎等 **单列分包**，**不**并入 D-C2 设计真源本轮交付。
+- **候选包（D-C 总线，立项时拆）**：
+  1. **D-C2（下一实现块）**：凭据加密 at-rest、KMS/信封、轮换与 break-glass 审计、dedupe/state/audit/log 保留与 cleanup。
+  2. **运行深化**：SLO、资源限额、日志与追踪关联（非 D-C2 本轮设计必选）。
+  3. **补偿与对账**：notify/outbound HTTP 成功与本地 CAS 不一致等 — **D-C3 候选**。
+  4. **可选基础设施**：Redis / 队列 — **单独立项**。
+- **禁止**：把 D-C2 做成泛 backlog；**禁止**无设计真源直接开加密或 cleanup 代码。
+
+## Phase D-B 执行顺序锁定 — 历史（已完成）
+
+- 顺序已执行完毕：**D-B1 → D-B2 → D-B3**；环境级 rollback/backup/restore 最小链已在 D-B1 关闭前验证。
+
+## Next Suggested Phase（Phase D 候选）— 可卖 / 可交付 / Hosted v1
+
+### 一、距离“可卖 / 可交付”还差什么（必须先补）
+
+1. **交付运行包标准化**
+   - 一键安装/启动/回滚脚本（含版本回退）
+   - 环境校验脚本（token/URL/webhook/DB/权限）
+2. **运维可观测最小闭环**
+   - 错误分级告警（webhook/test/runtime_health/go_live）
+   - 统一操作审计导出（tenant activity + lead events + platform logs）
+3. **数据备份与恢复演练**
+   - SQLite/JSONL 备份策略固化
+   - 恢复流程文档 + 演练记录
+4. **验收与移交流程产品化**
+   - 客户验收 checklist 固定模板
+   - 交付包（脚本、文档、口径）标准件
+
+### 二、距离 Hosted / production-ready v1 还差什么（核心门槛）
+
+1. **默认数据库从 sqljs 迁移到 Postgres**
+   - 真实运行切换、迁移 apply/ledger、回滚策略
+2. **多实例能力**
+   - 会话/状态外置（非 in-memory）
+   - 幂等与并发冲突处理完善
+3. **安全与合规基线**
+   - 凭据加密 at-rest
+   - token 轮换、最小权限、审计保留策略
+4. **生产运行基线**
+   - 资源限额、健康探针、崩溃恢复
+   - SLA 基本监控与容量边界
+
+### 三、建议下一 Phase（建议命名：Phase D）
+
+- **Phase D-A（交付化）**：安装/升级/回滚 + 验收移交流程 + 备份恢复演练
+- **Phase D-B（托管化）**：Postgres 默认链 + migration/ledger 真正生产化 + 多实例会话外置
+- **Phase D-C（生产化）**：安全加固（凭据/KMS/轮换/审计）+ 运行稳定性与告警体系
+
+### 建议优先级
+
+1. 先做 **D-A**（最快形成可卖可交付能力）
+2. 再做 **D-B**（决定 hosted v1 是否可上线）
+3. 最后做 **D-C**（生产规模化与合规闭环）
+
 ## Phase 25 最终关闭结论（sealed）
 
 - Phase 25 已正式关闭（本条为关闭口径，不扩新实现）。

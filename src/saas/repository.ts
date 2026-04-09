@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import type { SqlJsDatabase } from './db';
 import { getSaaSDatabase, persistSaaSDatabase } from './db';
-import { getSaasDbAdapter } from './db-adapter';
+import { getSaasDbAdapter, getSaaSDbDriver } from './db-adapter';
+import type { SaaSDbAdapter } from './db-adapter/types';
+import { getTenantSecretCrypto } from './secret-crypto';
 import { hashBridgeToken } from './bridge-token';
 import {
   insertPrincipalAuditLog,
@@ -14,6 +16,8 @@ export interface TenantRow {
   id: string;
   slug: string;
   name: string;
+  status: 'active' | 'suspended';
+  suspended_at?: string | null;
   created_at: string;
 }
 
@@ -50,12 +54,34 @@ function stmtGet(
  */
 export async function getTenantBySlug(slug: string): Promise<TenantRow | null> {
   const adapter = await getSaasDbAdapter();
-  const row = await adapter.queryOne('SELECT id, slug, name, created_at FROM tenants WHERE slug = ?', [slug]);
+  const row = await adapter.queryOne(
+    'SELECT id, slug, name, status, suspended_at, created_at FROM tenants WHERE slug = ?',
+    [slug],
+  );
   if (!row) return null;
   return {
     id: String(row.id),
     slug: String(row.slug),
     name: String(row.name),
+    status: String(row.status ?? 'active') as TenantRow['status'],
+    suspended_at: row.suspended_at == null ? null : String(row.suspended_at),
+    created_at: String(row.created_at),
+  };
+}
+
+export async function getTenantById(id: string): Promise<TenantRow | null> {
+  const adapter = await getSaasDbAdapter();
+  const row = await adapter.queryOne(
+    'SELECT id, slug, name, status, suspended_at, created_at FROM tenants WHERE id = ?',
+    [id],
+  );
+  if (!row) return null;
+  return {
+    id: String(row.id),
+    slug: String(row.slug),
+    name: String(row.name),
+    status: String(row.status ?? 'active') as TenantRow['status'],
+    suspended_at: row.suspended_at == null ? null : String(row.suspended_at),
     created_at: String(row.created_at),
   };
 }
@@ -63,12 +89,17 @@ export async function getTenantBySlug(slug: string): Promise<TenantRow | null> {
 /** Webhook-only tenant slug lookup entrypoint (decoupled from admin path). */
 export async function getTenantBySlugForWebhook(slug: string): Promise<TenantRow | null> {
   const adapter = await getSaasDbAdapter();
-  const row = await adapter.queryOne('SELECT id, slug, name, created_at FROM tenants WHERE slug = ?', [slug]);
+  const row = await adapter.queryOne(
+    'SELECT id, slug, name, status, suspended_at, created_at FROM tenants WHERE slug = ?',
+    [slug],
+  );
   if (!row) return null;
   return {
     id: String(row.id),
     slug: String(row.slug),
     name: String(row.name),
+    status: String(row.status ?? 'active') as TenantRow['status'],
+    suspended_at: row.suspended_at == null ? null : String(row.suspended_at),
     created_at: String(row.created_at),
   };
 }
@@ -76,11 +107,14 @@ export async function getTenantBySlugForWebhook(slug: string): Promise<TenantRow
 export async function createTenant(slug: string, name: string): Promise<TenantRow> {
   const adapter = await getSaasDbAdapter();
   const id = randomUUID();
+  const now = nowIso();
   await adapter.execute('INSERT INTO tenants (id, slug, name) VALUES (?, ?, ?)', [id, slug, name]);
-  await adapter.execute(
-    'INSERT OR REPLACE INTO tenant_settings (tenant_id, settings_json, updated_at) VALUES (?, ?, datetime(\'now\'))',
-    [id, '{}'],
-  );
+  // Postgres compatibility: avoid sqlite-specific "INSERT OR REPLACE".
+  await adapter.execute('INSERT INTO tenant_settings (tenant_id, settings_json, updated_at) VALUES (?, ?, ?)', [
+    id,
+    '{}',
+    now,
+  ]);
   await adapter.persistIfNeeded();
   const row = await getTenantBySlug(slug);
   if (!row) throw new Error('tenant_create_failed');
@@ -90,15 +124,60 @@ export async function createTenant(slug: string, name: string): Promise<TenantRo
 export async function listTenants(): Promise<TenantRow[]> {
   const adapter = await getSaasDbAdapter();
   const rows = await adapter.queryAll(
-    'SELECT id, slug, name, created_at FROM tenants ORDER BY created_at DESC',
+    'SELECT id, slug, name, status, suspended_at, created_at FROM tenants ORDER BY created_at DESC',
     [],
   );
   return rows.map((r) => ({
     id: String(r.id),
     slug: String(r.slug),
     name: String(r.name),
+    status: String(r.status ?? 'active') as TenantRow['status'],
+    suspended_at: r.suspended_at == null ? null : String(r.suspended_at),
     created_at: String(r.created_at),
   }));
+}
+
+export async function setTenantLifecycleStatus(
+  tenantId: string,
+  status: 'active' | 'suspended',
+): Promise<void> {
+  const adapter = await getSaasDbAdapter();
+  await adapter.execute(
+    `UPDATE tenants
+     SET status = ?, suspended_at = CASE WHEN ? = 'suspended' THEN datetime('now') ELSE NULL END
+     WHERE id = ?`,
+    [status, status, tenantId],
+  );
+  await adapter.persistIfNeeded();
+}
+
+export async function getTenantLastActiveIso(tenantId: string): Promise<string | null> {
+  const adapter = await getSaasDbAdapter();
+  const s = await adapter.queryOne('SELECT updated_at FROM tenant_settings WHERE tenant_id = ?', [tenantId]);
+  const c = await adapter.queryOne(
+    'SELECT MAX(updated_at) AS m FROM tenant_credentials WHERE tenant_id = ?',
+    [tenantId],
+  );
+  const ts = s?.updated_at != null ? String(s.updated_at) : null;
+  const tc = c?.m != null && String(c.m).trim() !== '' ? String(c.m) : null;
+  if (!ts && !tc) return null;
+  if (!ts) return tc;
+  if (!tc) return ts;
+  return ts > tc ? ts : tc;
+}
+
+/** Last config save time for control-plane forms: max(tenant_settings.updated_at, tenant_credentials.updated_at). */
+export async function getTenantLastConfigSavedAtIso(tenantId: string): Promise<string | null> {
+  return getTenantLastActiveIso(tenantId);
+}
+
+export async function countActiveFaqEntries(tenantId: string): Promise<number> {
+  const adapter = await getSaasDbAdapter();
+  const row = await adapter.queryOne(
+    'SELECT COUNT(*) AS c FROM tenant_faq_entries WHERE tenant_id = ? AND is_active = 1',
+    [tenantId],
+  );
+  return row ? Number(row.c) : 0;
 }
 
 /**
@@ -110,46 +189,85 @@ export async function getTenantCredentials(tenantId: string): Promise<Map<string
   return getTenantCredentialsForOutbound(tenantId);
 }
 
-/** Webhook verify/signature credential lookup entrypoint. */
-export async function getTenantCredentialsForWebhook(tenantId: string): Promise<Map<string, string>> {
-  const db = await getSaaSDatabase();
-  const rows = stmtAll(db, 'SELECT key, value FROM tenant_credentials WHERE tenant_id = ?', [
+async function upsertTenantCredentialValueWithAdapter(
+  adapter: SaaSDbAdapter,
+  tenantId: string,
+  key: string,
+  sealedValue: string,
+): Promise<void> {
+  if (getSaaSDbDriver() === 'postgres') {
+    await adapter.execute(
+      `INSERT INTO tenant_credentials (tenant_id, key, value, updated_at)
+       VALUES (?, ?, ?, NOW())
+       ON CONFLICT (tenant_id, key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+      [tenantId, key, sealedValue],
+    );
+  } else {
+    await adapter.execute(
+      `INSERT OR REPLACE INTO tenant_credentials (tenant_id, key, value, updated_at)
+       VALUES (?, ?, ?, datetime('now'))`,
+      [tenantId, key, sealedValue],
+    );
+  }
+}
+
+/** Sealed blob upsert for D-C2B1 rotation (caller supplies `cf1:` or legacy stored form). */
+export async function upsertTenantCredentialSealedWithAdapter(
+  adapter: SaaSDbAdapter,
+  tenantId: string,
+  key: string,
+  sealedValue: string,
+): Promise<void> {
+  await upsertTenantCredentialValueWithAdapter(adapter, tenantId, key, sealedValue);
+}
+
+async function loadTenantCredentialsMapDecrypted(tenantId: string): Promise<Map<string, string>> {
+  const adapter = await getSaasDbAdapter();
+  const crypto = getTenantSecretCrypto();
+  const rows = await adapter.queryAll('SELECT key, value FROM tenant_credentials WHERE tenant_id = ?', [
     tenantId,
   ]);
   const m = new Map<string, string>();
   for (const r of rows) {
-    m.set(String(r.key), String(r.value));
+    const k = String(r.key);
+    const stored = String(r.value);
+    m.set(k, crypto.openSealed(stored));
   }
   return m;
 }
 
+/** Webhook verify/signature credential lookup entrypoint. */
+export async function getTenantCredentialsForWebhook(tenantId: string): Promise<Map<string, string>> {
+  return loadTenantCredentialsMapDecrypted(tenantId);
+}
+
 /** Outbound channel send-config credential lookup entrypoint. */
 export async function getTenantCredentialsForOutbound(tenantId: string): Promise<Map<string, string>> {
-  const db = await getSaaSDatabase();
-  const rows = stmtAll(db, 'SELECT key, value FROM tenant_credentials WHERE tenant_id = ?', [
-    tenantId,
-  ]);
-  const m = new Map<string, string>();
-  for (const r of rows) {
-    m.set(String(r.key), String(r.value));
-  }
-  return m;
+  return loadTenantCredentialsMapDecrypted(tenantId);
 }
 
 export async function mergeTenantCredentials(
   tenantId: string,
   credentials: Record<string, string>,
 ): Promise<void> {
-  const db = await getSaaSDatabase();
+  const crypto = getTenantSecretCrypto();
+  const adapter = await getSaasDbAdapter();
   for (const [key, value] of Object.entries(credentials)) {
     if (!key || typeof value !== 'string') continue;
-    db.run(
-      `INSERT OR REPLACE INTO tenant_credentials (tenant_id, key, value, updated_at)
-       VALUES (?, ?, ?, datetime('now'))`,
-      [tenantId, key.trim(), value],
-    );
+    const sealed = crypto.sealPlaintext(value);
+    await upsertTenantCredentialValueWithAdapter(adapter, tenantId, key.trim(), sealed);
   }
-  persistSaaSDatabase();
+  await adapter.persistIfNeeded();
+}
+
+export async function deleteTenantCredentialKeys(tenantId: string, keys: string[]): Promise<void> {
+  const uniq = [...new Set(keys.map((k) => String(k).trim()).filter(Boolean))];
+  if (uniq.length === 0) return;
+  const adapter = await getSaasDbAdapter();
+  for (const k of uniq) {
+    await adapter.execute('DELETE FROM tenant_credentials WHERE tenant_id = ? AND key = ?', [tenantId, k]);
+  }
+  await adapter.persistIfNeeded();
 }
 
 export async function loadTenantFaqEntries(tenantId: string): Promise<UnifiedFaqSeedEntry[]> {
@@ -194,12 +312,13 @@ export async function replaceTenantFaqEntries(
     is_active?: boolean;
   }>,
 ): Promise<void> {
-  const db = await getSaaSDatabase();
-  db.run('DELETE FROM tenant_faq_entries WHERE tenant_id = ?', [tenantId]);
+  const adapter = await getSaasDbAdapter();
+  await adapter.execute('DELETE FROM tenant_faq_entries WHERE tenant_id = ?', [tenantId]);
+  const now = nowIso();
   for (const e of entries) {
-    db.run(
-      `INSERT INTO tenant_faq_entries (id, tenant_id, language, topic, question, answer, keywords_json, tags_json, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    await adapter.execute(
+      `INSERT INTO tenant_faq_entries (id, tenant_id, language, topic, question, answer, source_type, keywords_json, tags_json, is_active, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         e.id,
         tenantId,
@@ -207,13 +326,141 @@ export async function replaceTenantFaqEntries(
         e.topic,
         e.question,
         e.answer,
+        'manual',
         JSON.stringify(e.keywords ?? []),
         JSON.stringify(e.tags ?? []),
         e.is_active === false ? 0 : 1,
+        now,
       ],
     );
   }
-  persistSaaSDatabase();
+  await adapter.persistIfNeeded();
+}
+
+export interface TenantKnowledgeRow {
+  id: string;
+  language: string;
+  category: string;
+  question: string;
+  answer: string;
+  source_type: string;
+  is_active: boolean;
+  updated_at: string;
+}
+
+export async function listTenantKnowledgeEntries(tenantId: string): Promise<TenantKnowledgeRow[]> {
+  const adapter = await getSaasDbAdapter();
+  const rows = await adapter.queryAll(
+    `SELECT id, language, topic, question, answer, source_type, is_active, updated_at
+     FROM tenant_faq_entries WHERE tenant_id = ? ORDER BY updated_at DESC`,
+    [tenantId],
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    language: String(r.language),
+    category: String(r.topic),
+    question: String(r.question),
+    answer: String(r.answer),
+    source_type: String(r.source_type ?? 'manual'),
+    is_active: Number(r.is_active) !== 0,
+    updated_at: String(r.updated_at ?? ''),
+  }));
+}
+
+export async function upsertTenantKnowledgeEntries(
+  tenantId: string,
+  entries: Array<{
+    id?: string;
+    language: string;
+    category: string;
+    question: string;
+    answer: string;
+    source_type?: string;
+    is_active?: boolean;
+  }>,
+): Promise<{ inserted: number; updated: number }> {
+  const adapter = await getSaasDbAdapter();
+  let inserted = 0;
+  let updated = 0;
+  const now = nowIso();
+  for (const e of entries) {
+    const q = e.question.trim();
+    if (!q) continue;
+    let id = e.id?.trim() || '';
+    let exists = false;
+    if (id) {
+      const row = await adapter.queryOne(`SELECT id FROM tenant_faq_entries WHERE tenant_id = ? AND id = ?`, [
+        tenantId,
+        id,
+      ]);
+      exists = Boolean(row);
+    } else {
+      const row = await adapter.queryOne(
+        `SELECT id FROM tenant_faq_entries WHERE tenant_id = ? AND question = ?`,
+        [tenantId, q],
+      );
+      if (row) {
+        exists = true;
+        id = String(row.id);
+      } else {
+        id = randomUUID();
+      }
+    }
+    if (exists) {
+      await adapter.execute(
+        `UPDATE tenant_faq_entries
+         SET language = ?, topic = ?, question = ?, answer = ?, source_type = ?, is_active = ?, updated_at = ?
+         WHERE tenant_id = ? AND id = ?`,
+        [
+          e.language,
+          e.category,
+          q,
+          e.answer,
+          e.source_type?.trim() || 'manual',
+          e.is_active === false ? 0 : 1,
+          now,
+          tenantId,
+          id,
+        ],
+      );
+      updated += 1;
+    } else {
+      await adapter.execute(
+        `INSERT INTO tenant_faq_entries
+         (id, tenant_id, language, topic, question, answer, source_type, keywords_json, tags_json, is_active, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, '[]', '[]', ?, ?)`,
+        [
+          id,
+          tenantId,
+          e.language,
+          e.category,
+          q,
+          e.answer,
+          e.source_type?.trim() || 'manual',
+          e.is_active === false ? 0 : 1,
+          now,
+        ],
+      );
+      inserted += 1;
+    }
+  }
+  await adapter.persistIfNeeded();
+  return { inserted, updated };
+}
+
+export async function setTenantKnowledgeActiveState(
+  tenantId: string,
+  entryId: string,
+  isActive: boolean,
+): Promise<void> {
+  const adapter = await getSaasDbAdapter();
+  await adapter.execute(
+    `UPDATE tenant_faq_entries
+     SET is_active = ?, updated_at = ?
+     WHERE tenant_id = ? AND id = ?`,
+    [isActive ? 1 : 0, nowIso(), tenantId, entryId],
+  );
+  await adapter.persistIfNeeded();
 }
 
 export async function getTenantSettingsJson(tenantId: string): Promise<Record<string, unknown>> {
@@ -307,11 +554,12 @@ export async function findEnabledPrincipalByBridgeToken(
   const role = String(row.role);
   if (role !== 'tenant_admin' && role !== 'tenant_operator_readonly') return null;
   const id = String(row.id);
+  const ts = nowIso();
   await adapter.execute(
     `UPDATE tenant_admin_principals
-     SET bridge_token_hash = ?, bridge_token = ?, updated_at = datetime('now')
+     SET bridge_token_hash = ?, bridge_token = ?, updated_at = ?
      WHERE id = ?`,
-    [h, id, id],
+    [h, id, ts, id],
   );
   await adapter.persistIfNeeded();
   return {
@@ -484,10 +732,11 @@ export async function replaceTenantAdminPrincipals(
     const secret = it.bridge_token.trim();
     const h = hashBridgeToken(secret);
     if (!h) continue;
+    const ts = nowIso();
     await adapter.execute(
       `INSERT INTO tenant_admin_principals (id, tenant_id, role, bridge_token, bridge_token_hash, is_enabled, display_name, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
-      [id, tenantId, it.role, id, h, it.is_enabled ? 1 : 0, it.display_name?.trim() || null],
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, tenantId, it.role, id, h, it.is_enabled ? 1 : 0, it.display_name?.trim() || null, ts, ts],
     );
   }
   await adapter.persistIfNeeded();
@@ -530,6 +779,33 @@ export async function listTenantPrincipalAuditLogs(
   }));
 }
 
+export async function listRecentPrincipalAuditLogsGlobal(limit: number): Promise<PrincipalAuditLogRow[]> {
+  const adapter = await getSaasDbAdapter();
+  const cap = Math.min(Math.max(1, limit), 100);
+  const rows = await adapter.queryAll(
+    `SELECT id, tenant_id, principal_role, action, actor_auth_source, actor_role, actor_scope_type,
+            actor_tenant_slug, target_display_name, target_is_enabled, token_state, ts_iso
+     FROM tenant_admin_principal_audit_logs
+     ORDER BY ts_iso DESC
+     LIMIT ?`,
+    [cap],
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    principal_role: String(r.principal_role),
+    action: String(r.action) as PrincipalAuditLogRow['action'],
+    actor_auth_source: String(r.actor_auth_source),
+    actor_role: String(r.actor_role),
+    actor_scope_type: String(r.actor_scope_type),
+    actor_tenant_slug: r.actor_tenant_slug == null ? null : String(r.actor_tenant_slug),
+    target_display_name: r.target_display_name == null ? null : String(r.target_display_name),
+    target_is_enabled: Number(r.target_is_enabled) !== 0,
+    token_state: String(r.token_state) as PrincipalAuditLogRow['token_state'],
+    ts_iso: String(r.ts_iso),
+  }));
+}
+
 export async function mergeTenantSettings(
   tenantId: string,
   patch: Record<string, unknown>,
@@ -537,10 +813,1158 @@ export async function mergeTenantSettings(
   const current = await getTenantSettingsJson(tenantId);
   const next = { ...current, ...patch };
   const adapter = await getSaasDbAdapter();
+  const now = nowIso();
+  if (getSaaSDbDriver() === 'postgres') {
+    await adapter.execute(
+      `INSERT INTO tenant_settings (tenant_id, settings_json, updated_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT (tenant_id) DO UPDATE SET settings_json = EXCLUDED.settings_json, updated_at = EXCLUDED.updated_at`,
+      [tenantId, JSON.stringify(next), now],
+    );
+  } else {
+    await adapter.execute(
+      `INSERT OR REPLACE INTO tenant_settings (tenant_id, settings_json, updated_at)
+       VALUES (?, ?, ?)`,
+      [tenantId, JSON.stringify(next), now],
+    );
+  }
+  await adapter.persistIfNeeded();
+}
+
+export type TenantTestResultStatus = 'passed' | 'failed' | 'warning' | 'skipped';
+export type TenantTestScopeType = 'channel' | 'ai' | 'website' | 'go_live' | 'knowledge';
+
+export interface TenantTestResultRow {
+  id: string;
+  tenant_id: string;
+  scope_type: TenantTestScopeType;
+  scope_key: string;
+  status: TenantTestResultStatus;
+  message: string;
+  error_code: string | null;
+  tested_at: string;
+  tested_by: string;
+  metadata_json: string | null;
+}
+
+export async function insertTenantTestResult(args: {
+  tenant_id: string;
+  scope_type: TenantTestScopeType;
+  scope_key: string;
+  status: TenantTestResultStatus;
+  message: string;
+  error_code?: string | null;
+  tested_by: string;
+  metadata_json?: string | null;
+}): Promise<TenantTestResultRow> {
+  const id = randomUUID();
+  const tested_at = new Date().toISOString();
+  const adapter = await getSaasDbAdapter();
   await adapter.execute(
-    `INSERT OR REPLACE INTO tenant_settings (tenant_id, settings_json, updated_at)
-     VALUES (?, ?, datetime('now'))`,
-    [tenantId, JSON.stringify(next)],
+    `INSERT INTO tenant_test_results
+     (id, tenant_id, scope_type, scope_key, status, message, error_code, tested_at, tested_by, metadata_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      args.tenant_id,
+      args.scope_type,
+      args.scope_key,
+      args.status,
+      args.message,
+      args.error_code ?? null,
+      tested_at,
+      args.tested_by,
+      args.metadata_json ?? null,
+    ],
   );
   await adapter.persistIfNeeded();
+  return {
+    id,
+    tenant_id: args.tenant_id,
+    scope_type: args.scope_type,
+    scope_key: args.scope_key,
+    status: args.status,
+    message: args.message,
+    error_code: args.error_code ?? null,
+    tested_at,
+    tested_by: args.tested_by,
+    metadata_json: args.metadata_json ?? null,
+  };
+}
+
+export async function getLatestTenantTestResult(
+  tenantId: string,
+  scopeType: TenantTestScopeType,
+  scopeKey: string,
+): Promise<TenantTestResultRow | null> {
+  const adapter = await getSaasDbAdapter();
+  const row = await adapter.queryOne(
+    `SELECT id, tenant_id, scope_type, scope_key, status, message, error_code, tested_at, tested_by, metadata_json
+     FROM tenant_test_results
+     WHERE tenant_id = ? AND scope_type = ? AND scope_key = ?
+     ORDER BY tested_at DESC LIMIT 1`,
+    [tenantId, scopeType, scopeKey],
+  );
+  if (!row) return null;
+  return {
+    id: String(row.id),
+    tenant_id: String(row.tenant_id),
+    scope_type: String(row.scope_type) as TenantTestScopeType,
+    scope_key: String(row.scope_key),
+    status: String(row.status) as TenantTestResultStatus,
+    message: String(row.message),
+    error_code: row.error_code == null ? null : String(row.error_code),
+    tested_at: String(row.tested_at),
+    tested_by: String(row.tested_by),
+    metadata_json: row.metadata_json == null ? null : String(row.metadata_json),
+  };
+}
+
+export interface TenantRuntimeHealthRow {
+  tenant_id: string;
+  ai_enabled: boolean;
+  live_status: 'inactive' | 'degraded' | 'live' | 'paused';
+  last_inbound_at: string | null;
+  last_webhook_success_at: string | null;
+  last_error_message: string | null;
+  last_error_at: string | null;
+  updated_at: string;
+}
+
+export async function getTenantRuntimeHealth(tenantId: string): Promise<TenantRuntimeHealthRow | null> {
+  const adapter = await getSaasDbAdapter();
+  const row = await adapter.queryOne(
+    `SELECT tenant_id, ai_enabled, live_status, last_inbound_at, last_webhook_success_at,
+            last_error_message, last_error_at, updated_at
+     FROM tenant_runtime_health WHERE tenant_id = ?`,
+    [tenantId],
+  );
+  if (!row) return null;
+  return {
+    tenant_id: String(row.tenant_id),
+    ai_enabled: Number(row.ai_enabled) !== 0,
+    live_status: String(row.live_status) as TenantRuntimeHealthRow['live_status'],
+    last_inbound_at: row.last_inbound_at == null ? null : String(row.last_inbound_at),
+    last_webhook_success_at:
+      row.last_webhook_success_at == null ? null : String(row.last_webhook_success_at),
+    last_error_message: row.last_error_message == null ? null : String(row.last_error_message),
+    last_error_at: row.last_error_at == null ? null : String(row.last_error_at),
+    updated_at: String(row.updated_at),
+  };
+}
+
+export async function upsertTenantRuntimeHealth(args: {
+  tenant_id: string;
+  ai_enabled: boolean;
+  live_status: 'inactive' | 'degraded' | 'live' | 'paused';
+  last_inbound_at?: string | null;
+  last_webhook_success_at?: string | null;
+  last_error_message?: string | null;
+  last_error_at?: string | null;
+}): Promise<void> {
+  const adapter = await getSaasDbAdapter();
+  const now = nowIso();
+  if (getSaaSDbDriver() === 'postgres') {
+    await adapter.execute(
+      `INSERT INTO tenant_runtime_health
+       (tenant_id, ai_enabled, live_status, last_inbound_at, last_webhook_success_at, last_error_message, last_error_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (tenant_id) DO UPDATE SET
+         ai_enabled = EXCLUDED.ai_enabled,
+         live_status = EXCLUDED.live_status,
+         last_inbound_at = EXCLUDED.last_inbound_at,
+         last_webhook_success_at = EXCLUDED.last_webhook_success_at,
+         last_error_message = EXCLUDED.last_error_message,
+         last_error_at = EXCLUDED.last_error_at,
+         updated_at = EXCLUDED.updated_at`,
+      [
+        args.tenant_id,
+        args.ai_enabled ? 1 : 0,
+        args.live_status,
+        args.last_inbound_at ?? null,
+        args.last_webhook_success_at ?? null,
+        args.last_error_message ?? null,
+        args.last_error_at ?? null,
+        now,
+      ],
+    );
+  } else {
+    await adapter.execute(
+      `INSERT OR REPLACE INTO tenant_runtime_health
+       (tenant_id, ai_enabled, live_status, last_inbound_at, last_webhook_success_at, last_error_message, last_error_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        args.tenant_id,
+        args.ai_enabled ? 1 : 0,
+        args.live_status,
+        args.last_inbound_at ?? null,
+        args.last_webhook_success_at ?? null,
+        args.last_error_message ?? null,
+        args.last_error_at ?? null,
+        now,
+      ],
+    );
+  }
+  await adapter.persistIfNeeded();
+}
+
+export interface TenantGoLiveCheckRow {
+  id: string;
+  tenant_id: string;
+  status: 'not_ready' | 'partially_ready' | 'ready_to_go_live';
+  results_json: string;
+  checked_at: string;
+  checked_by: string;
+}
+
+export async function insertTenantGoLiveCheck(args: {
+  tenant_id: string;
+  status: TenantGoLiveCheckRow['status'];
+  results_json: string;
+  checked_by: string;
+}): Promise<TenantGoLiveCheckRow> {
+  const id = randomUUID();
+  const checked_at = new Date().toISOString();
+  const adapter = await getSaasDbAdapter();
+  await adapter.execute(
+    `INSERT INTO tenant_go_live_checks (id, tenant_id, status, results_json, checked_at, checked_by)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [id, args.tenant_id, args.status, args.results_json, checked_at, args.checked_by],
+  );
+  await adapter.persistIfNeeded();
+  return { id, tenant_id: args.tenant_id, status: args.status, results_json: args.results_json, checked_at, checked_by: args.checked_by };
+}
+
+export async function getLatestTenantGoLiveCheck(tenantId: string): Promise<TenantGoLiveCheckRow | null> {
+  const adapter = await getSaasDbAdapter();
+  const row = await adapter.queryOne(
+    `SELECT id, tenant_id, status, results_json, checked_at, checked_by
+     FROM tenant_go_live_checks WHERE tenant_id = ? ORDER BY checked_at DESC LIMIT 1`,
+    [tenantId],
+  );
+  if (!row) return null;
+  return {
+    id: String(row.id),
+    tenant_id: String(row.tenant_id),
+    status: String(row.status) as TenantGoLiveCheckRow['status'],
+    results_json: String(row.results_json),
+    checked_at: String(row.checked_at),
+    checked_by: String(row.checked_by),
+  };
+}
+
+export async function upsertTenantWebsiteDomain(args: {
+  tenant_id: string;
+  domain: string;
+  is_verified: boolean;
+  last_verified_at?: string | null;
+}): Promise<void> {
+  const adapter = await getSaasDbAdapter();
+  const now = nowIso();
+  if (getSaaSDbDriver() === 'postgres') {
+    await adapter.execute(
+      `INSERT INTO tenant_website_domains
+       (id, tenant_id, domain, is_verified, last_verified_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (tenant_id, domain) DO UPDATE SET
+         is_verified = EXCLUDED.is_verified,
+         last_verified_at = EXCLUDED.last_verified_at,
+         updated_at = EXCLUDED.updated_at`,
+      [randomUUID(), args.tenant_id, args.domain, args.is_verified ? 1 : 0, args.last_verified_at ?? null, now, now],
+    );
+  } else {
+    await adapter.execute(
+      `INSERT OR REPLACE INTO tenant_website_domains
+       (id, tenant_id, domain, is_verified, last_verified_at, created_at, updated_at)
+       VALUES (
+         COALESCE((SELECT id FROM tenant_website_domains WHERE tenant_id = ? AND domain = ?), ?),
+         ?, ?, ?, ?, ?, ?
+       )`,
+      [
+        args.tenant_id,
+        args.domain,
+        randomUUID(),
+        args.tenant_id,
+        args.domain,
+        args.is_verified ? 1 : 0,
+        args.last_verified_at ?? null,
+        now,
+        now,
+      ],
+    );
+  }
+  await adapter.persistIfNeeded();
+}
+
+export async function listTenantWebsiteDomains(tenantId: string): Promise<Array<{ domain: string; is_verified: boolean; last_verified_at: string | null }>> {
+  const adapter = await getSaasDbAdapter();
+  const rows = await adapter.queryAll(
+    `SELECT domain, is_verified, last_verified_at
+     FROM tenant_website_domains WHERE tenant_id = ? ORDER BY domain ASC`,
+    [tenantId],
+  );
+  return rows.map((r) => ({
+    domain: String(r.domain),
+    is_verified: Number(r.is_verified) !== 0,
+    last_verified_at: r.last_verified_at == null ? null : String(r.last_verified_at),
+  }));
+}
+
+export async function insertTenantActivityEvent(args: {
+  tenant_id: string;
+  event_type: string;
+  entity_type: string;
+  entity_id?: string | null;
+  actor_id: string;
+  from_owner_id?: string | null;
+  to_owner_id?: string | null;
+  message: string;
+  metadata_json?: string | null;
+}): Promise<void> {
+  const id = randomUUID();
+  const createdAt = new Date().toISOString();
+  const adapter = await getSaasDbAdapter();
+  await adapter.execute(
+    `INSERT INTO tenant_activity_events
+     (id, tenant_id, event_type, entity_type, entity_id, actor_id, from_owner_id, to_owner_id, message, metadata_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      args.tenant_id,
+      args.event_type,
+      args.entity_type,
+      args.entity_id ?? null,
+      args.actor_id,
+      args.from_owner_id ?? null,
+      args.to_owner_id ?? null,
+      args.message,
+      args.metadata_json ?? null,
+      createdAt,
+    ],
+  );
+  await adapter.persistIfNeeded();
+}
+
+export interface TenantActivityEventRow {
+  id: string;
+  tenant_id: string;
+  event_type: string;
+  entity_type: string;
+  entity_id: string | null;
+  actor_id: string;
+  message: string;
+  metadata_json: string | null;
+  created_at: string;
+}
+
+export async function listTenantActivityEvents(
+  tenantId: string,
+  limit: number,
+  offset: number,
+): Promise<TenantActivityEventRow[]> {
+  const adapter = await getSaasDbAdapter();
+  const cap = Math.min(Math.max(limit, 1), 200);
+  const skip = Math.max(offset, 0);
+  const rows = await adapter.queryAll(
+    `SELECT id, tenant_id, event_type, entity_type, entity_id, actor_id, message, metadata_json, created_at
+     FROM tenant_activity_events
+     WHERE tenant_id = ?
+     ORDER BY created_at DESC
+     LIMIT ? OFFSET ?`,
+    [tenantId, cap, skip],
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    event_type: String(r.event_type),
+    entity_type: String(r.entity_type),
+    entity_id: r.entity_id == null ? null : String(r.entity_id),
+    actor_id: String(r.actor_id),
+    message: String(r.message),
+    metadata_json: r.metadata_json == null ? null : String(r.metadata_json),
+    created_at: String(r.created_at),
+  }));
+}
+
+export type PlatformLogSeverity = 'info' | 'warning' | 'error';
+export type PlatformLogSource = 'webhook' | 'test' | 'runtime_health' | 'go_live' | 'lifecycle' | 'settings';
+
+export interface PlatformLogRow {
+  id: string;
+  tenant_id: string | null;
+  severity: PlatformLogSeverity;
+  source: PlatformLogSource;
+  message: string;
+  metadata_json: string | null;
+  created_at: string;
+}
+
+export async function insertPlatformLog(args: {
+  tenant_id?: string | null;
+  severity: PlatformLogSeverity;
+  source: PlatformLogSource;
+  message: string;
+  metadata_json?: string | null;
+}): Promise<void> {
+  const id = randomUUID();
+  const createdAt = new Date().toISOString();
+  const adapter = await getSaasDbAdapter();
+  await adapter.execute(
+    `INSERT INTO platform_logs (id, tenant_id, severity, source, message, metadata_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [id, args.tenant_id ?? null, args.severity, args.source, args.message, args.metadata_json ?? null, createdAt],
+  );
+  await adapter.persistIfNeeded();
+}
+
+export async function listPlatformLogs(args: {
+  severity?: PlatformLogSeverity;
+  tenant_id?: string;
+  limit: number;
+  offset: number;
+}): Promise<PlatformLogRow[]> {
+  const adapter = await getSaasDbAdapter();
+  const cap = Math.min(Math.max(args.limit, 1), 200);
+  const skip = Math.max(args.offset, 0);
+  const clauses: string[] = [];
+  const params: unknown[] = [];
+  if (args.severity) {
+    clauses.push('severity = ?');
+    params.push(args.severity);
+  }
+  if (args.tenant_id) {
+    clauses.push('tenant_id = ?');
+    params.push(args.tenant_id);
+  }
+  const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+  const rows = await adapter.queryAll(
+    `SELECT id, tenant_id, severity, source, message, metadata_json, created_at
+     FROM platform_logs
+     ${where}
+     ORDER BY created_at DESC
+     LIMIT ? OFFSET ?`,
+    [...params, cap, skip],
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    tenant_id: r.tenant_id == null ? null : String(r.tenant_id),
+    severity: String(r.severity) as PlatformLogSeverity,
+    source: String(r.source) as PlatformLogSource,
+    message: String(r.message),
+    metadata_json: r.metadata_json == null ? null : String(r.metadata_json),
+    created_at: String(r.created_at),
+  }));
+}
+
+export async function getPlatformSettings(): Promise<Record<string, string>> {
+  const adapter = await getSaasDbAdapter();
+  const rows = await adapter.queryAll('SELECT key, value FROM platform_settings ORDER BY key ASC', []);
+  const out: Record<string, string> = {};
+  for (const r of rows) {
+    out[String(r.key)] = String(r.value);
+  }
+  if (!('knowledge_ready_threshold' in out)) out.knowledge_ready_threshold = '1';
+  if (!('latest_test_freshness_days' in out)) out.latest_test_freshness_days = '7';
+  if (!('go_live_warning_error_window_hours' in out)) out.go_live_warning_error_window_hours = '24';
+  return out;
+}
+
+export async function upsertPlatformSettings(
+  patch: Record<string, string>,
+  updatedBy: string,
+): Promise<void> {
+  const adapter = await getSaasDbAdapter();
+  const now = nowIso();
+  for (const [k, v] of Object.entries(patch)) {
+    if (!k.trim()) continue;
+    if (getSaaSDbDriver() === 'postgres') {
+      await adapter.execute(
+        `INSERT INTO platform_settings (key, value, updated_at, updated_by)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT (key) DO UPDATE
+         SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at, updated_by = EXCLUDED.updated_by`,
+        [k.trim(), String(v), now, updatedBy],
+      );
+    } else {
+      await adapter.execute(
+        `INSERT OR REPLACE INTO platform_settings (key, value, updated_at, updated_by)
+         VALUES (?, ?, ?, ?)`,
+        [k.trim(), String(v), now, updatedBy],
+      );
+    }
+  }
+  await adapter.persistIfNeeded();
+}
+
+export type ConversationStatus = 'open' | 'pending' | 'resolved';
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'closed' | 'unqualified';
+
+function normalizeConversationStatus(raw: unknown): ConversationStatus {
+  const s = String(raw ?? '').trim().toLowerCase();
+  if (s === 'open' || s === 'pending' || s === 'resolved') return s;
+  if (s === 'closed') return 'resolved';
+  return 'open';
+}
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+export interface ConversationRow {
+  id: string;
+  tenant_id: string;
+  channel: string;
+  external_contact_id: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+  customer_email: string | null;
+  status: ConversationStatus;
+  current_owner_principal_id: string | null;
+  inquiry_summary: string | null;
+  last_message_at: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MessageRow {
+  id: string;
+  tenant_id: string;
+  conversation_id: string;
+  direction: 'inbound' | 'outbound' | 'system';
+  sender_type: 'customer' | 'ai' | 'agent' | 'system';
+  sender_display_name: string | null;
+  body: string;
+  metadata_json: string | null;
+  created_at: string;
+}
+
+export async function upsertInboundConversationAndMessage(args: {
+  tenant_id: string;
+  channel: string;
+  external_user_id: string;
+  external_session_id: string;
+  message_id: string;
+  body: string;
+  metadata_json?: string | null;
+}): Promise<{ conversation_id: string; conversation_created: boolean; message_inserted: boolean }> {
+  const adapter = await getSaasDbAdapter();
+  const now = nowIso();
+  const externalContactId = `${args.channel}:${args.external_user_id}:${args.external_session_id}`;
+  const existingConversation = await adapter.queryOne(
+    `SELECT id FROM conversations
+     WHERE tenant_id = ? AND channel = ? AND external_contact_id = ?
+     ORDER BY created_at DESC LIMIT 1`,
+    [args.tenant_id, args.channel, externalContactId],
+  );
+  const conversationId = existingConversation ? String(existingConversation.id) : randomUUID();
+  if (!existingConversation) {
+    const inquirySummary = args.body.trim().slice(0, 240);
+    await adapter.execute(
+      `INSERT INTO conversations
+       (id, tenant_id, channel, external_contact_id, customer_name, customer_phone, customer_email,
+        status, current_owner_principal_id, source_message_id, inquiry_summary, last_message_at, resolved_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, NULL, NULL, NULL, 'open', NULL, ?, ?, ?, NULL, ?, ?)`,
+      [conversationId, args.tenant_id, args.channel, externalContactId, args.message_id, inquirySummary, now, now, now],
+    );
+  }
+  const existingMessage = await adapter.queryOne('SELECT id FROM messages WHERE tenant_id = ? AND id = ?', [
+    args.tenant_id,
+    args.message_id,
+  ]);
+  let messageInserted = false;
+  if (!existingMessage) {
+    await adapter.execute(
+      `INSERT INTO messages
+       (id, tenant_id, conversation_id, direction, sender_type, sender_display_name, body, metadata_json, created_at)
+       VALUES (?, ?, ?, 'inbound', 'customer', 'Website visitor', ?, ?, ?)`,
+      [args.message_id, args.tenant_id, conversationId, args.body, args.metadata_json ?? null, now],
+    );
+    messageInserted = true;
+  }
+  await adapter.execute('UPDATE conversations SET last_message_at = ?, updated_at = ? WHERE tenant_id = ? AND id = ?', [
+    now,
+    now,
+    args.tenant_id,
+    conversationId,
+  ]);
+  await adapter.persistIfNeeded();
+  return {
+    conversation_id: conversationId,
+    conversation_created: !existingConversation,
+    message_inserted: messageInserted,
+  };
+}
+
+export async function listTenantConversations(args: {
+  tenant_id: string;
+  limit: number;
+  offset: number;
+  status?: ConversationStatus;
+  channel?: string;
+  owner?: string;
+}): Promise<{ total: number; rows: ConversationRow[] }> {
+  const adapter = await getSaasDbAdapter();
+  const cap = Math.min(Math.max(args.limit, 1), 200);
+  const skip = Math.max(args.offset, 0);
+  const clauses: string[] = ['tenant_id = ?'];
+  const params: unknown[] = [args.tenant_id];
+  if (args.status) {
+    clauses.push(`(status = ? OR (status = 'closed' AND ? = 'resolved'))`);
+    params.push(args.status, args.status);
+  }
+  if (args.channel) {
+    clauses.push('channel = ?');
+    params.push(args.channel);
+  }
+  if (args.owner === 'unassigned') {
+    clauses.push('(current_owner_principal_id IS NULL OR current_owner_principal_id = \'\')');
+  } else if (args.owner && args.owner !== 'all') {
+    clauses.push('current_owner_principal_id = ?');
+    params.push(args.owner);
+  }
+  const where = clauses.join(' AND ');
+  const totalRow = await adapter.queryOne(`SELECT COUNT(*) AS c FROM conversations WHERE ${where}`, params);
+  const rows = await adapter.queryAll(
+    `SELECT id, tenant_id, channel, external_contact_id, customer_name, customer_phone, customer_email,
+            status, current_owner_principal_id, inquiry_summary, last_message_at, resolved_at, created_at, updated_at
+     FROM conversations
+     WHERE ${where}
+     ORDER BY COALESCE(last_message_at, updated_at) DESC
+     LIMIT ? OFFSET ?`,
+    [...params, cap, skip],
+  );
+  return {
+    total: totalRow ? Number(totalRow.c) : 0,
+    rows: rows.map((r) => ({
+      id: String(r.id),
+      tenant_id: String(r.tenant_id),
+      channel: String(r.channel),
+      external_contact_id: String(r.external_contact_id),
+      customer_name: r.customer_name == null ? null : String(r.customer_name),
+      customer_phone: r.customer_phone == null ? null : String(r.customer_phone),
+      customer_email: r.customer_email == null ? null : String(r.customer_email),
+      status: normalizeConversationStatus(r.status),
+      current_owner_principal_id:
+        r.current_owner_principal_id == null ? null : String(r.current_owner_principal_id),
+      inquiry_summary: r.inquiry_summary == null ? null : String(r.inquiry_summary),
+      last_message_at: r.last_message_at == null ? null : String(r.last_message_at),
+      resolved_at: r.resolved_at == null ? null : String(r.resolved_at),
+      created_at: String(r.created_at),
+      updated_at: String(r.updated_at),
+    })),
+  };
+}
+
+export async function getConversationById(
+  tenantId: string,
+  conversationId: string,
+): Promise<ConversationRow | null> {
+  const adapter = await getSaasDbAdapter();
+  const r = await adapter.queryOne(
+    `SELECT id, tenant_id, channel, external_contact_id, customer_name, customer_phone, customer_email,
+            status, current_owner_principal_id, inquiry_summary, last_message_at, resolved_at, created_at, updated_at
+     FROM conversations WHERE tenant_id = ? AND id = ?`,
+    [tenantId, conversationId],
+  );
+  if (!r) return null;
+  return {
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    channel: String(r.channel),
+    external_contact_id: String(r.external_contact_id),
+    customer_name: r.customer_name == null ? null : String(r.customer_name),
+    customer_phone: r.customer_phone == null ? null : String(r.customer_phone),
+    customer_email: r.customer_email == null ? null : String(r.customer_email),
+    status: normalizeConversationStatus(r.status),
+    current_owner_principal_id: r.current_owner_principal_id == null ? null : String(r.current_owner_principal_id),
+    inquiry_summary: r.inquiry_summary == null ? null : String(r.inquiry_summary),
+    last_message_at: r.last_message_at == null ? null : String(r.last_message_at),
+    resolved_at: r.resolved_at == null ? null : String(r.resolved_at),
+    created_at: String(r.created_at),
+    updated_at: String(r.updated_at),
+  };
+}
+
+export async function listConversationMessages(args: {
+  tenant_id: string;
+  conversation_id: string;
+  limit: number;
+  before?: string;
+}): Promise<MessageRow[]> {
+  const adapter = await getSaasDbAdapter();
+  const cap = Math.min(Math.max(args.limit, 1), 200);
+  const clauses = ['tenant_id = ?', 'conversation_id = ?'];
+  const params: unknown[] = [args.tenant_id, args.conversation_id];
+  if (args.before) {
+    clauses.push('created_at < ?');
+    params.push(args.before);
+  }
+  const rows = await adapter.queryAll(
+    `SELECT id, tenant_id, conversation_id, direction, sender_type, sender_display_name, body, metadata_json, created_at
+     FROM messages WHERE ${clauses.join(' AND ')}
+     ORDER BY created_at DESC LIMIT ?`,
+    [...params, cap],
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    conversation_id: String(r.conversation_id),
+    direction: String(r.direction) as MessageRow['direction'],
+    sender_type: String(r.sender_type) as MessageRow['sender_type'],
+    sender_display_name: r.sender_display_name == null ? null : String(r.sender_display_name),
+    body: String(r.body),
+    metadata_json: r.metadata_json == null ? null : String(r.metadata_json),
+    created_at: String(r.created_at),
+  }));
+}
+
+export async function upsertConversationOwner(args: {
+  tenant_id: string;
+  conversation_id: string;
+  owner_principal_id: string | null;
+  assigned_by_principal_id: string;
+  action_type: 'assign' | 'handoff';
+  reason?: string;
+  note?: string;
+}): Promise<void> {
+  const adapter = await getSaasDbAdapter();
+  await adapter.execute(
+    `UPDATE conversation_assignments SET state = 'superseded'
+     WHERE tenant_id = ? AND conversation_id = ? AND state = 'active'`,
+    [args.tenant_id, args.conversation_id],
+  );
+  const assignmentId = randomUUID();
+  const assignedAt = nowIso();
+  await adapter.execute(
+    `INSERT INTO conversation_assignments
+     (id, tenant_id, conversation_id, owner_principal_id, assigned_by_principal_id, action_type, state, reason, note, assigned_at)
+     VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
+    [
+      assignmentId,
+      args.tenant_id,
+      args.conversation_id,
+      args.owner_principal_id,
+      args.assigned_by_principal_id,
+      args.action_type,
+      args.reason ?? null,
+      args.note ?? null,
+      assignedAt,
+    ],
+  );
+  await adapter.execute(
+    `UPDATE conversations
+     SET current_owner_principal_id = ?, updated_at = ?
+     WHERE tenant_id = ? AND id = ?`,
+    [args.owner_principal_id, assignedAt, args.tenant_id, args.conversation_id],
+  );
+  await adapter.persistIfNeeded();
+}
+
+export async function updateConversationStatus(args: {
+  tenant_id: string;
+  conversation_id: string;
+  status: ConversationStatus;
+}): Promise<void> {
+  const adapter = await getSaasDbAdapter();
+  const now = nowIso();
+  if (getSaaSDbDriver() === 'postgres') {
+    await adapter.execute(
+      `UPDATE conversations
+       SET status = ?,
+           resolved_at = CASE WHEN ? = 'resolved' THEN CAST(? AS timestamptz) ELSE NULL END,
+           updated_at = CAST(? AS timestamptz)
+       WHERE tenant_id = ? AND id = ?`,
+      [args.status, args.status, now, now, args.tenant_id, args.conversation_id],
+    );
+  } else {
+    await adapter.execute(
+      `UPDATE conversations
+       SET status = ?, resolved_at = CASE WHEN ? = 'resolved' THEN ? ELSE NULL END, updated_at = ?
+       WHERE tenant_id = ? AND id = ?`,
+      [args.status, args.status, now, now, args.tenant_id, args.conversation_id],
+    );
+  }
+  await adapter.persistIfNeeded();
+}
+
+export interface LeadRow {
+  id: string;
+  tenant_id: string;
+  conversation_id: string | null;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  source_channel: string;
+  inquiry_summary: string;
+  status: LeadStatus;
+  owner_principal_id: string | null;
+  latest_note: string | null;
+  converted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeadEventRow {
+  id: string;
+  tenant_id: string;
+  lead_id: string;
+  event_type: string;
+  actor_principal_id: string;
+  from_status: string | null;
+  to_status: string | null;
+  from_owner_principal_id: string | null;
+  to_owner_principal_id: string | null;
+  message: string;
+  metadata_json: string | null;
+  created_at: string;
+}
+
+export async function getLeadByConversationId(tenantId: string, conversationId: string): Promise<LeadRow | null> {
+  const adapter = await getSaasDbAdapter();
+  const r = await adapter.queryOne(
+    `SELECT id, tenant_id, conversation_id, name, phone, email, source_channel, inquiry_summary,
+            status, owner_principal_id, latest_note, converted_at, created_at, updated_at
+     FROM leads WHERE tenant_id = ? AND conversation_id = ? LIMIT 1`,
+    [tenantId, conversationId],
+  );
+  if (!r) return null;
+  return {
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    conversation_id: r.conversation_id == null ? null : String(r.conversation_id),
+    name: r.name == null ? null : String(r.name),
+    phone: r.phone == null ? null : String(r.phone),
+    email: r.email == null ? null : String(r.email),
+    source_channel: String(r.source_channel),
+    inquiry_summary: String(r.inquiry_summary ?? ''),
+    status: String(r.status) as LeadStatus,
+    owner_principal_id: r.owner_principal_id == null ? null : String(r.owner_principal_id),
+    latest_note: r.latest_note == null ? null : String(r.latest_note),
+    converted_at: r.converted_at == null ? null : String(r.converted_at),
+    created_at: String(r.created_at),
+    updated_at: String(r.updated_at),
+  };
+}
+
+export async function createLeadFromConversation(args: {
+  tenant_id: string;
+  conversation: ConversationRow;
+}): Promise<{ lead: LeadRow; created: boolean }> {
+  const existing = await getLeadByConversationId(args.tenant_id, args.conversation.id);
+  if (existing) return { lead: existing, created: false };
+  const id = randomUUID();
+  const now = nowIso();
+  const adapter = await getSaasDbAdapter();
+  await adapter.execute(
+    `INSERT INTO leads
+     (id, tenant_id, conversation_id, name, phone, email, source_channel, inquiry_summary, status, owner_principal_id, latest_note, converted_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, NULL, ?, ?, ?)`,
+    [
+      id,
+      args.tenant_id,
+      args.conversation.id,
+      args.conversation.customer_name,
+      args.conversation.customer_phone,
+      args.conversation.customer_email,
+      args.conversation.channel,
+      args.conversation.inquiry_summary ?? '',
+      args.conversation.current_owner_principal_id,
+      now,
+      now,
+      now,
+    ],
+  );
+  await adapter.persistIfNeeded();
+  const lead = await getLeadByConversationId(args.tenant_id, args.conversation.id);
+  if (!lead) throw new Error('lead_create_failed');
+  return { lead, created: true };
+}
+
+export async function insertLeadEvent(args: {
+  tenant_id: string;
+  lead_id: string;
+  event_type: string;
+  actor_principal_id: string;
+  from_status?: string | null;
+  to_status?: string | null;
+  from_owner_principal_id?: string | null;
+  to_owner_principal_id?: string | null;
+  message: string;
+  metadata_json?: string | null;
+}): Promise<void> {
+  const adapter = await getSaasDbAdapter();
+  await adapter.execute(
+    `INSERT INTO lead_events
+     (id, tenant_id, lead_id, event_type, actor_principal_id, from_status, to_status, from_owner_principal_id, to_owner_principal_id, message, metadata_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      randomUUID(),
+      args.tenant_id,
+      args.lead_id,
+      args.event_type,
+      args.actor_principal_id,
+      args.from_status ?? null,
+      args.to_status ?? null,
+      args.from_owner_principal_id ?? null,
+      args.to_owner_principal_id ?? null,
+      args.message,
+      args.metadata_json ?? null,
+      nowIso(),
+    ],
+  );
+  await adapter.persistIfNeeded();
+}
+
+export async function listTenantLeads(args: {
+  tenant_id: string;
+  limit: number;
+  offset: number;
+  status?: LeadStatus;
+  owner?: string;
+  channel?: string;
+}): Promise<{ total: number; rows: LeadRow[] }> {
+  const adapter = await getSaasDbAdapter();
+  const cap = Math.min(Math.max(args.limit, 1), 200);
+  const skip = Math.max(args.offset, 0);
+  const clauses = ['tenant_id = ?'];
+  const params: unknown[] = [args.tenant_id];
+  if (args.status) {
+    clauses.push('status = ?');
+    params.push(args.status);
+  }
+  if (args.owner === 'unassigned') {
+    clauses.push('(owner_principal_id IS NULL OR owner_principal_id = \'\')');
+  } else if (args.owner && args.owner !== 'all') {
+    clauses.push('owner_principal_id = ?');
+    params.push(args.owner);
+  }
+  if (args.channel) {
+    clauses.push('source_channel = ?');
+    params.push(args.channel);
+  }
+  const where = clauses.join(' AND ');
+  const totalRow = await adapter.queryOne(`SELECT COUNT(*) AS c FROM leads WHERE ${where}`, params);
+  const rows = await adapter.queryAll(
+    `SELECT id, tenant_id, conversation_id, name, phone, email, source_channel, inquiry_summary,
+            status, owner_principal_id, latest_note, converted_at, created_at, updated_at
+     FROM leads WHERE ${where}
+     ORDER BY updated_at DESC
+     LIMIT ? OFFSET ?`,
+    [...params, cap, skip],
+  );
+  return {
+    total: totalRow ? Number(totalRow.c) : 0,
+    rows: rows.map((r) => ({
+      id: String(r.id),
+      tenant_id: String(r.tenant_id),
+      conversation_id: r.conversation_id == null ? null : String(r.conversation_id),
+      name: r.name == null ? null : String(r.name),
+      phone: r.phone == null ? null : String(r.phone),
+      email: r.email == null ? null : String(r.email),
+      source_channel: String(r.source_channel),
+      inquiry_summary: String(r.inquiry_summary ?? ''),
+      status: String(r.status) as LeadStatus,
+      owner_principal_id: r.owner_principal_id == null ? null : String(r.owner_principal_id),
+      latest_note: r.latest_note == null ? null : String(r.latest_note),
+      converted_at: r.converted_at == null ? null : String(r.converted_at),
+      created_at: String(r.created_at),
+      updated_at: String(r.updated_at),
+    })),
+  };
+}
+
+export async function getLeadById(tenantId: string, leadId: string): Promise<LeadRow | null> {
+  const adapter = await getSaasDbAdapter();
+  const r = await adapter.queryOne(
+    `SELECT id, tenant_id, conversation_id, name, phone, email, source_channel, inquiry_summary,
+            status, owner_principal_id, latest_note, converted_at, created_at, updated_at
+     FROM leads WHERE tenant_id = ? AND id = ?`,
+    [tenantId, leadId],
+  );
+  if (!r) return null;
+  return {
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    conversation_id: r.conversation_id == null ? null : String(r.conversation_id),
+    name: r.name == null ? null : String(r.name),
+    phone: r.phone == null ? null : String(r.phone),
+    email: r.email == null ? null : String(r.email),
+    source_channel: String(r.source_channel),
+    inquiry_summary: String(r.inquiry_summary ?? ''),
+    status: String(r.status) as LeadStatus,
+    owner_principal_id: r.owner_principal_id == null ? null : String(r.owner_principal_id),
+    latest_note: r.latest_note == null ? null : String(r.latest_note),
+    converted_at: r.converted_at == null ? null : String(r.converted_at),
+    created_at: String(r.created_at),
+    updated_at: String(r.updated_at),
+  };
+}
+
+export async function listLeadEvents(tenantId: string, leadId: string, limit: number): Promise<LeadEventRow[]> {
+  const adapter = await getSaasDbAdapter();
+  const cap = Math.min(Math.max(limit, 1), 200);
+  const rows = await adapter.queryAll(
+    `SELECT id, tenant_id, lead_id, event_type, actor_principal_id, from_status, to_status,
+            from_owner_principal_id, to_owner_principal_id, message, metadata_json, created_at
+     FROM lead_events
+     WHERE tenant_id = ? AND lead_id = ?
+     ORDER BY created_at DESC
+     LIMIT ?`,
+    [tenantId, leadId, cap],
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    lead_id: String(r.lead_id),
+    event_type: String(r.event_type),
+    actor_principal_id: String(r.actor_principal_id),
+    from_status: r.from_status == null ? null : String(r.from_status),
+    to_status: r.to_status == null ? null : String(r.to_status),
+    from_owner_principal_id: r.from_owner_principal_id == null ? null : String(r.from_owner_principal_id),
+    to_owner_principal_id: r.to_owner_principal_id == null ? null : String(r.to_owner_principal_id),
+    message: String(r.message),
+    metadata_json: r.metadata_json == null ? null : String(r.metadata_json),
+    created_at: String(r.created_at),
+  }));
+}
+
+export async function updateLeadOwner(args: {
+  tenant_id: string;
+  lead_id: string;
+  owner_principal_id: string | null;
+}): Promise<void> {
+  const adapter = await getSaasDbAdapter();
+  await adapter.execute(
+    `UPDATE leads SET owner_principal_id = ?, updated_at = ? WHERE tenant_id = ? AND id = ?`,
+    [args.owner_principal_id, nowIso(), args.tenant_id, args.lead_id],
+  );
+  await adapter.persistIfNeeded();
+}
+
+const LEAD_STATUS_NEXT: Record<LeadStatus, LeadStatus[]> = {
+  new: ['contacted', 'unqualified'],
+  contacted: ['qualified', 'closed', 'unqualified'],
+  qualified: ['closed', 'unqualified'],
+  closed: [],
+  unqualified: [],
+};
+
+export function canTransitLeadStatus(from: LeadStatus, to: LeadStatus): boolean {
+  return LEAD_STATUS_NEXT[from].includes(to);
+}
+
+export async function updateLeadStatus(args: {
+  tenant_id: string;
+  lead_id: string;
+  status: LeadStatus;
+}): Promise<void> {
+  const adapter = await getSaasDbAdapter();
+  await adapter.execute(`UPDATE leads SET status = ?, updated_at = ? WHERE tenant_id = ? AND id = ?`, [
+    args.status,
+    nowIso(),
+    args.tenant_id,
+    args.lead_id,
+  ]);
+  await adapter.persistIfNeeded();
+}
+
+export async function getTenantReportSummary(args: {
+  tenant_id: string;
+  range: 'today' | 'last7d' | 'all_time';
+}): Promise<{
+  range: 'today' | 'last7d' | 'all_time';
+  cards: Record<string, number>;
+  channel_breakdown: Array<{ channel: string; conversations: number }>;
+  owner_breakdown: Array<{ owner_principal_id: string | null; conversations: number }>;
+}> {
+  const adapter = await getSaasDbAdapter();
+  const now = new Date();
+  let sinceIso: string | null = null;
+  if (args.range === 'today') {
+    const s = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+    sinceIso = s.toISOString();
+  } else if (args.range === 'last7d') {
+    sinceIso = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString();
+  }
+  const whereBy = (field: string): { clause: string; params: unknown[] } => {
+    if (!sinceIso) return { clause: 'tenant_id = ?', params: [args.tenant_id] };
+    return { clause: `tenant_id = ? AND ${field} >= ?`, params: [args.tenant_id, sinceIso] };
+  };
+  const totalConversationsW = whereBy('created_at');
+  const openConversationsW = whereBy('updated_at');
+  const resolvedConversationsW = whereBy('resolved_at');
+  const totalLeadsW = whereBy('created_at');
+  const newLeadsW = whereBy('created_at');
+  const qualifiedLeadsW = whereBy('created_at');
+  const handoffW = whereBy('assigned_at');
+
+  const qCount = async (sql: string, params: unknown[]) => {
+    const r = await adapter.queryOne(sql, params);
+    return r ? Number(r.c) : 0;
+  };
+
+  const total_conversations = await qCount(
+    `SELECT COUNT(*) AS c FROM conversations WHERE ${totalConversationsW.clause}`,
+    totalConversationsW.params,
+  );
+  const open_conversations = await qCount(
+    `SELECT COUNT(*) AS c FROM conversations WHERE ${openConversationsW.clause} AND (status = 'open' OR status = 'pending')`,
+    openConversationsW.params,
+  );
+  const resolved_conversations = await qCount(
+    `SELECT COUNT(*) AS c FROM conversations WHERE ${resolvedConversationsW.clause} AND (status = 'resolved' OR status = 'closed')`,
+    resolvedConversationsW.params,
+  );
+  const total_leads = await qCount(
+    `SELECT COUNT(*) AS c FROM leads WHERE ${totalLeadsW.clause}`,
+    totalLeadsW.params,
+  );
+  const new_leads = await qCount(
+    `SELECT COUNT(*) AS c FROM leads WHERE ${newLeadsW.clause} AND status = 'new'`,
+    newLeadsW.params,
+  );
+  const qualified_leads = await qCount(
+    `SELECT COUNT(*) AS c FROM leads WHERE ${qualifiedLeadsW.clause} AND status = 'qualified'`,
+    qualifiedLeadsW.params,
+  );
+  const handoff_count = await qCount(
+    `SELECT COUNT(*) AS c FROM conversation_assignments WHERE ${handoffW.clause} AND action_type = 'handoff'`,
+    handoffW.params,
+  );
+
+  const channelRows = await adapter.queryAll(
+    `SELECT channel, COUNT(*) AS c
+     FROM conversations
+     WHERE ${totalConversationsW.clause}
+     GROUP BY channel
+     ORDER BY c DESC`,
+    totalConversationsW.params,
+  );
+  const ownerRows = await adapter.queryAll(
+    `SELECT current_owner_principal_id, COUNT(*) AS c
+     FROM conversations
+     WHERE ${openConversationsW.clause}
+     GROUP BY current_owner_principal_id
+     ORDER BY c DESC`,
+    openConversationsW.params,
+  );
+
+  return {
+    range: args.range,
+    cards: {
+      total_conversations,
+      open_conversations,
+      resolved_conversations,
+      total_leads,
+      new_leads,
+      qualified_leads,
+      handoff_count,
+    },
+    channel_breakdown: channelRows.map((r) => ({ channel: String(r.channel), conversations: Number(r.c) })),
+    owner_breakdown: ownerRows.map((r) => ({
+      owner_principal_id: r.current_owner_principal_id == null ? null : String(r.current_owner_principal_id),
+      conversations: Number(r.c),
+    })),
+  };
 }

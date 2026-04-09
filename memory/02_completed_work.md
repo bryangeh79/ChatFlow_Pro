@@ -1,5 +1,463 @@
 # Completed Work
 
+## Hosted v1 最终门禁前补强（knowledge publish 服务端硬校验）✅（2026-04-09）
+
+**名称**：`Hosted v1 gate hardening / knowledge transition authz`  
+**交付**：knowledge 状态推进相关接口新增服务端 readonly 硬拒绝与清晰错误返回；前端错误提示口径改为优先展示服务端 `message`。  
+**验证**：tenant_admin 正常状态链通过；tenant_operator_readonly 在 publish/review 被 403 `knowledge_transition_forbidden` 明确拒绝；overview/setup/reports/go-live 复核通过。  
+**边界**：未扩功能、未开新主线、未升版本。  
+**版本**：**1.7.108**。  
+
+## 商业 SaaS 后台 UX 第二阶段（P1 首批短回归确认）✅（2026-04-09）
+
+**名称**：`P1 first-batch short regression`  
+**交付**：完成 Reports 下钻、Knowledge review/publish 状态流、Setup/Overview 一致性短回归，并在 Postgres 实租户路径完成最小复核。  
+**验证结果**：关键链路（tenant/knowledge/webhook/inbox/leads/reports/overview）均通过，无新增显性回归。  
+**边界**：未扩 P1 新功能、未升版本。  
+**版本**：**1.7.108**。  
+
+## 商业 SaaS 后台 UX 第二阶段（P1 首批实现）✅（2026-04-09）
+
+**名称**：`UX Phase 2 / P1 first batch`  
+**交付**：`public/tenant-app.html` — Reports 关键下钻（带筛选上下文）、Knowledge review/publish 最小闭环（状态推进+失败反馈+readonly 限制提示）、Setup 与 Overview 完成条件/阻塞提示深化。  
+**未做**：P1 全量、复杂图表、富文本编辑器、导出、新页面扩面、版本升级。  
+**版本**：**1.7.108**。  
+
+## 商业 SaaS 后台 UX 第二阶段（P1 前置 residual 预修）✅（2026-04-09）
+
+**名称**：`P1 preflight residual fix (knowledge/faq/platform settings)`  
+**交付**：`src/saas/repository.ts` 对三条高概率写路径完成 adapter 化与 postgres 兼容处理；避免 P1 触发 sqljs-only 写入崩溃。  
+**验证**：Postgres hosted 下最小写入验证通过（knowledge create/disable/enable、FAQ put、platform settings put/get）。  
+**未做**：P1 功能实现、页面扩面、版本升级。  
+**版本**：**1.7.108**。  
+
+## 商业 SaaS 后台 UX 第二阶段（P0 稳定观察 + P1 放行前确认）✅（2026-04-09）
+
+**名称**：`P0 stability observation closeout`  
+**交付 1（重复稳定性）**：在 Postgres hosted 路径再执行完整最小链路冒烟（tenant_create -> webhook -> inbox/leads actions）全部通过，未见波动。  
+**交付 2（残留清点）**：完成 sqljs-only / sqlite 方言残留盘点，确认 P0 主链已安全，识别到 P1 可能触发的非主链写路径仍有 `getSaaSDatabase` 依赖。  
+**未做**：P1 功能实现、页面扩面、版本升级。  
+**版本**：**1.7.108**。  
+
+## 商业 SaaS 后台 UX 第二阶段（P0 真实阻塞修复）✅（2026-04-09）
+
+**名称**：`UX Phase 2 / P0 hosted blockers fix`  
+**交付**：
+- `src/saas/repository.ts`：修复 Postgres 建租户 SQL 兼容；将 P0 关键运营链路写入（test/runtime/activity/conversation/lead）迁移到 adapter 路径，避免 postgres 触发 sqljs-only 写入崩溃。
+- `src/saas/tenant-webhook-http.ts`：`tenant_secret_missing` / `signature_invalid` 增加可执行 guidance 返回，不降低签名安全边界。
+- `src/webhooks/website.ts`：新增 website 入站持久化（conversation/message）与 `persistence` 诊断输出。
+**验证**：Postgres 真链路二次实租户冒烟通过（建租户、AI、secret、webhook、Inbox/Leads 数据、最小动作均通过）。  
+**未做**：P1 实现、新页面扩面、版本升级。  
+**版本**：**1.7.108**。  
+
+## 商业 SaaS 后台 UX 第二阶段（P0 真实租户冒烟 + P1 设计真源）✅（2026-04-09）
+
+**名称**：`UX Phase 2 / P0 real-tenant smoke + P1 design source`  
+**交付 1（验证）**：完成最小路径实租户冒烟，确认 P0 主链可执行能力与真实阻塞点（postgres 建租户崩溃、tenant webhook secret 门禁、website->conversation 生成断点）。  
+**交付 2（设计）**：新增 `docs/internal/chatflow-pro-saas-admin-ux-phase2-p1-design-source.md`，覆盖 Reports 关键下钻、Knowledge 发布/复核闭环、Setup/首页状态深化，并逐项包含目标/入口/输入/成功/失败/下一步/P1归类/写入需求/hosted签核影响。  
+**未做**：P1 实现、新页面扩展、复杂图表、富文本增强、版本升级。  
+**版本**：**1.7.108**。  
+
+## 商业 SaaS 后台 UX 第二阶段（P0 实现）✅（2026-04-09）
+
+**名称**：`UX Phase 2 / P0 真闭环实现（Setup + Daily Ops）`  
+**交付**：`public/tenant-app.html` — `fetchSetupSnapshot`、真实 Setup 步骤状态计算与阻塞展示；Setup step detail 接入真实 API 动作（settings/ai/channels/knowledge/test/go-live）；Overview/Settings/Setup 真实联动；Inbox/Leads/Handoff 至少各一条真实动作链闭环（含成功/失败反馈与刷新）。  
+**未做**：P1/P2、后端结构性改造、新页面扩展、版本升级。  
+**版本**：**1.7.108**。  
+
+## 商业 SaaS 后台 UX 第二阶段（设计真源）✅（2026-04-09）
+
+**名称**：`UX Phase 2 / 首次配置到日常运营闭环设计真源`  
+**交付**：`docs/internal/chatflow-pro-saas-admin-ux-phase2-design-source.md` — Scope Lock、User Journey Map、Onboarding Flow、Daily Ops Flow、Blocker Map、P0/P1/P2 清单、Next Implementation Recommendation、Final Recommendation。  
+**未做**：代码实现、后端改动、真实写入接线、新页面扩展、版本升级。  
+**版本**：**1.7.108**（设计阶段）。  
+
+## 商业 SaaS 租户后台 UI — 最终收口轮（全主面一致性总校）✅（2026-04-09）
+
+**名称**：`Tenant app / 全主面 UI 一致性收口`  
+**交付**：`public/tenant-app.html` — 七个主面统一文案系统、动作命名、fallback banner、placeholder alert 语气、状态语义边界；完成结构与间距总校（标题区、toolbar、card、list、side panel、empty/loading/fallback）。  
+**未做**：后端改动、真实写入接线、新页面扩展、`package.json` 升级。  
+**版本**：**1.7.108**。
+
+## 商业 SaaS 租户后台 UI — 第 9 轮（polish Overview / Settings）✅（2026-04-09）
+
+**名称**：`Tenant app / Overview + Settings 统一语言扩展`  
+**交付**：`public/tenant-app.html` — 新增 `ov-*`、`stg-*`；Overview 状态条/KPI/任务与事件/快速动作统一；Settings 首页/Setup hub/Setup detail/Advanced shell 统一 status chip、banner、action 区、loading 壳。  
+**未做**：后端改动、真实写入、新页面扩展、Reports 深 polish、**未**升 patch。  
+**版本**：**1.7.108**。
+
+## 商业 SaaS 租户后台 UI — 第 8 轮（统一列表页细化）✅（2026-04-09）
+
+**名称**：`Tenant app / Inbox + Leads + Knowledge 统一 workbench 体验层`  
+**交付**：`public/tenant-app.html` — 新增 `wb-*` 通用层与统一状态语义 `st-*`；三页统一 toolbar / list row / detail & side panel / empty & banner / loading skeleton；顶部动作区统一含保存视图与占位动作。  
+**未做**：真实写入、真实发布/分配、后端变更、**未**升 patch。  
+**版本**：**1.7.108**。
+
+## 商业 SaaS 租户后台 UI — 第 7 轮（Knowledge 阅读 / 管理壳层）✅（2026-04-09）
+
+**名称**：`Tenant app / Knowledge 内容中心 — 工具条 + 三栏阅读结构 + 状态筛选 + 上下文侧栏 + 业务跳转`  
+**交付**：`public/tenant-app.html` — Knowledge 专用 CSS；`MOCK_KNOWLEDGE`、`normalizeKnowledgeEntry`、`statusTagClass`、`statusLabel`、`knowledgeFiltered`、`viewKnowledge` 重写；支持搜索/分类/状态/语言筛选、统一空态、详情阅读区与右侧 Quick actions。  
+**未做**：真实知识写入/发布、富文本编辑器、版本历史、真实 usage 统计、**未**升 patch。  
+**版本**：**1.7.108**。
+
+## 商业 SaaS 租户后台 UI — 第 6 轮（Reports 管理视角壳层）✅（2026-04-09）
+
+**名称**：`Tenant app / Reports 报表中心 — 工具条 + KPI + Trend/Breakdown/Exceptions + 分组导航 + 闭环跳转`  
+**交付**：`public/tenant-app.html` — Reports 专用 CSS；`REPORT_TABS`、`REPORT_RANGE_API`、`MOCK_REPORT_CARDS`、`reportsSectionFromPath`、`repNavHtml`、`repSectionPanel`、`viewReports` 重写；`route` 支持 `/app/reports/*`；`setNav` 激活 `/app/reports` 前缀；`/app/reports/` 归一。  
+**未做**：真实导出、保存视图持久化、30d/90d/custom 后端 range、复杂图表、Knowledge 深页、**未**升 patch。  
+**版本**：**1.7.108**。
+
+## 商业 SaaS 租户后台 UI — 第 5 轮（Leads 中心壳层）✅（2026-04-09）
+
+**名称**：`Tenant app / Leads 三栏线索中心 + KPI + 筛选 + 时间线占位`  
+**交付**：`public/tenant-app.html` — Leads 专用 CSS；`MOCK_LEADS`、`normalizeLead`、`leadBucket`、`leadsFiltered`、`leadsKpiStats`、`buildLeadTimelineHtml`、`viewLeads` 重载。  
+**未做**：真实 lead 更新、follow-up/转化关闭 API、Reports 深页、**未**升 patch。  
+**版本**：**1.7.108**。
+
+## 商业 SaaS 租户后台 UI — 第 4 轮（Inbox 工作台壳层）✅（2026-04-09）
+
+**名称**：`Tenant app / Inbox 三栏工作台 + 筛选 + 时间线/侧栏占位`  
+**交付**：`public/tenant-app.html` — Inbox CSS；`MOCK_INBOX_CONVERSATIONS`、`normalizeInboxConversation`、`inboxFiltered`、`buildInboxTimelineHtml`、`viewInbox` 重载。  
+**未做**：真实回复发送、handoff/状态写入、Leads 深页、**未**升 patch。  
+**版本**：**1.7.108**。
+
+## 商业 SaaS 租户后台 UI — 第 3 轮（Channels 向导壳层）✅（2026-04-09）
+
+**名称**：`Tenant app / Channels 接入中心 + Settings 子总览 + 六渠道四步向导`  
+**交付**：`public/tenant-app.html` — `fetchChannelsBundle`、`buildIntegrationCardsHtml`、`viewSettingsChannelsOverview`、`viewChannelWizard`、`mountLegacyChannelsEditor`；路由与 `setNav` 联动；`setup/channels` → `settings/channels`。  
+**未做**：向导真实写入、webhook 真校验、统一 test message 深逻辑、Inbox、**未**升 patch。  
+**版本**：**1.7.108**。
+
+## 商业 SaaS 租户后台 UI — 第 2 轮（Settings IA 壳层）✅（2026-04-09）
+
+**名称**：`Tenant app / Settings — Setup vs Advanced 信息架构 + 子路由骨架`  
+**交付**：`public/tenant-app.html` — `viewSettingsHome`、`viewSettingsSetupHub`、`viewSetupStepDetail`、`viewAdvancedShell` 等；路由见 `memory/05`；`setNav` 对 `/app/settings` 前缀激活 Settings。  
+**未做**：真实配置读写、Channels 深向导、go-live 提交、Recovery 深页、像素级品牌。  
+**版本**：**1.7.108**（**未**升 patch）。
+
+## 商业 SaaS 租户后台 UI — 第 1 轮（App Shell + Overview）✅（2026-04-09）
+
+**名称**：`Tenant app / 浅色壳层 + 主导航 + Overview 行动首页骨架`  
+**交付**：`public/tenant-app.html` — 7 项导航、顶栏、折叠 API 连接、Overview **MOCK_OVERVIEW**（状态条 / 四卡 / 双栏 / 快捷操作）；签核模板 **alert** 提示仓库路径（`docs/internal/...`）。  
+**未做（第 1 轮时点）**：后端改动、Overview 接真实 API；Settings 深层已由 **第 2 轮壳层** 部分承接（仍无真实写入）。  
+**版本**：**1.7.108**。
+
+## Phase E — Hosted v1 Gate ✅ Overall Closeout / Sealed（2026-04-09）
+
+**名称**：`Phase E overall / Hosted v1 门禁真源总收口`  
+**状态**：**closed / sealed**；**无**业务代码；**无**新增 verify；**不**升 `package.json`。
+
+**交付**：
+- **Closeout 真源**：`docs/internal/phase-e-overall-closeout.md` — 解决/未解决边界、E1/E2/E3 清单、可交付 100% vs hosted v1 达标、禁止 E 扩面。
+- **交叉更新**：`phase-e-hosted-v1-go-live-gate-design.md`、`phase-e-hosted-v1-index.md`、`d-c4-overall-closeout.md`（后续主线句）。
+- **口径**：**可卖 / 可交付（规程包）= 100%**；**hosted v1 须实际签核**。
+
+**明确未做**：E2-e、E3 扩面、自动化判定器、改 D-C3/D-C4 语义。
+
+## Phase E1 — Hosted v1 文档包 ✅ 已交付（2026-04-09）
+
+**名称**：`Phase E1 / SOP 交叉引用 + 签核模板 + 文档入口`  
+**状态**：**仅 Markdown**；**无**新 npm scripts、**无** verify、**无**业务代码；**不**改 D-C3/D-C4 **实现语义**。
+
+**交付**：
+- **入口**：`docs/internal/phase-e-hosted-v1-index.md` — 必读 vs D-C 专用、已具备/未具备、E2/E3 边界。
+- **签核模板**：`docs/internal/phase-e-hosted-v1-signoff-template.md` — Block / Manual / Evidence、Build·CI·Staging·RC·Prod、No-Go、Go/No-Go、签核人。
+- **SOP**：`install-sop.md`、`backup-restore-sop.md`、`rollback-sop.md` — Hosted v1（Phase E）节；`d-c3-operator-runbook.md` — 标明 **非**全量 hosted v1 门禁。
+- **设计稿更新**：`phase-e-hosted-v1-go-live-gate-design.md` — E1 落地指针与文档状态表。
+- **版本**：**1.7.108**（**不**升 patch）。
+
+**明确未做（交付时点）**：E2 规格实现、E3、脚本化 gate — **E2-a~d 已于后续文档交付**（见下节）。
+
+## Phase E2 — Hosted v1 清单规格化 设计真源 ✅ 已交付（设计稿 · 2026-04-09）
+
+**名称**：`Phase E2 / 检查清单规格 · 证据 schema · 环境矩阵 — 设计`  
+**状态**：范围锁定 **仍有效**；**E2-a~E2-d** 见下节 **规格真源**。
+
+**交付**：
+- **设计真源**：`docs/internal/phase-e2-hosted-v1-scope-lock-design.md` — E2 独有价值 vs E1、与 D-C4/E3 边界、候选 E2-a～e、Go/No-Go、误扩风险、建议。
+- **交叉更新**：`phase-e-hosted-v1-go-live-gate-design.md` §7、`phase-e-hosted-v1-index.md` 必读表与 §4。
+- **版本**：**1.7.108**（**不**升 patch）。
+
+## Phase E2 — E2-a ~ E2-d 规格真源 ✅ 已交付（文档实现 · 2026-04-09）
+
+**名称**：`Phase E2 implementation / chk_id 注册表 + 证据字段 + 环境矩阵 + 签核前置`  
+**状态**：**仅 Markdown**；**无** verify、**无** npm scripts、**无**业务代码；**不**改 D-C3/D-C4 **实现语义**；**不**改 E1 模板 **结构**（仅 **真源行** 增链）。
+
+**交付**：
+- **规格真源**：`docs/internal/phase-e2-hosted-v1-checklist-spec.md` — E2-a 注册表、E2-b 证据 `kind` 与必填/选填、E2-c `CI/RC/Staging/Prod` 格、E2-d 前置与 Phase E §4.2 对照。
+- **交叉更新**：`phase-e2-hosted-v1-scope-lock-design.md`（文档状态）、`phase-e-hosted-v1-go-live-gate-design.md`、`phase-e-hosted-v1-index.md`、`phase-e-hosted-v1-signoff-template.md`（真源指针）。
+- **版本**：**1.7.108**（**不**升 patch）。
+
+**明确未做**：**E2-e**、**E3 扩面**、JSON Schema 文件、自动化 gate、verify 扩面。
+
+## Phase E3 — Hosted v1 只读聚合 设计真源 ✅ 已交付（设计稿 · 2026-04-09）
+
+**名称**：`Phase E3 / 只读聚合 — 范围锁定（设计）`  
+**状态**：范围锁定 **仍有效**；**只读聚合实现** 见下节。
+
+**交付**：
+- **设计真源**：`docs/internal/phase-e3-hosted-v1-readonly-aggregate-scope-lock-design.md` — E3 唯一问题、与 E1/E2/D-C4C 边界、无设计合并 bundle 禁令、非 gate/非修复器、E3-a~d 极小候选、Go/No-Go、风险、建议。
+- **交叉更新**：`phase-e-hosted-v1-go-live-gate-design.md`、`phase-e-hosted-v1-index.md`、`phase-e-hosted-v1-signoff-template.md`（真源指针）。
+- **版本**：**1.7.108**（**不**升 patch）。
+
+## Phase E3 — Hosted v1 只读聚合报告 ✅ 已交付（实现 · 2026-04-09）
+
+**名称**：`Phase E3 implementation / 只读聚合报告工件`  
+**状态**：**规格 + 模板 + 样例 + 可选脚本**；**无** verify、**无** `package.json` script；**无**业务写路径；**不**改 D-C3/D-C4/E1/E2 **语义**。
+
+**交付**：
+- **实现规格**：`docs/internal/phase-e3-hosted-v1-readonly-aggregate-report-spec.md` — E3-a~d。
+- **模板 / 样例**：`phase-e3-hosted-v1-readonly-aggregate-report.template.md`、`docs/internal/samples/phase-e3-hosted-v1-readonly-aggregate-report.example.md`。
+- **可选生成器**：`scripts/e3-hosted-v1-readonly-aggregate-report.mjs` — **仅** fs 读白名单、`stdout` Markdown。
+- **交叉更新**：`phase-e3-hosted-v1-readonly-aggregate-scope-lock-design.md`（文档状态）、`phase-e-hosted-v1-go-live-gate-design.md`、`phase-e-hosted-v1-index.md`、`phase-e-hosted-v1-signoff-template.md`。
+- **版本**：**1.7.108**（**不**升 patch）。
+
+**明确未做**：`verify:e3`、D-C4C bundle 成员变更、自动化 gate、业务代码扩面。
+
+## Phase E — Hosted v1 Go-Live Gate 设计真源 ✅ 已交付（设计稿 · 2026-04-09）
+
+**名称**：`Phase E / Hosted v1 Go-Live Gate — 设计`  
+**交付**：`docs/internal/phase-e-hosted-v1-go-live-gate-design.md`（**仍**为矩阵真源；E1 在其上叠文档包）。
+
+## Phase D-C4 — 总线 ✅ Closed / Sealed（2026-04-09）
+
+**名称**：`Phase D-C4 overall / 恢复后一致性治理 — closeout`  
+**状态**：**Bryan 正式收口** — **不再**立项 D-C4 后续子线；**无**新代码、**无**新 verify、**无**版本 bump（保持 **1.7.108**）。
+
+**交付**：
+- **Closeout 真源**：`docs/internal/d-c4-overall-closeout.md` — 解决/未解决边界、A/B/C 交付表、关闭理由、禁止 D-C4 扩面。
+- **交叉更新**：`d-c4-recovery-consistency-design.md` 页眉与文档状态、`d-c4-design-review-package.md` posture、`d-c4c-design-scope-lock.md` 文档状态脚。
+- **子切片**：**D-C4A、D-C4B（B1+B2）、D-C4C（C1+C2）= completed**（历史条目见下文，**不**删除）。
+
+**明确未做**：任何新 D-C4 子线、D-C3C、自动补偿、修复器。
+
+## Phase D-C2C1 — dedupe retention cleanup（第一刀）✅ Accepted / Completed（2026-04-09）
+
+**归档摘要（最终）**：**Completed & Archived**。本轮 scope **已冻结**（不新增定时任务、告警、state cleanup、audit/file 保留、D-C3、UI、Redis 等扩展）。**sqljs** `verify:d-c2c1-dedupe-retention` 已通过；**Postgres** 全库/租户 dry-run、apply、second apply 已通过；联调 **`deleted=0`** 因当时库内 **无** cold completed（`COALESCE(completed_at,last_seen_at) < cutoff` 未触发），**非实现缺陷**。**未来**仅当库内出现上述 cold completed 样本时，**按原脚本**补跑 **dry-run → apply → second apply**，验证 `deleted>0` 与二次 apply 归零。
+
+**名称**：`Phase D-C2C1 / D-B3 dedupe 表冷 completed 清理脚本 + dry-run|apply + verify`  
+**状态**：**验收通过**；**不进入 D-C2C2**；**不扩**定时任务、告警、state cleanup、audit/file retention、D-C3、UI、Redis。
+
+**交付**：
+- **实现**：`src/saas/dedupe-retention-cleanup.ts`；`scripts/saas-dedupe-retention-cleanup.mjs`（`--dry-run` | `--apply`，`--max-rows`，`--tenant-id`，`CHATFLOW_DEDUPE_RETENTION_DAYS`）；仅删 `status=completed` 且 `COALESCE(completed_at,last_seen_at)<cutoff`；`processing` **永不删**，仅 `processing_stale_count` 统计。
+- **sqljs 验证**：`npm run verify:d-c2c1-dedupe-retention` **已通过**（种子 → dry-run → apply → processing/近期 completed 保留 → 二次 apply 幂等）。
+- **真实 Postgres 联调**：全库 dry-run、租户范围 dry-run（`t_d_b3_unified`）、小 `max_rows` 连续两次 apply **均已通过**；**本轮三表 `deleted=0`** — 因目标库当前 **无** 满足 cutoff 的 **cold completed** 样本（`COALESCE(completed_at,last_seen_at) < cutoff` 未触发），属 **样本条件未触发**，**非实现缺陷**。
+- **npm**：`saas:dedupe:retention:dry-run` / `saas:dedupe:retention:apply`；版本收口见 `package.json`（本线 **1.7.102**）。
+
+**待未来触发项**：当库内出现 cold completed 样本后，用**同一脚本**再跑一轮，验证 **`deleted>0`** 且 **第二次 apply 三表 `deleted=0`、候选归零**。
+
+## Phase D-C4C — C1+C2 实现 ✅ 已交付（2026-04-09）
+
+**名称**：`Phase D-C4C / 只读 verify bundle + CI·RC·Staging 门禁（仅 C1+C2）`  
+**状态**：**只读** orchestrator + 文档 + CI 一步；**无**业务写路径；**不**改 D-C3A/B/D-C4A/D-C4B 源码语义。
+
+**交付**：
+- **C1 规格**：`docs/internal/d-c4c-readonly-governance-bundle-spec.md` — 成员表、环境、失败语义。
+- **C2 门禁**：`docs/internal/d-c4c-ci-rc-staging-gates.md` — **Block / manual review / evidence** 分表；CI vs RC vs Staging vs 生产。
+- **脚本**：`scripts/verify-d-c4c-readonly-governance-bundle.mjs`；npm `verify:d-c4c-readonly-governance-bundle`、`verify:d-c4c-readonly-governance-bundle:ci`。
+- **CI**：`.github/workflows/ci.yml` — Build 后跑 `:ci`（**block merge**）。
+- **证据示例**：`docs/internal/d-c4c-evidence-run-record.example.json`（**C3** 极小落地）。
+- **交叉更新**：`d-c4c-design-scope-lock.md`、`d-c4-recovery-consistency-design.md` §6、`d-c4-design-review-package.md`、`d-c4b-delivery-drill-checklist.md` 指针。
+- **版本**：**1.7.108**。
+
+**设计真源（仍有效）**：`docs/internal/d-c4c-design-scope-lock.md`。
+
+**明确未做**：`saas:recovery:readonly-check` 进 CI 默认、deployment-info 在线对账、D-C3B 联动、自动补偿；**D-C4 总线已关闭**，**不**再开新 D-C4 子线。
+
+## Phase D-C4B — B1+B2 文档实现 ✅ 已交付（2026-04-09）
+
+**名称**：`Phase D-C4B / runbook + 决策表 + 交付演练对齐（仅 B1+B2）`  
+**状态**：**仅 Markdown + SOP 指针**；**无** TS/业务写路径、**无**新 verify、**不**改 D-C3A/B/D-C4A 源码语义。
+
+**交付**：
+- **B1 决策表**：`docs/internal/d-c4b-recovery-decision-table.md` — `overall_tier` × 允许/禁止/升级/reopen；R1–R7 交叉；书面留痕。
+- **B2 交付/演练**：`docs/internal/d-c4b-delivery-drill-checklist.md` — restore/rollback/install 口径、tabletop 最小步骤、验收表。
+- **Runbook §6**：`docs/internal/d-c3-operator-runbook.md` — Post-restore 固定顺序（先 D-C4A → 决策表 → 条件允许再走 D-C3A/B）。
+- **交付 SOP**：`docs/internal/backup-restore-sop.md`、`rollback-sop.md`、`install-sop.md` — Post-restore / post-rollback / install 升格路径。
+- **交叉更新**：`d-c4-recovery-consistency-design.md` §6、`d-c4-design-review-package.md`、`d-c4a-recovery-readonly-check-spec.md`（「输出怎么用」指针）、`d-c4b-design-scope-lock.md` 文档状态。
+- **版本收口**：**1.7.107** — `package.json` 作为 **D-C4B（B1+B2）文档交付** 锚点 patch。
+
+**明确未做**：B3/B4、D-C4C、任何 repair/apply 自动化、业务代码/verify 增量。
+
+## Phase D-C4A — 恢复后只读核查 pack ✅ 已交付（2026-04-09）
+
+**名称**：`Phase D-C4A / recovery-readonly-check`  
+**状态**：**已实现（只读）**；**不**含写路径、**不**绑 D-C3B 批量。
+
+**交付**：
+- **规格**：`docs/internal/d-c4a-recovery-readonly-check-spec.md`。
+- **模块**：`src/saas/recovery-readonly-check.ts` — `runRecoveryReadonlyCheck`；**仅** `queryOne`/`queryAll` + `listDedupeConsistencyGaps` + `fs.stat`。
+- **CLI**：`scripts/recovery-readonly-check.mjs`；`npm run saas:recovery:readonly-check`。
+- **验证**：`npm run build && npm run verify:d-c4a-recovery-readonly-check`。
+- **版本**：**1.7.106**。
+
+**明确未做**：D-C4B/C、自动补偿、修表、UI/API、Redis/队列、改 D-C3A/B 行为。
+
+## Phase D-C4 — 设计评审收口包 ✅ 已交付（评审文档 · 2026-04-09）
+
+**名称**：`Phase D-C4 / 设计评审包 — 可评审·可放行·可拒绝`  
+**状态**：**仅评审文档**（历史）；**现** D-C4A/B/C **completed**，**Phase D-C4 overall closed** — `d-c4-overall-closeout.md`。
+
+**交付**：
+- **评审入口**：`docs/internal/d-c4-design-review-package.md` — Review scope、解决/不解决、**D-C4A 极小候选锁**、Bryan checklist、误判清单 M1–M6、Go/No-Go、六问、Final recommendation。
+- **上游设计**（不变）：`docs/internal/d-c4-recovery-consistency-design.md`。
+
+**明确未做**：D-C4A 代码、新 verify、改 package.json、改 D-C3A/B、自动补偿。
+
+## Phase D-C4 — 恢复后一致性治理 · 设计真源 ✅ 已交付（设计稿 · 2026-04-09）
+
+**名称**：`Phase D-C4 / restore·rollback·partial restore 后对账与处置 — 设计`  
+**状态**：**设计长文**（保留）；A/B/C **已实现**；**Phase D-C4 overall closed**；**不**等于 D-C3C。
+
+**交付**：
+- **设计真源**：`docs/internal/d-c4-recovery-consistency-design.md` — scope lock、gap 矩阵（R1–R7）、恢复策略与核查顺序、incident/runbook 黑名单、演练规格、建议拆包 D-C4A/B/C、七问自检。
+- **版本**：仍 **1.7.105**（纯设计 **不**升 patch）。
+
+**明确未做**：任何代码、verify 脚本、UI、自动补偿、改 D-C3 工具。
+
+## Phase D-C3 — Closeout（收口真源 + runbook + 验收 + verify bundle）✅ 已交付（2026-04-09）
+
+**名称**：`Phase D-C3 / A+B 收口与验收包`  
+**状态**：**文档与脚本收口**；**不**进入 D-C3C；**不**改 D-C3A/B 核心逻辑。
+
+**交付**：
+- **Closeout 真源**：`docs/internal/d-c3-closeout.md`（解决/未解决、A/B 边界、D-C3C 冻结理由、最低治理标准、五大问题）。
+- **运维 Runbook**：`docs/internal/d-c3-operator-runbook.md`。
+- **演练/验收清单**：`docs/internal/d-c3-acceptance-checklist.md`。
+- **Verify**：`npm run verify:d-c3-bundle`（build + D-C3A + D-C3B）；`npm run verify:d-c3-closeout`（bundle + `scripts/verify-d-c3-closeout-assets.mjs`）。
+- **版本**：**1.7.105**。
+
+**明确未做**：D-C3C、自动补偿、批量/UI/API、Redis/队列、扩 action 白名单。
+
+**关闭声明**：**D-C3 子线正式 sealed** — 不再沿 D-C3 扩补偿/批量/UI。
+
+## Phase D-C3B — 单键人工 dedupe 修复 ✅ 已交付（2026-04-09）
+
+**名称**：`Phase D-C3B / 单键人工闭环工具（默认关闭）`  
+**状态**：**已实现**；**验收**：`npm run build` + `npm run verify:d-c3b-manual-repair` **通过**；**禁止**在本刀扩 D-C3C / 批量 / UI。
+
+**交付**：
+- **规格**：`docs/internal/d-c3b-manual-repair-spec.md`（入口边界、action 白名单、`close_as_completed` / `release_for_retry` 条件、审计字段、黑名单）。
+- **模块**：`src/saas/dedupe-manual-repair.ts` — `runDedupeManualRepair`（Postgres-only gate）、`executeDedupeManualRepairOnAdapter`（验证用）；dry-run **零写入**；apply **审计行** + 可选 `dedupe_manual_repair` 结构化日志。
+- **迁移**：`pg_0015_phasedc3b_dedupe_manual_repair_audit.sql`；registry `pg_0015_phasedc3b_dedupe_manual_repair_audit`。
+- **CLI**：`npm run saas:dedupe:manual-repair -- ...`（`scripts/dedupe-manual-repair.mjs`）。
+- **版本**：**1.7.104**。
+
+**明确未做**：D-C3C、自动补偿、批量 UPDATE/DELETE、后台 UI、Redis/队列/cron、D-C2C2、公开修复 API。
+
+## Phase D-C3A — dedupe 只读对账层 ✅ 已交付（2026-04-09）
+
+**名称**：`Phase D-C3A / G1·G2·G3 可疑键清单（只读）`  
+**状态**：**已实现**；**验收**：`npm run build` + `npm run verify:d-c3a-readonly-recon` **通过**；**禁止** D-C3B/C 在本刀混做。
+
+**交付**：
+- **规格**：`docs/internal/d-c3a-readonly-recon-spec.md`（最小输出字段：`tenant_id`、`lane`、`channel`/`event_type`、`idempotency_key_fp`、`current_status`、`current_version`、`evidence_http_or_provider`、时间戳、`recommended_action`、`gap_kind`）。
+- **模块**：`src/saas/dedupe-consistency-readonly.ts` — `listDedupeConsistencyGaps` **仅 SELECT**；`sqljs` 路径 **零行** + `postgres_only` 说明。
+- **CLI**：`npm run saas:dedupe:consistency:report`。
+- **启发式**：`processing` + `last_seen_at < cutoff(stale_minutes)` → `g1_notify_processing_stale` / `g2_outbound_processing_stale` / `g3_inbound_processing_stale`（DB-only，可能含慢请求假阳性；`recommended_action` 要求对日志再判）。
+
+**明确未做**：写修复、自动补偿、UI、Redis/队列、定时任务、D-C2C2、D-C3B/C。
+
+## Phase D-C2B — rotation + break-glass + governance closure ✅ 正式收口（2026-04-09）
+
+**名称**：`Phase D-C2B / D-C2B1 rotation ledger + D-C2B2 break-glass TTL + D-C2B3 audit closure bundle`  
+**结论**：
+- **B1**：`credential-rotation.ts` + `tenant_credential_rotation_events`；`upsertTenantCredentialSealedWithAdapter`；`rotate:tenant-credential:expected`；`verify:d-c2b1-credential-rotation`。
+- **B2**：`break-glass-policy.ts`、`break-glass-audit.ts`、`break_glass_audit_events`；`admin-auth` / `admin-routes` TTL 门禁；`verify:d-c2b2-break-glass-ttl`。
+- **B3**：`governance-audit-closure.ts`（`GOVERNANCE_AUDIT_CLOSURE_SCHEMA_VERSION`）；rotation / break-glass DB 成功后镜像 **governance_audit** 结构化日志；`verify:d-c2b3-governance-closure`、`verify:d-c2b3-governance-bundle`。
+- **版本**：**1.7.101**（本线收口覆盖 patch）。
+- **边界**：**未**做主密钥 re-wrap、**未**做 cleanup job、**未**做 D-C3、**未**扩 UI、**未**引 Redis — **归 D-C2C / D-C3**。
+
+## Phase D-C2A — tenant credential at-rest encryption kernel ✅ 正式收口（2026-04-09）
+
+**名称**：`Phase D-C2A / cf1 envelope + migrate + zero-plaintext verify`  
+**结论**：
+- **Crypto**：`secret-crypto.ts` — v1 前缀 `cf1:`，AES-256-GCM envelope；`isCredentialValueSealedV1` 用于幂等迁移与校验。
+- **写路径**：`mergeTenantCredentials` 等在 master key 开启时对 `tenant_credentials.value` **seal**；关 key 时行为与历史一致（明文落库，仅 dev/过渡）。
+- **读路径**：`openSealed` **兼容** 历史明文（非 `cf1:` 原样返回）。
+- **迁移（运维 / 离线脚本）**：`migrate-tenant-credentials-plain-to-cf1.mjs` + `tenant-credentials-plain-migration.ts` — `dry-run` / `apply`，已 seal 行跳过（不二次加密）。
+- **验证**：`verify:d-c2a-credential-at-rest`、`verify:d-c2a-tenant-credentials-zero-plaintext`、`verify:d-c2a-credential-migration-flow`（同进程 e2e，避免 sqljs 父子 skew）。
+- **版本**：**1.7.98**（本包收口覆盖 patch）。
+- **边界**：**未**做 cleanup job、**未**扩 UI、**未**引 Redis — 轮换/break-glass **已归 D-C2B**；**cleanup/保留** **归 D-C2C**。
+
+## Phase D-C1 — observability + audit closeout ✅（2026-04-09）
+
+**名称**：`Phase D-C1 / runtime observability + platform audit skeleton + milestone logs`  
+**结论**：
+- **结构化日志**：`src/observability/structured-log.ts`（`writeStructuredLog`、`redactForLog`、`observabilityFingerprint`）；pipeline `pipeline_milestone`；inbound `inbound_dedupe_decision`；outbound `outbound_dedupe_decision`（仓库 `beginOutboundDedupe` 统一写）+ `outbound_milestone` / `outbound_dedupe_cas_conflict`；state 三层 `state_cas_conflict`；notify `notify_milestone` / `notify_dedupe_cas_conflict`（handoff + lead）。
+- **Ops 告警分级**：`ops-alert.ts`（P1/P2/P3 JSON 行）。
+- **平台审计**：`platform-audit.ts` + `admin-sensitive-audit.ts`；Admin 敏感只读路由审计；`http_access` 等既有观测保持。
+- **验证脚本**：`verify:d-c1-observability-skeleton`、`verify:d-c1-slice2-milestones`、`verify:d-c1-slice3-notify-outbound-observability`（Postgres 全量 / sqljs 仅 notify 轻量路径）。
+- **版本**：**1.7.94 → 1.7.96**（多 slice 交付）。
+- **边界**：无 KMS、无 cleanup job、无补偿引擎、无 Redis、无 UI 扩面；**D-C1 正式关闭**。
+
+## Phase D-B — overall closeout ✅（2026-04-09）
+
+- **D-B1**：Postgres 默认 live 链、启动/readiness fail-fast、交付脚本 install/upgrade/rollback/backup/restore 与 verify 对齐、`sqljs` 降为 compat。
+- **D-B2**：`tenant_session_state` / `tenant_processing_state` / `tenant_delivery_state` 外置 + repository + runtime 最小接线 + 三层 `version` CAS。
+- **D-B3**：`tenant_inbound_dedupe` / `tenant_outbound_dedupe` / `tenant_notify_dedupe` 三线 + 入口拦截 + 200/202/409 语义 + `verify-dedupe-d-b3-closeout.mjs`。
+- **结论**：**Phase D-B（托管化主线）主目标已完成**；后续工作归 **D-C / 后续**，不归 D-B。
+
+## Phase D-B3 — formal closeout ✅
+
+**名称**：`Phase D-B3 / idempotency (inbound + outbound + notify) closeout`  
+**结论**：
+- inbound：`pg_0010` + `inbound-dedupe-repository` + `guardInboundDedupe`（webhook 层）。
+- outbound：`pg_0011` + `outbound-dedupe-repository` + `createChannelSender` 包装。
+- notify：`pg_0012` + `notify-dedupe-repository` + lead/handoff notify 出口。
+- 返回语义：duplicate completed → **200**；duplicate processing → **202**；完成路径 CAS 冲突 → **409**（outbound/notify）；inbound 完成无 version CAS。
+- 最小集成验证：`scripts/verify-dedupe-d-b3-closeout.mjs`（`npm run verify:dedupe-d-b3-closeout`）。
+- **D-B3 已关闭**；**D-B 主线已关闭**。
+
+## Phase D-B2 — formal closeout ✅
+
+**名称**：`Phase D-B2 / three-layer state externalization closeout`  
+**结论**：
+- `tenant_session_state` / `tenant_processing_state` / `tenant_delivery_state` 三层状态线均成立
+- 三层均已完成 repository 与 runtime 最小接线
+- CAS 硬判定已验证：stale version 不可覆盖，返回 `cas_conflict`
+- tenant + postgres 路径未回流 in-memory 双写（避免双真源）
+- D-B2 正式关闭，进入 D-B3
+
+## Phase D-B1 — formal closeout ✅
+
+**名称**：`Phase D-B1 / postgres default live chain closeout`  
+**结论**：
+- 默认 live `db_driver=postgres` 已落地并经过脚本链验证
+- `sqljs` 已降级为 dev/single-node/compat 模式（非默认 live）
+- rollback 真执行路径与 verify 已通过
+- backup -> restore -> restore-verify 最小链已通过
+- deployment-info API 与 deployment state 对账已一致（version/current/stable）
+- D-B1 正式关闭，后续进入 D-B2
+
+## Phase D-B2 — first implementation slice ✅
+
+**名称**：`Phase D-B2 / session state externalization first slice`  
+**交付摘要**：
+- 新增 migration `pg_0007_phasedb2_session_state`
+- 新增 `tenant_session_state` 表（tenant+session 主键，`state_json`，`version` CAS）
+- 新增 `src/saas/session-state-repository.ts`（session state 读取 + CAS 写入边界）
+- build 通过：`npm run build`
+**边界口径**：
+- 本刀只开 session state
+- 未并行 processing/delivery state 实装
+- 未进入 D-B3（幂等/并发治理扩面）
+
+## Phase D-B1 — Postgres default live chain kickoff ✅
+
+**名称**：`Phase D-B1 / postgres default chain kickoff`  
+**交付摘要**：
+- 默认 `CHATFLOW_SAAS_DB_DRIVER` 切为 `postgres`（sqljs 不再默认 live）
+- 增加 hosted readiness gate（启动 fail-fast + `/saas/v1/health` readiness 503 语义）
+- `CHATFLOW_SAAS_SQLJS_COMPAT=1` 显式兼容门（仅 dev/单机/兼容）
+- 交付脚本改 PG 主口径：`install/upgrade/rollback/backup/restore` 与 verify 口径对齐
+- 验证脚本同步默认 driver 预期（`default -> postgres`）
+
+**边界口径**：
+- 本轮仅 D-B1；未进入 D-B2/D-B3
+- 未引入 Redis/第二状态存储
+- 未实现 session/process/delivery 外置表与幂等表
+
 ## Phase 25 — closure decision sealed ✅
 
 **名称**：`Phase 25 / closure decision sealed`。  

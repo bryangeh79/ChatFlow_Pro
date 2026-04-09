@@ -1,5 +1,275 @@
 # Risks and Issues
 
+## Hosted v1 最终门禁前补强后风险（2026-04-09）
+
+- **权限争议风险（已消除）**：knowledge publish/review 已有服务端硬拒绝，readonly 不再依赖前端限制。
+- **前后端提示一致性风险（低）**：前端已优先展示服务端 `message`，错误可解释性提升。
+- **剩余风险（低）**：本轮未扩面，当前仅需按 hosted v1 签核流程固化证据。
+
+## 商业 SaaS 后台 UX 第二阶段（P1 首批短回归后）风险（2026-04-09）
+
+- **首批回归稳定（低）**：Reports 下钻、Knowledge 状态流、Setup/Overview 一致性未见新增显性回归。
+- **权限边界一致性风险（中）**：Knowledge publish 的 readonly 限制当前以前端提示为主，建议补服务端硬校验后再冲 hosted 100%。
+- **低频 residual 风险（中）**：仍有少量 legacy 路径待触达清理，但不阻塞当前首批闭环。
+
+## 商业 SaaS 后台 UX 第二阶段（P1 首批实现后）风险（2026-04-09）
+
+- **状态语义映射风险（中）**：Knowledge 使用最小状态映射（draft/needs_review/published）已可用，但后续若引入更细治理规则需再收敛字段语义。
+- **跨页筛选上下文风险（低）**：Reports 下钻采用 query 参数预设过滤，若后续筛选词典变化需同步更新映射表。
+- **角色边界风险（中）**：当前为最小 readonly 限制提示，后续应补强服务端角色校验与审计策略（P1 后续批次）。
+
+## 商业 SaaS 后台 UX 第二阶段（P1 前置 residual 预修后）风险（2026-04-09）
+
+- **P1 高概率写路径风险（低）**：knowledge / faq / platform settings 关键写链已预修并验证通过，短期风险显著下降。
+- **低频 legacy 路径残留（中）**：仍有少量 `getSaaSDatabase` 读写路径存在于低频旧接口中；当前不阻塞 P1 主计划，但需在实施期监控。
+- **建议**：P1 执行期采用“触达即清理”策略，避免无边界全量重构。
+
+## 商业 SaaS 后台 UX 第二阶段（P0 稳定观察）风险更新（2026-04-09）
+
+- **主链稳定性风险（低）**：重复冒烟通过，当前 P0 hosted 最小链路未观察到波动。
+- **P1 前置残留风险（中）**：`repository.ts` 仍有若干 `getSaaSDatabase`/sqljs-only 写路径（FAQ/knowledge/platform settings 局部），若直接开 P1 可能在真实 Postgres 路径触发兼容问题。
+- **建议处置**：P1 开工前先做 targeted adapter 化（仅高概率写路径），控制范围并减少实现期返工。
+
+## 商业 SaaS 后台 UX 第二阶段（P0 真实阻塞修复后）风险（2026-04-09）
+
+- **同类残留风险（中）**：`repository.ts` 仍有部分未覆盖路径使用 sqljs-only 写法/`getSaaSDatabase()`（如 platform settings 与部分旧流程）；本轮已覆盖 P0 必经链路，但仍建议逐步清理。
+- **Webhook 接入误配风险（中）**：安全门禁保留后，若实施方忽略 guidance，仍会出现 403；需在交付 SOP 中明确“先配 secret 再打 webhook”。
+- **入站语义映射风险（中）**：website 入站已保证 conversation/message 持久化，但 lead 自动生成仍遵循现有业务条件；运营需按既定动作（如 convert）推进。
+
+## 商业 SaaS 后台 UX 第二阶段（P0 实租户冒烟）新增风险（2026-04-09）
+
+- **Postgres 语法兼容风险（高）**：`createTenant` 路径使用 `INSERT OR REPLACE`，在 postgres 模式触发语法错误并导致进程退出，影响 hosted 真环境冒烟。
+- **Tenant webhook 门禁可用性风险（中）**：未配置租户级签名 secret 时 webhook 固定 403（`tenant_secret_missing`），新租户初期易出现“已接入但无入站数据”误判。
+- **会话生成观测断点（中）**：website webhook 返回 200 但 conversation 未落库，运营链（Inbox/Leads）在未 seed 情况下不可用，需补诊断与校验提示。
+
+## 商业 SaaS 后台 UX 第二阶段（P0 实现）后风险（2026-04-09）
+
+- **Workspace 完成条件与租户名称耦合**：`setup_checks.company_info_complete` 由租户基础信息判定，页面保存 workspace_profile 不直接改变该判定，需在后续统一“完成条件来源”。
+- **Leads 状态映射为最小实现**：前端 follow-up 对不同状态做最小推进映射，需与销售流程最终状态机再对齐。
+- **部分步骤仍依赖外部真实环境**：如 channel test、AI key test、go-live 检查会受环境变量/凭据影响，演示环境需准备好最小可用配置。
+- **P1/P2 仍未落地**：Reports 深下钻、Knowledge 复核流程、导出等仍为后续阶段。
+
+## 商业 SaaS 后台 UX 第二阶段（设计真源）阶段风险（2026-04-09）
+
+- **设计到实现断层风险**：若未按 P0 优先落地，客户仍会遇到“可点不可完成”。
+- **跨入口心智分裂风险**：Setup 与主导航并行入口若无强引导，用户可能中途掉链。
+- **状态误判风险**：若 `Draft/Published` 与 `Open/Pending/Closed` 不做可复核反馈，用户仍会误以为已配置完成。
+- **范围漂移风险**：本阶段是 UX 设计真源，非 D-C / E 旧主线扩面；实现时需保持边界。
+
+## 租户后台 UI 最终收口轮后风险（2026-04-09）
+
+- **交互能力仍为壳层**：多数按钮与动作文案已统一，但真实写入/发布/分配仍未接后端，演示时需明确“UI ready ≠ write-ready”。
+- **跨语言文案仍混排**：中文业务说明与英文动作词共存，已统一语义但仍可在后续国际化轮次做语言彻底收敛。
+- **Reports 深层细节仍可微调**：本轮以全局一致性优先，Reports 深度交互与图表语义未扩面。
+
+## 租户后台 UI 第 9 轮后风险（2026-04-09）
+
+- **统一语言已扩到 Overview/Settings，但 Reports 仍有局部旧样式**：全局观感已提升，若追求像素级一致，仍需最终收口轮。
+- **Overview/Settings loading 为壳层 skeleton**：当前为进入页静态占位，不代表真实异步数据流。
+- **Setup/Advanced 仍占位型流程**：视觉已统一，但未接真实保存/校验逻辑，演示需明确边界。
+
+## 租户后台 UI 第 8 轮后风险（2026-04-09）
+
+- **状态语义收敛副作用**：视觉词典统一为 `st-*` 后，`Contacting / Converted` 等在视觉上并入 Open/Closed 语义；若运营要细分状态，仍需看文案与详情字段。
+- **Loading skeleton 为壳层**：当前仅页面进入时展示静态 skeleton，未接真实分页/分块 loading。
+- **统一动作区仍占位**：三页顶部 action 按钮均为占位 alert，不代表真实业务写入能力。
+- **统一范围限制**：本轮只覆盖 Inbox/Leads/Knowledge，Reports/Settings 仍存在样式差异，需后续轮次继续收口。
+
+## 租户后台 UI 第 7 轮后风险（2026-04-09）
+
+- **状态映射启发式**：`/knowledge` 返回字段当前未直接包含 `Draft/Published/Needs review/Archived`，页面采用 `is_active + source_type + 索引` 推导，可能与未来正式内容工作流不一致。
+- **语言筛选占位化**：语言来自条目字段与 mock 汇总，未接多语言治理规则；筛选结果仅用于浏览，不代表发布策略。
+- **Related usage**：右栏 usage 为文案占位，非真实检索统计；不能当作“该知识已被 AI 实际使用”的证据。
+- **阅读优先，无编辑闭环**：当前编辑/发布/创建/mark review 均为占位 alert；若对外演示需明确“本轮只做阅读与判断”。
+
+## 租户后台 UI 第 6 轮后风险（2026-04-09）
+
+- **时间范围 UI vs API**：工具条含 **30d / 90d / custom**，后端 `parseRange` **仅** `today|last7d|all_time` — 选占位项时 **不**再打摘要 API，页面显示 **说明横幅** + mock/上次数据语义以代码为准；勿对外宣称已支持 30d/90d 真统计。
+- **Trend / Breakdown**：**静态示意**，与真实会话/渠道分布 **无关**；渠道筛选 **未**驱动 breakdown — 演示勿当分渠道报表。
+- **Channel health**：由 handoff + 开放会话 **启发式**文案，**非** SLO/告警真源。
+- **分组子页**：除 Overview 外主要为 **壳层说明**，深度报表 **未**接。
+
+## 租户后台 UI 第 5 轮后风险（2026-04-09）
+
+- **KPI「今日新增」**：按 `_rawCreated`/`_rawUpdated` **日期前缀**粗算，与时区/业务日切 **可能不一致**。
+- **优先级条**：`leadPriorityUi` 为 **id 哈希 mock**，非业务优先级；勿当排序真源。
+- **状态桶**：`leadBucket()` 与后端 `status` 枚举 **可能错位**；接 API 后需对齐契约。
+- **功能回归**：原 Leads 表内 **to qualified** 已移除；需 **Leads 详情 API** 或别入口恢复快捷晋级直至产品重新定义。
+
+## 租户后台 UI 第 4 轮后风险（2026-04-09）
+
+- **Inbox 时间线与侧栏**：**示意/模板文案**，与真实 thread、lead、handoff **不一致**；演示或截图勿当作生产行为。
+- **状态桶映射**：`inboxBucket()` 对 `status` 字符串 **启发式归类**；与后端枚举不完全一致时会出现 **错误标签** — 接 API 后需对齐契约。
+- **功能回归**：原 Inbox **Convert to lead / Resolve** 已从主 UI 移除（改为占位）；依赖快捷表格操作的运维须用 **Leads/其他入口** 直至下一迭代接回。
+
+## 租户后台 UI 第 3 轮后风险（2026-04-09）
+
+- **双轨 Channels**：接入中心/向导为 **产品壳**，**旧版 `<details>` 面板** 仍可 **真实写凭证** — 须对外说明「向导未闭环前以旧版或后续迭代为准」，避免客户以为向导已保存。
+- **卡片状态 vs 向导占位**：只读 API 显示 **Connected**，但向导内 **无**同步展示密钥 — 易误解「向导未完成却显示已连接」；下一迭代应统一文案或只读摘要块。
+- **侧栏 Channels 高亮**：同时覆盖 `/app/settings/channels/*` — Settings 内调渠道时主导航 Channels 亦亮，属刻意 **IA 一致**；若需「仅业务页高亮」须再改 `setNav` 规则。
+
+## 租户后台 UI 第 2 轮后风险（2026-04-09）
+
+- **Settings Setup 进度与步骤状态**：**纯 mock** — 与真实租户配置 **可严重不一致**；接 API 前禁止当作 onboarding 真源或 SLA 依据。
+- **双入口认知**：Advanced 下 AI/Channels/Team 仍链到 **旧版长表单页** — 易与「控制台分组」心智短暂割裂，直至表单迁入 Settings 分组或 Channels 向导化。
+- **签核 / Recovery**：仍为 **占位 + alert**，无提交与只读审计数据。
+
+## 租户后台 UI 第 1 轮后风险（2026-04-09）
+
+- **Overview 示意数据**：与真实租户指标 **不一致** — 须在文档/ handoff 标明，下一迭代接 API 前勿对外当作真实看板。
+- **签核链接**：当前为 **alert 仓库路径**，非内嵌文档 — 若需一键打开，须静态托管 `docs` 或内嵌摘要页。
+- **AI / Team 隐藏入口**：书签用户仍可访问 — 迁移 Settings 后勿删路由直至替代完成。
+
+## Phase E overall closeout 后风险（2026-04-09）
+
+- **closeout 当已达标**：`phase-e-overall-closeout.md` **明确不**等于 **具体环境 hosted v1 已签核** — 误读 → 对外话术事故。
+- **挂靠 Phase E 偷扩**：以「还差小功能」加 `verify:e-*`、改 bundle — **禁止**；须 **新 phase**。
+- **报告 / CI 替代签核**：E3 输出或 CI 绿 **替代**模板 E/F — **仍禁止**。
+- **D-C4 混淆**：恢复子集 **≠** 全量 hosted v1 — closeout **不**改变该边界。
+
+## Phase E3 只读聚合交付后风险（2026-04-09）
+
+- **报告当签核**：E3 输出 **替代** `signoff-template` E/F — **禁止**；须重复 **报告 ≠ Go**。
+- **无设计并入 D-C4C**：把生成器 **绑进** governance bundle **无** ADR — **违反** closed 边界。
+- **默认加 verify:e3**：须 **另 Go**；当前 **未**授权。
+- **脚本偷写**：`e3-hosted-v1-readonly-aggregate-report.mjs` **须**保持 **只读 + stdout**；**禁止**扩成写 DB/改文件。
+- **E2 耦合偷改 chk**：**禁止**反向改 E2 规格。
+
+## Phase E3 设计阶段风险（归档 · 2026-04-09）
+
+- 设计误读、无设计并入 bundle、报告当签核等 — 见上节 **仍适用**。
+
+## Phase E2 规格交付后风险（2026-04-09）
+
+- **`chk_id` 与模板脱钩**：改模板 A/B/C **不**同步 `phase-e2-hosted-v1-checklist-spec.md` → 审计对不上；**须**同 PR 或工单成对更新。
+- **规格当自动化**：`checklist-spec` **不**授权新增 verify/CI gate — **E3 扩面**须 **另 Go**。
+- **偷跑 E3 扩面**：在 E2 修订中夹「失败则跑 X 脚本」— **违反** E2/E3 边界。
+- **D-C4 混淆**：注册表 **不得**扩成 repair/apply 步骤；**仅**证据与人工门槛。
+- **与 E1 双真源**：签核结论 **以**模板 E/F **为面**；**以** Phase E 设计 §2–§6 + checklist-spec **为规格**；冲突时 **不得**口头绕过 D 节 No-Go。
+
+## Phase E1 交付后风险（2026-04-09）
+
+- **模板当自动化**：签核表 **不**会自行跑 CI — **禁止**未填表即宣称 v1。
+- **只读 D-C4 当全量**：入口已分 **必读 vs D-C 专用** — 现场若 **只**跑 recovery 链 **跳过** Phase E 全表 → No-Go。
+- **E2 creep**：借「补全 checklist」之名加 `verify:e-*` — **须**另 Go。
+
+## Phase E 设计阶段风险（2026-04-09）
+
+- **挂靠 D-C**：把 E 标成 D-C5 — **禁止**。
+- **与租户 go-live 混淆**：`runTenantGoLiveCheck` **≠** 平台 hosted v1。
+- **范围 creep**：UI、补偿、新中间件 — **违反** Scope Lock。
+- **CI 绿即 v1**：须 **书面**签核（模板 §E）。
+- **静默实现**：未 **Go** 即写 gate 代码 — **No-Go**。
+
+## Phase D-C4 overall closeout 后风险（2026-04-09）
+
+- **名义挂靠**：在未新 phase 下把增量写成「D-C4 小补」— **禁止**；须新真源标题与 ADR。
+- **误读 closeout**：`d-c4-overall-closeout.md` **不**授权 D-C3C、**不**降低 D-C3B 门控、**不**把 CI bundle 当生产接流依据。
+- **静默改 bundle 成员**：改 `verify-d-c4c-readonly-governance-bundle.mjs` 或 `ci.yml` **须**显式 PR 与评审（仍属工程变更，**非** D-C4 子线）。
+- **设计长文仍读**：R1–R7、§4.2 黑名单、§3.1 最低标准 — **不**因 D-C4 closed 而失效。
+
+## Phase D-C4C C1+C2 落地后风险（2026-04-09）
+
+- **bundle 绿 = 业务可发布**：**错误** — 仍须 D-C4 §3.1 / 评审包 M5；本链 **不**含生产 PG `saas:recovery:readonly-check`。
+- **CI 压力 / 误删门禁**：改动 `ci.yml` 须 PR 评审 **勿**静默拿掉 D-C4C step。
+- **bundle 输出接 D-C3B**：**禁止**；失败应 **人**走 D-C4B 决策表。
+- **migration assets verify 副作用日志**：加载 dist 可能刷 server 日志 — **已知**；**不**引入写路径。
+- **与 D-C3C 混淆**：D-C4C **不是**补偿引擎。
+
+## Phase D-C4C 设计阶段风险（归档 · 2026-04-09）
+
+- 设计 **曾**要求第二次 Go — **已实现** C1+C2；后续扩线 **仍**须新门禁。
+
+## Phase D-C4B B1+B2 交付后风险（2026-04-09）
+
+- **版本锚点**：**1.7.107** 仅标记 B1+B2 文档收口；**勿**误读为 D-C4C 已隐含放行。
+- **表读成许可**：决策表 **明示**非 apply 许可；现场若仍「照 tier 直接 D-C3B」→ 退回培训 + 工单审计。
+- **SOP 写了但不跑**：restore/rollback **跳过** D-C4A → 与 D-C4 §3.2 冲突；应用 **交付验收** 抽问。
+- **B3/B4 creep**：把「更多脚本交叉引用 / 新 verify」偷塞进 D-C4B 名义 — **另**立项；**D-C4C** **不**自动开。
+- **D-C4 状态**：**Phase D-C4 overall 已 closed**（`d-c4-overall-closeout.md`）— 与历史条「勿误关闭」已 **更替**；**禁止**再写「总线仍开放待表决」。
+- **历史条（设计期）**：`d-c4b-design-scope-lock.md` 曾约束「第二次 Go」— 已实现 B1+B2 **仅文档**；**仍禁止**半自动修复叙事。
+
+## Phase D-C4A 落地后风险（2026-04-09）
+
+- **误用为修复器**：`overall_tier` **仅**辅助决策；**不得**接 D-C3B 批量或自动写 — 仍须工单 + 证据。
+- **sqljs 路径**：`postgres_only` **不是**恢复验收；托管须 **Postgres** 上跑全序列。
+- **observe ≠ 可接流**：`observe` 仅表示 pack 内无硬阻断；**仍须**变更单 + 外部日志/渠道核对（设计长文 §7）。
+- **ledger 全绿 ≠ 业务一致**：与评审包 M5 同义。
+
+## Phase D-C4 设计评审阶段风险（2026-04-09）
+
+- **D-C4A 漂移**：只读 pack 易被当成 **恢复修复器** — 须 checklist **C4** + 输出 **禁止「建议 closed」**（见评审包 §5 M6）。
+- **Partial restore**：**默认高风险**；**不能**靠多跑脚本掩盖（M4）。
+- **与 D-C3C 混淆**：D-C4 **不**承诺自动补偿（M1–M2）。
+
+## Phase D-C3 Closeout 后口径（2026-04-09）
+
+- **勿误读 closeout**：收口文档 **不**授权启动 D-C3C；**不**降低「先日志、后人工」门槛。
+- **verify 边界**：`verify:d-c3-closeout` **不**连接生产 Postgres；生产演练走 **acceptance-checklist §B**。
+- **接手依赖**：运维须读 `d-c3-operator-runbook.md`；restore/rollback **禁止**先批量改 dedupe。
+
+## Phase D-C3B 落地后风险（2026-04-09）
+
+- **`release_for_retry` 双发风险**：删行后管线可重新 `INSERT`；**必须**日志证明下游未成功 + `ack` + 长证据串；误用等同 **手动触发二次 notify/outbound**。
+- **审计表未迁移**：`dedupe_manual_repair_audit_events` 不存在时 apply 报错 — 部署须 **先 apply `pg_0015`**。
+- **apply 门控**：未设 `CHATFLOW_DEDUPE_MANUAL_REPAIR_ENABLED=1` 时拒绝 — 防脚本误跑；**不**防具备 env 的恶意 DBA（与任意 SQL 同级）。
+- **Postgres 适配器 transaction 非真正 BEGIN/COMMIT**：单键影响面小；知悉审计与 dedupe 更新 **非**强原子同一事务。
+
+## Phase D-C3A 落地后 → D-C3B 配套风险（2026-04-09）
+
+- **误把「清单」当「判决」**：D-C3A 的 stale `processing` **不等于** 已证实「HTTP 成功 + CAS 失败」— 必须对 **结构化日志 + 渠道侧** 再判；**禁止**仅凭清单自动重发（**属 D-C3 设计红线**）。
+- **绕过受控工具**：若运维直接 SQL 改 `tenant_*_dedupe` — **二次事故**；应走 **D-C3B CLI + 审计**。
+- **sqljs / compat**：对账 **空结果** 为预期；**托管默认 Postgres** 下应以 PG 跑报告与修复。
+
+## Phase D-C2B 关闭后 → D-C2C 前风险（2026-04-09）
+
+- **Dedupe / state 表无保留策略**：`tenant_*_dedupe`、三层 `tenant_*_state` 长期增长 → **存储、索引、备份体积、查询延迟**；误删可导致 **重复副作用或 CAS 语义变化** — **属 D-C2C**。
+- **审计与日志文件膨胀**：`data/platform-audit-events.jsonl`、结构化日志若落盘、`data/*.jsonl`（lead/handoff 等）— **无轮转/保留** 则磁盘与合规风险 — **D-C2C**。
+- **Cleanup 误操作风险**：`apply` 无 dry-run 或阈值不当 → **生产数据不可恢复** — D-C2C 必须 **dry-run 默认、人工确认门槛、备份前置** 写进规格。
+- **D-C2B 残留（已缓解项）**：轮换/break-glass/治理日志 **仍不解决** 表膨胀与文件保留 — **勿将 D-C2B 当数据生命周期终点**。
+
+## Phase D-C2A 关闭后 → D-C2B 前风险（2026-04-09）
+
+- **`tenant_credentials` DB 明文（策略：encryption on）**：**已缓解** — 新写入 `cf1:`；迁移脚本 + zero-plaintext verify；**残留**：`CHATFLOW_SAAS_CREDENTIALS_MASTER_KEY` **丢失/泄露** 仍等价于数据不可用或泄露；**备份/导出** 含 sealed blob，需 **备份 ACL** 与 **密钥轮换**（D-C2B）。
+- **其它表 / env / JSONL 明文**：**未**纳入 D-C2A；**联系人 JSONL**、**进程 env**、**legacy admin token** 等仍属机密面 — **D-C2B/C 或单列包**。
+- **无系统化轮换与 break-glass 闭合**：~~在 D-C2B 落地前~~ **D-C2B 已收口**；残留为 **运维配置面**（误开 TTL、脚本泄露 expected/new）— 仍见 `memory/05`。
+- **观测 ≠ 治理**：D-C1 + D-C2B3 **governance_audit** 仍 **不**等于 **存储/cleanup 策略**已闭环 — **D-C2C**。
+
+## Phase D-C1 关闭后 → D-C2 前风险（2026-04-09）
+
+- **观测 ≠ 机密**：D-C1 已收口日志/告警/审计骨架；**租户侧 channel token** 等若仍经 env 或其它表明文，**不**因 D-C1 而消失 — **持续跟踪 `memory/04` 与 D-C2B/C**。
+- **D-C1 verify 覆盖边界**：`verify:d-c1-slice3-notify-outbound-observability` 全量断言依赖 **Postgres**；sqljs 环境仅覆盖 notify 轻量路径 — CI 若未跑 PG job，**不得**推断 outbound dedupe 观测未实现。
+- **禁止**：在 D-C1 收口后继续加观测切片 — 应 **D-C2B 规格确认后** 再动相关代码。
+
+## Phase D-B 关闭后残留风险（2026-04-09）
+
+- **D-B ≠ 生产合规闭环**：D-B 完成的是托管化 **MVP**（Postgres 默认链、外置三层状态、三线 dedupe）；**KMS、完整补偿引擎、企业审计** 等仍属 **D-C+**。
+- **notify / outbound 完成 CAS**：若下游 HTTP 已成功但本地 `complete*DedupeWithCas` 失败，会出现「下游已收到、本地状态不一致」— 需 **D-C** 告警、人工核对或补偿策略（D-B 内未建重试引擎）。
+- **inbound 完成写回**：`markInboundDedupeCompleted` **无** `version` CAS；极端竞态依赖 `tenant_inbound_dedupe` 唯一约束 + `processing/completed` 语义。
+- **验证脚本依赖**：`verify:dedupe-d-b3-closeout` 需真实 Postgres 与租户 context，**默认 CI 未必启用** — 勿将「未跑脚本」等同「功能未交付」。
+- **禁止**：在 D-B 已关闭后 **继续堆 D-B 范围**（第四条幂等线、全链重试、Redis）— 应 **新开 D-C 包**。
+
+## Phase D-B3 初始风险（2026-04-08）
+
+- **幂等键设计风险**：若 inbound/outbound/notify 键结构不统一，容易出现“重复未挡住”或“误杀正常请求”。
+- **语义一致性风险**：`200 duplicate` / `202 accepted` / `409 conflict` 分界不清会导致上游调用方错误重试。
+- **重试边界风险**：无限或跨层重试会放大并发冲突；D-B3 必须限定重试次数和可重试错误类型。
+- **历史兼容风险**：现有发送链与新 dedupe 线并行期间，需防止旧路径绕过幂等入口。
+
+## Phase D-B2 首刀风险（2026-04-08）
+
+- **接线未完成风险**：当前仅有 session state 表与 repository 边界，尚未接入 runtime session store，实际流量仍可能依赖进程内 session。
+- **CAS 语义风险**：`version` CAS 已定义但未进入全部写路径；后续接线前需防止“看似有 version、实际未用”。
+- **JSON 载荷风险**：`state_json` 为完整会话快照，若字段无限增长会带来行膨胀与 IO 成本上升。
+- **TTL 治理风险**：`expires_at` 已预留，尚未建立定时清理策略，需在 D-B2 后续刀补齐。
+
+## Phase D-B1 新增风险（2026-04-08）
+
+- **兼容门风险**：`CHATFLOW_SAAS_SQLJS_COMPAT=1` 为兼容留口，若误用于托管环境会偏离默认 Postgres 口径。
+- **脚本依赖风险**：PG backup/restore 依赖 `CHATFLOW_PG_DUMP_COMMAND` / `CHATFLOW_PG_RESTORE_COMMAND` / `CHATFLOW_PG_ROLLBACK_COMMAND`，运维未配置会阻断流程。
+- **迁移门禁风险**：`CHATFLOW_SAAS_MIGRATION_IN_PROGRESS=1` 时 readiness 必须 503，若部署流程未正确清理该标志会造成假性不可用。
+- **覆盖面风险（已知）**：当前仓库仍存在 sqljs 兼容路径，D-B1 之后需在 D-B2/D-B3 前持续避免把兼容路径误当 hosted 默认路径。
+
 ## 战报顶栏（2026-04-07）
 
 - **版本 / Phase**：**1.7.90**；**Phase 24** — **仍 `no_go`**；**3A ✅** **`docs/179`**；**3B** — **`SessionStore` 抽象**，**in-memory**；**3C ✅** — JSONL/notify **`idempotency_key` 契约**（**不**消除重复 POST、**非** MI-safe）；**Phase 23 / SaaS MVP 主线已关闭**。  
