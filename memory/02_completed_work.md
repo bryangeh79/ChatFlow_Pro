@@ -1,5 +1,13 @@
 # Completed Work
 
+## 租户 App · Telegram 向导 Webhook 步（可编辑 curl + 占位符修正）✅（2026-04-10）
+
+**名称**：`tenant-app Telegram wizard step 3 / webhook URL + setWebhook UX`  
+**交付**：`public/tenant-app.html` — Telegram 向导第 3 步（索引 `step===2`）由占位改为可操作：公网 Base URL（`localStorage`）、`GET .../overview` 取 **slug** 拼接 `/webhooks/t/{slug}/telegram`、只读完整 URL + 复制；**setWebhook** 使用 **textarea** 便于就地替换 Token；占位符由 `<BOT_TOKEN>` 改为 **`YOUR_BOT_TOKEN_HERE`** 并文案强调 **禁止**保留尖括号（避免 Telegram API 404）；补充 `.wiz-pre` / `textarea` 样式。  
+**验证**：本地静态逻辑与 API 形状对齐 `admin-routes` 的 `{ ok, overview: { tenant: { slug } } }`。  
+**边界**：未改后端；VPS 上 HTML 若不通过同仓库部署则需在目标环境同步文件或重新发布静态资源。  
+**版本**：**1.7.108**（未因本改动升版本号，除非 Bryan 另发版）。  
+
 ## 第一课测试现场修复（Knowledge 页面）✅（2026-04-09）
 
 **名称**：`Lesson 1 live debug / Knowledge page runtime error fix`  

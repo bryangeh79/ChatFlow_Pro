@@ -1,5 +1,11 @@
 # Risks and Issues
 
+## VPS / Telegram 生产试跑风险（2026-04-10）
+
+- **密钥泄露（高，待处置）**：Telegram Bot Token 曾在对话/终端记录中 **明文出现**；应按 @BotFather **轮换 Token**，并在租户后台 **重新 Save** 凭据。
+- **502 / 未就绪（中，现场阻塞）**：公网 Nginx 443 已通时，若 **本机 Node 未监听** `proxy_pass` 端口（如 3050），Telegram `getWebhookInfo` 会报 **`Wrong response from the webhook: 502 Bad Gateway`**；需 **常驻** `node dist/src/index.js` 且 **PORT 与 Nginx 一致**。
+- **文档与进程漂移（低）**：`public/tenant-app.html` 仅在仓库更新；VPS 若未同步部署静态文件，向导 UI 可能与本地仓库不一致。
+
 ## 第一课测试暴露风险（Knowledge 页面运行时）与处置（2026-04-09）
 
 - **前端运行时遗漏风险（已触发并已修复）**：`Knowledge` 页面存在调用未定义函数 `fmtTime` 导致页面报错 `fmtTime is not defined`。

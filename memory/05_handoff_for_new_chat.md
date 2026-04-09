@@ -1,5 +1,34 @@
 # Handoff for New Chat（下一聊天室可直接接手）
 
+## Claude / 下一 Agent 接手 — VPS Telegram 真链路（2026-04-10）
+
+**仓库**：`ChatFlow_Pro`，远程 `origin/main`（本次会话后应含最新 `tenant-app.html` + 本 memory 更新）。
+
+**Bryan 目标**：Vultr 上跑通 ChatFlow，Telegram Webhook 公网闭环（租户 `starbright01`）。
+
+**已落地（运维侧）**
+- Cloudflare：`api.starbright-solutions.com` → A → `45.32.104.102`（建议保持 **DNS only / 灰云** 便于源站证书）。
+- VPS：Nginx 监听 **443**，Let’s Encrypt，反代到 **`http://127.0.0.1:3050`**（以实际 `sites-available` 为准）。
+- UFW：`OpenSSH` + `Nginx Full` 已放行。
+- Telegram：`setWebhook` 已成功，`getWebhookInfo.url` 正确。
+
+**当前阻塞（明确）**
+- `getWebhookInfo.last_error_message` 曾为 **`Connection timed out`** → 已因 **443 未监听** 修复。
+- 随后 **`502 Bad Gateway`** / Telegram **`Wrong response from the webhook: 502`** → **本机 `curl http://127.0.0.1:3050` = connection refused**，即 **Node 进程未在 3050 监听**（或 `PORT` 与 Nginx `proxy_pass` 不一致）。
+- **下一执行顺序**：在 `/opt/chatflow/ChatFlow_Pro` 确认 `.env`、`npm run build`、`systemd` 或等价方式 **常驻** `node dist/src/index.js`；`curl http://127.0.0.1:3050/saas/v1/health` 通 → 再验 HTTPS webhook GET/POST → `getWebhookInfo` 错误消失。
+
+**前端（本轮已改，需 push 后 VPS 无强制同步 HTML，除非托管静态）**
+- `public/tenant-app.html`：Telegram 向导 **第 3 步**（Webhook）— 公网 Base URL（localStorage）、从 `GET .../overview` 取 **slug**、生成 `https://{base}/webhooks/t/{slug}/telegram`、**textarea** 可编辑 `curl`、占位符 **`YOUR_BOT_TOKEN_HERE`**（避免误留尖括号导致 Telegram 404）。
+
+**安全**
+- Bot Token 曾在对话中 **多次明文**；建议 @BotFather **revoke / 换新**，租户后台 **重新 Save**。
+
+**关键代码路径**
+- Webhook 路由：`src/saas/webhook-path.ts`、`src/saas/tenant-webhook-http.ts`（`POST` Telegram → `handleTelegramWebhook`）。
+- 启动：`package.json` `start` = `node dist/src/index.js`；默认 `PORT` 见 `src/server.ts`（环境变量覆盖）。
+
+---
+
 ## 测试教学新阶段现场记录（第一课 · 2026-04-09）
 
 - 第一课（认识系统与进入后台）现场测试中，`Knowledge` 页面出现前端错误：`fmtTime is not defined`。

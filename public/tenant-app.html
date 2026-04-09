@@ -266,6 +266,31 @@
       padding: 1rem 1.1rem; border: 1px dashed var(--border); border-radius: var(--radius); background: #fafafa;
       font-size: 0.8125rem; color: var(--muted); margin-top: 1rem;
     }
+    .wiz-pre {
+      margin: 0;
+      padding: 0.65rem 0.75rem;
+      background: #f4f4f5;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-all;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea.wiz-pre {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid var(--border);
+      resize: vertical;
+      min-height: 4.5rem;
+      color: inherit;
+    }
+    textarea.wiz-pre:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+    }
     .tag-err { background: rgba(220, 38, 38, 0.1); color: var(--danger); }
     .int-hub-banner {
       padding: 0.85rem 1rem; border-radius: var(--radius); border: 1px solid var(--border); background: #fafafa;
@@ -709,6 +734,8 @@
   <script>
     const TID_KEY = 'chatflow_tenant_app_id';
     const TOK_KEY = 'chatflow_tenant_app_token';
+    /** Public origin for webhook URL preview only (browser localStorage). */
+    const LS_PUBLIC_WEBHOOK_BASE = 'chatflow_tenant_public_webhook_base';
 
     /** Static mock for Overview (round 1 — no API). */
     const MOCK_OVERVIEW = {
@@ -785,6 +812,107 @@
         hour: '2-digit',
         minute: '2-digit',
       });
+    }
+
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (_) {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          const ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          return ok;
+        } catch (_) {
+          return false;
+        }
+      }
+    }
+
+    /** Telegram wizard step 3 (index 2): show tenant webhook URL + setWebhook curl. */
+    function wireTelegramWebhookStep() {
+      const baseInput = document.getElementById('wizPublicWebhookBase');
+      const slugEl = document.getElementById('wizTenantSlug');
+      const fullInput = document.getElementById('wizWebhookFullUrl');
+      const curlPre = document.getElementById('wizCurlSetWebhook');
+      const statusEl = document.getElementById('wizWebhookStepStatus');
+      if (!baseInput || !slugEl || !fullInput || !curlPre) return;
+
+      baseInput.value = localStorage.getItem(LS_PUBLIC_WEBHOOK_BASE) || '';
+
+      const recompute = () => {
+        let b = baseInput.value.trim().replace(/\/+$/, '');
+        if (b) localStorage.setItem(LS_PUBLIC_WEBHOOK_BASE, b);
+        else localStorage.removeItem(LS_PUBLIC_WEBHOOK_BASE);
+        const slug = (slugEl.dataset.slug || '').trim().toLowerCase();
+        const full = b && slug ? b + '/webhooks/t/' + slug + '/telegram' : '';
+        fullInput.value = full;
+        let curlLine = '';
+        if (full) {
+          const bodyJson = JSON.stringify({ url: full });
+          curlLine =
+            'curl -sS -X POST "https://api.telegram.org/botYOUR_BOT_TOKEN_HERE/setWebhook" -H "Content-Type: application/json" -d ' +
+            JSON.stringify(bodyJson);
+        }
+        curlPre.value = curlLine || '（填写公网 Base URL 并成功加载 slug 后，将自动生成命令；也可在记事本改好再粘贴进来）';
+        if (statusEl) {
+          const loading = slugEl.textContent === '加载中…';
+          if (loading) statusEl.textContent = '正在解析租户 slug…';
+          else if (!slug) statusEl.textContent = '无法显示 URL：未加载到 slug（请检查 Tenant ID / Token）';
+          else if (!b) statusEl.textContent = '请填写公网 Base URL（HTTPS）';
+          else if (full) statusEl.textContent = '可复制 Webhook URL 或 curl；将 YOUR_BOT_TOKEN_HERE 整段换成真实 Token（不要加尖括号）';
+        }
+      };
+
+      baseInput.addEventListener('input', recompute);
+      baseInput.addEventListener('blur', recompute);
+
+      document.getElementById('wizCopyWebhookUrl')?.addEventListener('click', async () => {
+        const v = fullInput.value.trim();
+        if (!v) {
+          if (statusEl) statusEl.textContent = '没有可复制的完整 URL';
+          return;
+        }
+        const ok = await copyToClipboard(v);
+        if (statusEl) statusEl.textContent = ok ? '已复制 Webhook URL' : '复制失败，请手动选择文本复制';
+      });
+      document.getElementById('wizCopyCurl')?.addEventListener('click', async () => {
+        const v = curlPre.value.trim();
+        if (!v || v.startsWith('（')) {
+          if (statusEl) statusEl.textContent = '没有可复制的 curl';
+          return;
+        }
+        const ok = await copyToClipboard(v);
+        if (statusEl) statusEl.textContent = ok ? '已复制 curl（记得把 YOUR_BOT_TOKEN_HERE 换成真实 Token）' : '复制失败，请手动选择文本复制';
+      });
+
+      recompute();
+      void (async () => {
+        try {
+          const ov = await api(base() + '/overview');
+          const tenant = ov.overview && ov.overview.tenant;
+          const slug = tenant && tenant.slug ? String(tenant.slug).trim().toLowerCase() : '';
+          if (slug) {
+            slugEl.textContent = slug;
+            slugEl.dataset.slug = slug;
+          } else {
+            slugEl.textContent = '（接口未返回 slug）';
+            delete slugEl.dataset.slug;
+          }
+        } catch (e) {
+          slugEl.textContent = '加载失败';
+          delete slugEl.dataset.slug;
+          if (statusEl) statusEl.textContent = '无法加载 slug：' + (e && e.message ? e.message : String(e));
+        }
+        recompute();
+      })();
     }
 
     function updateWorkspaceLabel() {
@@ -1330,8 +1458,31 @@
             '<div class="placeholder-notice">占位：该渠道的凭证表单将在后续迭代接入。当前可用底部旧版配置区临时写入 token。</div>';
         }
       } else if (step === 2) {
-        body = '<p class="muted" style="margin:0 0 0.75rem">Webhook / Callback URL 与校验事件将在此汇总，便于运维复制到各平台控制台。</p>' +
-          '<div class="placeholder-notice">占位：租户级 Webhook URL、Verify token、订阅字段检查清单 — 不接真实校验。</div>';
+        if (channelId === 'telegram') {
+          body =
+            '<p class="muted" style="margin:0 0 0.75rem">租户 Webhook 路径固定为 <code>/webhooks/t/&lt;slug&gt;/telegram</code>。Telegram <strong>不需要</strong> Verify token（与 WhatsApp / Messenger 不同）。请先将 ChatFlow 部署在<strong>公网 HTTPS</strong>，再向 Telegram 注册下方 URL。</p>' +
+            '<label class="legacy" for="wizPublicWebhookBase">公网 Base URL（HTTPS，无尾斜杠）</label>' +
+            '<input class="legacy" type="url" id="wizPublicWebhookBase" autocomplete="off" placeholder="https://api.starbright-solutions.com" />' +
+            '<p class="muted" style="margin:0.35rem 0 0.75rem;font-size:0.78rem">仅保存在本浏览器，用于拼接展示；不会写入服务器。</p>' +
+            '<label class="legacy">租户 slug（当前 Workspace）</label>' +
+            '<div id="wizTenantSlug" class="wiz-pre" style="padding:0.5rem 0.65rem;margin:0.35rem 0 0.75rem">加载中…</div>' +
+            '<label class="legacy" for="wizWebhookFullUrl">完整 Webhook URL（setWebhook 的 url）</label>' +
+            '<div class="quick-row" style="margin-top:0.35rem;align-items:flex-start;gap:0.5rem">' +
+            '<input class="legacy" id="wizWebhookFullUrl" readonly style="flex:1;min-width:0" value="" />' +
+            '<button type="button" class="btn" id="wizCopyWebhookUrl">复制 URL</button></div>' +
+            '<p class="muted" style="margin:0.75rem 0 0.35rem"><strong>这一步在做什么？</strong>让 Telegram 知道：用户发消息给机器人时，要把内容推送到下面这个 <code>https://…/webhooks/t/…/telegram</code> 地址（你的 ChatFlow 服务）。</p>' +
+            '<p class="muted" style="margin:0.35rem 0 0.35rem;font-size:0.78rem">命令里的 <code>YOUR_BOT_TOKEN_HERE</code> 是<strong>占位符</strong>：请<strong>整段替换</strong>为 @BotFather 给你的 Token（形如 <code>123456789:AAH…</code>），<strong>不要</strong>保留尖括号 <code>&lt; &gt;</code>。错误示例：<code>bot&lt;123:AA…&gt;</code> 会导致 Telegram 返回 404。</p>' +
+            '<p class="muted" style="margin:0.35rem 0 0.35rem;font-size:0.78rem"><strong>复制 Webhook URL</strong>：只复制链接。<strong>下方文本框可编辑</strong>：改好 Token 后点<strong>复制 curl</strong>，再到 Termius 执行。<strong>setWebhook 文档</strong>：官方说明。</p>' +
+            '<label class="legacy" for="wizCurlSetWebhook">setWebhook 命令（可在此框内直接修改）</label>' +
+            '<textarea id="wizCurlSetWebhook" class="wiz-pre" rows="5" spellcheck="false" autocomplete="off"></textarea>' +
+            '<div class="quick-row" style="margin-top:0.5rem">' +
+            '<button type="button" class="btn" id="wizCopyCurl">复制 curl</button>' +
+            '<a class="btn" href="https://core.telegram.org/bots/api#setwebhook" target="_blank" rel="noopener">setWebhook 文档</a></div>' +
+            '<p class="muted" id="wizWebhookStepStatus" style="margin-top:0.75rem">准备中…</p>';
+        } else {
+          body = '<p class="muted" style="margin:0 0 0.75rem">Webhook / Callback URL 与校验事件将在此汇总，便于运维复制到各平台控制台。</p>' +
+            '<div class="placeholder-notice">该渠道的租户级 Webhook 说明将在后续迭代接入；需要签名或 Verify token 的渠道会单独列出字段。</div>';
+        }
       } else {
         body = '<p class="muted" style="margin:0 0 0.75rem">验证平台回调与出站连通性。</p>' +
           '<div class="placeholder-notice">占位：测试消息将在后续迭代接入；当前请使用接入中心卡片上的 Test 或下方旧版配置区。</div>' +
@@ -1403,6 +1554,9 @@
             statusTg.style.color = 'var(--danger)';
           }
         };
+      }
+      if (channelId === 'telegram' && step === 2) {
+        wireTelegramWebhookStep();
       }
     }
 
