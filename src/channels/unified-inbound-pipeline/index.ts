@@ -399,12 +399,16 @@ export async function runUnifiedInboundPipeline(
     botSettings.welcome_message.trim().length > 0;
 
   if (isFirstContact) {
-    finalReplyText = botSettings!.welcome_message.trim();
+    // Prefer per-language welcome when language is known (e.g. auto-skip resolved it from platform).
+    const detectedLang = nextSession.current_language as import('../../saas/tenant-runtime-settings').SupportedLang | null;
+    const byLang = detectedLang ? botSettings!.welcome_by_language?.[detectedLang] : undefined;
+    finalReplyText = (byLang?.message?.trim() || botSettings!.welcome_message.trim());
     finalShouldSend = true;
-    if (botSettings!.welcome_buttons.length > 0) {
-      welcomeQuickButtons = botSettings!.welcome_buttons.slice(0, 5);
+    const langButtons = byLang?.buttons?.length ? byLang.buttons.slice(0, 5) : botSettings!.welcome_buttons;
+    if (langButtons.length > 0) {
+      welcomeQuickButtons = langButtons;
     }
-    debug_steps.push('welcome_sent');
+    debug_steps.push(byLang ? `welcome_sent_by_lang:${detectedLang}` : 'welcome_sent');
   }
 
   // --- Track exchange count in session metadata (used by lead_trigger_after_n) ---
