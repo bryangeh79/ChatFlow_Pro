@@ -112,7 +112,8 @@ CREATE TABLE IF NOT EXISTS tenant_faq_entries (
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_tenant_faq_tenant_question
-  ON tenant_faq_entries(tenant_id, question);
+  ON tenant_faq_entries(tenant_id, question)
+  WHERE translation_status = 'source' OR translation_status IS NULL;
 
 CREATE TABLE IF NOT EXISTS tenant_settings (
   tenant_id TEXT PRIMARY KEY,
@@ -396,10 +397,7 @@ function applyPhaseBFaqAndPlatformMigrations(db: SqlJsDatabase): void {
     db.run('ALTER TABLE tenant_faq_entries ADD COLUMN updated_at TEXT');
     db.run("UPDATE tenant_faq_entries SET updated_at = datetime('now') WHERE updated_at IS NULL OR updated_at = ''");
   }
-  db.run(
-    `CREATE UNIQUE INDEX IF NOT EXISTS idx_tenant_faq_tenant_question
-     ON tenant_faq_entries(tenant_id, question)`,
-  );
+  // intentionally left — partial index rebuild handled in applyFaqTranslationColumnMigrations
 }
 
 function applyFaqTranslationColumnMigrations(db: SqlJsDatabase): void {
@@ -416,6 +414,14 @@ function applyFaqTranslationColumnMigrations(db: SqlJsDatabase): void {
   db.run(
     `CREATE INDEX IF NOT EXISTS idx_faq_source_translations
      ON tenant_faq_entries (tenant_id, source_faq_id, language, translation_status)`,
+  );
+  // Rebuild unique index as partial — only source rows are subject to uniqueness.
+  // Translation rows (draft/published) must be exempt so upsertFaqTranslation can INSERT freely.
+  db.run(`DROP INDEX IF EXISTS idx_tenant_faq_tenant_question`);
+  db.run(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_tenant_faq_tenant_question
+     ON tenant_faq_entries(tenant_id, question)
+     WHERE translation_status = 'source' OR translation_status IS NULL`,
   );
 }
 
