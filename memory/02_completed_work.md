@@ -1,6 +1,42 @@
 # 02 Completed Work
 
-**Last updated:** 2026-04-10 — Full sync after Bot Settings 3-batch closure
+**Last updated:** 2026-04-11 — FAQ Translation Stability Fix added
+
+---
+
+## FAQ Translation Stability Fix ✅ (2026-04-11)
+
+**Commit:** `78aaa81`
+**Status:** Code fixed, pushed to GitHub. ⚠️ Awaiting VPS deployment + live verification.
+
+**Background:**
+`POST /knowledge/:id/generate-translation` (the "⚡ Generate Draft" button in the Translation Panel) was returning 502 Bad Gateway. The route was added as part of the SaaS IA / multilingual restructure (Knowledge workbench, FAQ translation workflow).
+
+**Root cause (primary):**
+Line 1339 in `src/saas/admin-routes.ts` had a redundant dynamic import:
+```typescript
+// BUG — was:
+const { getTenantCredentialsForOutbound } = await import('./repository');
+```
+`getTenantCredentialsForOutbound` is already statically imported at line 16. The dynamic import was resolving incorrectly at runtime, causing the handler to crash before returning any JSON → nginx surfaced this as 502.
+
+**Root cause (secondary):**
+`upsertFaqTranslation()` called after the OpenAI fetch had no try/catch. Any DB-level exception (e.g. missing column) would crash the handler with no JSON response body.
+
+**Fixes applied (`src/saas/admin-routes.ts`):**
+1. Removed dynamic `await import('./repository')` — use static import directly
+2. Wrapped `upsertFaqTranslation` in try/catch → returns `500 { ok:false, error:"db_error:..." }` instead of crashing
+3. OpenAI non-200 responses now captured as `warning` field in the 200 response, not as a thrown error
+4. fetch timeout increased from 15s → 20s
+
+**Fix applied (`public/tenant-app.html`):**
+5. `api()` helper: 502/503/504 now return `"Server error (502) — please retry or check server logs"` instead of raw nginx HTML blob
+6. Generate Draft catch block: error prefixed with ⚠ for visual clarity
+
+**Expected result after deploy:**
+- Generate Draft returns `{ ok: true, translation: {...} }` for EN / VI / MS / ZH
+- DB errors return clean 500 JSON (no crash)
+- Frontend shows readable error text if anything fails
 
 ---
 

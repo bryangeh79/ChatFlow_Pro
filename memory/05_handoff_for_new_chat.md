@@ -1,6 +1,6 @@
 # 05 Handoff for New Chat
 
-**Last updated:** 2026-04-10
+**Last updated:** 2026-04-11
 **For:** Next Claude session / agent picking up this project
 
 ---
@@ -46,9 +46,44 @@ Channels: Telegram + LINE (live). WhatsApp/Messenger/Zalo (stubbed).
 
 ---
 
-## What Was Just Completed (This Session)
+## Latest Debug Fix — FAQ Translation 502 (2026-04-11)
 
-### Bot Settings — Full 3-Batch Delivery
+**Commit:** `78aaa81`
+**Deploy status:** ⚠️ Pushed to GitHub only. **Not yet deployed to VPS. Not yet live-verified.**
+
+### What was broken
+`POST /knowledge/:id/generate-translation` (the "⚡ Generate Draft" button in Knowledge → Translation Panel) returned 502 Bad Gateway in production.
+
+### Root cause
+`src/saas/admin-routes.ts` line 1339 had a redundant `await import('./repository')` inside the route handler. `getTenantCredentialsForOutbound` is already statically imported at line 16 of the same file. The dynamic import failed at runtime → handler crashed → nginx returned 502 with HTML body.
+
+Secondary: `upsertFaqTranslation()` had no try/catch — any DB error would also crash the handler.
+
+### What was fixed (commit `78aaa81`)
+- `src/saas/admin-routes.ts`:
+  - Removed dynamic import; use static import directly
+  - Wrapped `upsertFaqTranslation` in try/catch → returns `500 {ok:false,error:"db_error:..."}` instead of crashing
+  - OpenAI non-200 captured as `warning` in 200 response (not thrown)
+  - Fetch timeout: 15s → 20s
+- `public/tenant-app.html`:
+  - `api()` helper: 502/503/504 → clean message `"Server error (502) — please retry or check server logs"` instead of raw nginx HTML
+  - Generate Draft catch: prefixed with ⚠
+
+### What the next session must do first
+1. SSH to VPS and deploy:
+```bash
+cd /opt/chatflow/ChatFlow_Pro
+git pull origin main
+npm run build
+kill $(ps aux | grep 'node dist' | grep -v grep | awk '{print $2}')
+nohup node dist/src/index.js > /tmp/chatflow.log 2>&1 &
+```
+2. Test Generate Draft for EN / VI / MS in Knowledge panel — must return translated text
+3. Check `tail -f /tmp/chatflow.log` — no crash on generate-translation
+
+---
+
+## What Was Completed Earlier (Bot Settings — Full 3-Batch Delivery)
 All settings stored in `tenant_settings.settings_json.bot.*`, per-tenant, runtime-loaded.
 
 **Fields (all configurable in Dashboard → Settings → Bot Settings):**

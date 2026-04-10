@@ -1,10 +1,25 @@
 # 04 Risks and Issues
 
-**Last updated:** 2026-04-10
+**Last updated:** 2026-04-11
 
 ---
 
 ## Active Risks
+
+### R5 — FAQ Generate-Draft 502 (CODE FIXED, AWAITING DEPLOY) — monitor after deploy
+- **Issue:** `POST /knowledge/:id/generate-translation` returned 502 in production
+- **Root cause:** Redundant dynamic `await import('./repository')` at line 1339 of admin-routes.ts; `upsertFaqTranslation` unguarded against DB errors
+- **Fix:** Commit `78aaa81` — dynamic import removed, DB error wrapped, frontend error message cleaned
+- **Status:** ⚠️ Fix pushed to GitHub. **Not yet deployed to VPS. Not yet live-verified.**
+- **Action after deploy:** Monitor `/tmp/chatflow.log` for any crash on generate-translation calls. If clean for 24h, downgrade to Resolved.
+
+### R6 — OpenAI upstream non-200 (WARNING-LEVEL, external dependency)
+- **Issue:** OpenAI API may return non-200 (rate limit, quota, outage) during translation generation
+- **Impact:** Generate Draft returns `{ ok: true, warning: "OpenAI API error: 429", translation: {source text as fallback} }` — draft saved with original (un-translated) text; user sees a warning but no crash
+- **Mitigation:** Commit `78aaa81` captures OpenAI HTTP errors as `warning` in response body; frontend shows warning message
+- **Status:** Warning-level risk — external dependency, cannot be fully eliminated. Monitor tenant OpenAI key quota.
+
+
 
 ### R1 — VPS process not persistent (HIGH)
 - **Issue:** Process started with `nohup`, dies on VPS reboot
@@ -48,6 +63,7 @@
 
 | Issue | Resolution |
 |---|---|
+| FAQ generate-translation 502 — dynamic import bug | Fixed commit `78aaa81` — awaiting deploy/verify |
 | LINE 403 on Verify | Credentials were swapped (Secret ↔ Token); re-saved correctly |
 | LINE auto-reply conflict | Disabled Auto-response in LINE OA Manager |
 | AI settings keySaved wrong field | Fixed: `input.has_openai_key` |

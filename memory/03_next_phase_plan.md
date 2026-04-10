@@ -1,6 +1,6 @@
 # 03 Next Phase Plan
 
-**Last updated:** 2026-04-10
+**Last updated:** 2026-04-11
 **Status:** Main development CLOSED. No new phase planned.
 
 ---
@@ -10,13 +10,38 @@
 The system is production-ready. The next phase is NOT new features —
 it is making the existing features work reliably for real tenants.
 
-### Priority Order
+### Immediate Next Actions (Stabilisation — Not New Features)
 
-1. **Real-world testing** — run every checklist item with a real Telegram/LINE account
-2. **Bug fixes** — reproduce → fix → deploy (no scope creep)
-3. **UX micro-fixes** — copy/label/layout issues found during testing
-4. **Admin onboarding** — teach Bryan to configure and manage tenants
-5. **M33 Lotto Bot FAQ import** — Bryan has content ready; load via Bulk Import
+**Step 1 — Deploy commit `78aaa81` to VPS** (PENDING as of 2026-04-11)
+```bash
+cd /opt/chatflow/ChatFlow_Pro
+git pull origin main
+npm run build
+kill $(ps aux | grep 'node dist' | grep -v grep | awk '{print $2}')
+nohup node dist/src/index.js > /tmp/chatflow.log 2>&1 &
+```
+
+**Step 2 — Verify FAQ translation flow live**
+- Open Dashboard → Knowledge → click 🌐 Translate on any FAQ entry
+- Click ⚡ Generate Draft → must return translated question + answer (not 502)
+- Test all languages: EN, VI, MS-MY
+- Click Save & Publish → confirm status shows "published"
+- Check VPS logs: `tail -f /tmp/chatflow.log` — must show no "crash" or unhandled errors
+
+**Step 3 — Confirm no more 502 / crash in logs**
+- If logs show errors, report them for next fix cycle
+- If clean: mark FAQ translation chain as verified
+
+---
+
+### Priority Order (Ongoing)
+
+1. **Deploy + verify `78aaa81`** ← CURRENT BLOCKER
+2. **Real-world testing** — run every checklist item with a real Telegram/LINE account
+3. **Bug fixes** — reproduce → fix → deploy (no scope creep)
+4. **UX micro-fixes** — copy/label/layout issues found during testing
+5. **Admin onboarding** — teach Bryan to configure and manage tenants
+6. **M33 Lotto Bot FAQ import** — Bryan has content ready; load via Bulk Import
 
 ---
 

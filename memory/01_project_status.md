@@ -55,6 +55,22 @@
 
 ---
 
+## Latest Debug Fix Snapshot (2026-04-11)
+
+**Commit:** `78aaa81` — FAQ Translation Stability Fix
+
+**What was fixed:**
+- `POST /knowledge/:id/generate-translation` was returning 502 Bad Gateway
+- Root cause: redundant `await import('./repository')` inside the handler (line 1339) — `getTenantCredentialsForOutbound` was already statically imported at line 16; dynamic import caused resolution failure at runtime
+- Secondary: `upsertFaqTranslation` was unguarded — any DB exception would crash the handler with no JSON response
+- Frontend: `api()` helper was passing raw nginx 502 HTML as the error message
+
+**Files changed:** `src/saas/admin-routes.ts`, `public/tenant-app.html`
+
+**Current status:** ⚠️ Code fixed and pushed to GitHub (`main`). **Awaiting deployment and live verification on VPS.** Not yet confirmed resolved in production.
+
+---
+
 ## Current Work Mode Rules
 
 - NO new main feature lines without explicit approval
