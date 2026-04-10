@@ -402,6 +402,23 @@ function applyPhaseBFaqAndPlatformMigrations(db: SqlJsDatabase): void {
   );
 }
 
+function applyFaqTranslationColumnMigrations(db: SqlJsDatabase): void {
+  if (!hasTableColumn(db, 'tenant_faq_entries', 'translation_status')) {
+    db.run("ALTER TABLE tenant_faq_entries ADD COLUMN translation_status TEXT NOT NULL DEFAULT 'source'");
+    db.run("UPDATE tenant_faq_entries SET translation_status = 'source' WHERE translation_status IS NULL OR translation_status = ''");
+  }
+  if (!hasTableColumn(db, 'tenant_faq_entries', 'source_faq_id')) {
+    db.run('ALTER TABLE tenant_faq_entries ADD COLUMN source_faq_id TEXT');
+  }
+  if (!hasTableColumn(db, 'tenant_faq_entries', 'reviewed_at')) {
+    db.run('ALTER TABLE tenant_faq_entries ADD COLUMN reviewed_at TEXT');
+  }
+  db.run(
+    `CREATE INDEX IF NOT EXISTS idx_faq_source_translations
+     ON tenant_faq_entries (tenant_id, source_faq_id, language, translation_status)`,
+  );
+}
+
 function applyPhaseCWorkflowMigrations(db: SqlJsDatabase): void {
   if (!hasTableColumn(db, 'messages', 'sender_display_name')) {
     db.run('ALTER TABLE messages ADD COLUMN sender_display_name TEXT');
@@ -442,6 +459,7 @@ export async function getSaaSDatabase(): Promise<SqlJsDatabase> {
       applyTenantStatusColumnMigration(db);
       applyPhaseBFaqAndPlatformMigrations(db);
       applyPhaseCWorkflowMigrations(db);
+      applyFaqTranslationColumnMigrations(db);
       db.run(
         `CREATE TABLE IF NOT EXISTS tenant_products (
           id TEXT PRIMARY KEY,

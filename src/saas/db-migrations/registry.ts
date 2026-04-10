@@ -191,6 +191,17 @@ const SAAS_DB_MIGRATIONS_BASE: readonly MigrationBase[] = [
     asset_path: 'postgres/pg_0016_phasee_tenant_products.sql',
     asset_kind: 'sql_file',
   },
+  {
+    id: 'pg_0017_faq_translations',
+    description: 'FAQ translation workbench: adds translation_status, source_faq_id, reviewed_at to tenant_faq_entries.',
+    target_driver: 'postgres',
+    phase_tag: 'phase_faq_translations_v1',
+    kind: 'schema',
+    up_summary: 'ALTER TABLE tenant_faq_entries per postgres/pg_0017_faq_translations.sql.',
+    down_summary: 'no rollback',
+    asset_path: 'postgres/pg_0017_faq_translations.sql',
+    asset_kind: 'sql_file',
+  },
 ];
 
 function buildMigrationsWithChecksums(): readonly SaasDbMigrationDef[] {
