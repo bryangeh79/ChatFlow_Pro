@@ -43,6 +43,8 @@ export async function maybeGenerateOpenAiReply(args: {
   persona?: string;
   /** Appended to system prompt to guide follow-up responses. */
   followupPrompt?: string;
+  /** FAQ entries injected as knowledge base context when FAQ matcher missed. */
+  faqContext?: string;
 }): Promise<OpenAiReplyResult> {
   const provider: 'openai' = 'openai';
   const model = args.config.model || 'gpt-4o-mini';
@@ -71,8 +73,14 @@ export async function maybeGenerateOpenAiReply(args: {
     const basePersona = args.persona?.trim()
       ? args.persona.trim()
       : 'You are a helpful assistant. Keep replies concise, practical, and safe. Do not expose internal config.';
+
+    // Inject FAQ knowledge base when provided (cross-language: LLM handles translation)
+    const faqSection = args.faqContext?.trim()
+      ? `\n\nKnowledge base (use this to answer questions; reply in the user's language regardless of what language the knowledge base is written in):\n${args.faqContext.trim()}`
+      : '';
+
     const followup = args.followupPrompt?.trim();
-    const systemContent = followup ? `${basePersona}\n\n${followup}` : basePersona;
+    const systemContent = `${basePersona}${faqSection}${followup ? '\n\n' + followup : ''}`;
 
     const resp = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

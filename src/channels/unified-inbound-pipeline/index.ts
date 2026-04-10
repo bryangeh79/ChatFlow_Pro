@@ -439,6 +439,7 @@ export async function runUnifiedInboundPipeline(
       },
       persona: options.tenantRuntimeSettings.bot?.persona || undefined,
       followupPrompt: options.tenantRuntimeSettings.bot?.followup_prompt || undefined,
+      faqContext: buildFaqContextString(options.faqEntries),
     });
     llmResult = {
       used: r.used,
@@ -633,6 +634,19 @@ export async function runUnifiedInboundPipeline(
     session: sessionAfterHandoffCheck,
     response,
   };
+
+// 辅助函数：构建FAQ上下文字符串（跨语言LLM注入）
+function buildFaqContextString(entries: UnifiedFaqSeedEntry[] | undefined): string | undefined {
+  if (!entries || entries.length === 0) return undefined;
+  return entries
+    .slice(0, 30)
+    .map((e, i) => {
+      const q = e.question.trim();
+      const a = e.answer.length > 300 ? e.answer.slice(0, 297) + '...' : e.answer.trim();
+      return `Q${i + 1}: ${q}\nA${i + 1}: ${a}`;
+    })
+    .join('\n\n');
+}
 
 // 辅助函数：计算资格标签
 function computeQualificationTags(
