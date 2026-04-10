@@ -1723,6 +1723,97 @@ export async function createLeadFromConversation(args: {
   return { lead, created: true };
 }
 
+/**
+ * Upsert a leave-message lead by session_id.
+ * Deduplication key: latest_note starts with "[leave_msg:{session_id}]".
+ * If already exists → returns existing lead without creating a duplicate.
+ * If not → inserts a new lead with status='new'.
+ */
+export async function upsertLeaveMessageLead(args: {
+  tenant_id: string;
+  session_id: string;
+  channel: string;
+  leave_message_text: string;
+  name?: string | null;
+  phone?: string | null;
+  email?: string | null;
+}): Promise<{ lead: LeadRow; created: boolean }> {
+  const adapter = await getSaasDbAdapter();
+  const dedupeMarker = `[leave_msg:${args.session_id}]`;
+  const inquirySummary = `[留言] ${args.leave_message_text.trim()}`;
+
+  // Check for existing lead with this session dedup marker
+  const existing = await adapter.queryOne(
+    `SELECT id, tenant_id, conversation_id, name, phone, email, source_channel,
+            inquiry_summary, status, owner_principal_id, latest_note,
+            converted_at, created_at, updated_at
+     FROM leads
+     WHERE tenant_id = ? AND latest_note = ? LIMIT 1`,
+    [args.tenant_id, dedupeMarker],
+  );
+
+  if (existing) {
+    return {
+      lead: {
+        id: String(existing.id),
+        tenant_id: String(existing.tenant_id),
+        conversation_id: existing.conversation_id == null ? null : String(existing.conversation_id),
+        name: existing.name == null ? null : String(existing.name),
+        phone: existing.phone == null ? null : String(existing.phone),
+        email: existing.email == null ? null : String(existing.email),
+        source_channel: String(existing.source_channel),
+        inquiry_summary: String(existing.inquiry_summary),
+        status: String(existing.status) as LeadStatus,
+        owner_principal_id: existing.owner_principal_id == null ? null : String(existing.owner_principal_id),
+        latest_note: existing.latest_note == null ? null : String(existing.latest_note),
+        converted_at: existing.converted_at == null ? null : String(existing.converted_at),
+        created_at: String(existing.created_at),
+        updated_at: String(existing.updated_at),
+      },
+      created: false,
+    };
+  }
+
+  const id = randomUUID();
+  const now = nowIso();
+  await adapter.execute(
+    `INSERT INTO leads
+     (id, tenant_id, conversation_id, name, phone, email, source_channel, inquiry_summary, status, owner_principal_id, latest_note, converted_at, created_at, updated_at)
+     VALUES (?, ?, NULL, ?, ?, ?, ?, ?, 'new', NULL, ?, NULL, ?, ?)`,
+    [
+      id,
+      args.tenant_id,
+      args.name?.trim() || null,
+      args.phone?.trim() || null,
+      args.email?.trim() || null,
+      args.channel,
+      inquirySummary,
+      dedupeMarker,
+      now,
+      now,
+    ],
+  );
+  await adapter.persistIfNeeded();
+
+  const created: LeadRow = {
+    id,
+    tenant_id: args.tenant_id,
+    conversation_id: null,
+    name: args.name?.trim() || null,
+    phone: args.phone?.trim() || null,
+    email: args.email?.trim() || null,
+    source_channel: args.channel,
+    inquiry_summary: inquirySummary,
+    status: 'new',
+    owner_principal_id: null,
+    latest_note: dedupeMarker,
+    converted_at: null,
+    created_at: now,
+    updated_at: now,
+  };
+  return { lead: created, created: true };
+}
+
 export async function insertLeadEvent(args: {
   tenant_id: string;
   lead_id: string;

@@ -27,6 +27,7 @@ import {
   getTenantProcessingState,
   upsertTenantProcessingStateWithCas,
 } from '../../saas/processing-state-repository';
+import { upsertLeaveMessageLead } from '../../saas/repository';
 import { buildHandoffPendingNotifyIdempotencyKey } from '../../shared/outbound-idempotency';
 import { maybeGenerateOpenAiReply } from './openai-reply';
 import { observabilityFingerprint, writeStructuredLog } from '../../observability/structured-log';
@@ -380,6 +381,25 @@ export async function runUnifiedInboundPipeline(
       finalShouldSend = true;
       isLeaveMessageTurn = true;
       debug_steps.push('leave_message_recorded');
+
+      // Auto-create Lead — fire-and-forget, never breaks bot reply
+      if (tenantId) {
+        const capturedFields = sessionAfterHandoffCheck.lead_capture_state.collected_fields ?? {};
+        upsertLeaveMessageLead({
+          tenant_id: tenantId,
+          session_id: sessionAfterHandoffCheck.session_id,
+          channel: message.channel,
+          leave_message_text: leaveText,
+          name: capturedFields.name != null ? String(capturedFields.name) : null,
+          phone: capturedFields.phone != null ? String(capturedFields.phone) : null,
+          email: capturedFields.email != null ? String(capturedFields.email) : null,
+        }).then((r) => {
+          debug_steps.push(r.created ? 'leave_lead_created' : 'leave_lead_exists');
+        }).catch((err) => {
+          // eslint-disable-next-line no-console
+          console.warn('[pipeline] leave_message auto-lead failed:', err instanceof Error ? err.message : String(err));
+        });
+      }
     } else if (userWantsHuman && handoffDisabled) {
       // User wants human but handoff is off — enter leave-message mode
       sessionAfterHandoffCheck.metadata = {
