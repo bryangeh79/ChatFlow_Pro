@@ -31,8 +31,14 @@ export interface TenantRuntimeSettings {
     followup_prompt: string;
     /** When true, bot collects a leave-a-message when no agent is available. */
     leave_message_mode: boolean;
+    /** Bot reply prompting user to leave their message. Empty = use built-in default. */
+    leave_message_prompt_text: string;
+    /** Bot confirmation after user leaves a message. Empty = use built-in default. */
+    leave_message_confirmation_text: string;
     /** Trigger lead collection prompt after this many exchanges (0 = disabled). */
     lead_trigger_after_n: number;
+    /** Soft nudge text appended to replies to invite contact info. Empty = use built-in default. */
+    lead_nudge_text: string;
   };
   /**
    * Default true when omitted. false = handoff reply suppression (env-driven) cannot apply for this tenant.
@@ -69,7 +75,10 @@ const DEFAULT_RUNTIME: TenantRuntimeSettings = {
     welcome_buttons: [],
     followup_prompt: '',
     leave_message_mode: false,
+    leave_message_prompt_text: '',
+    leave_message_confirmation_text: '',
     lead_trigger_after_n: 0,
+    lead_nudge_text: '',
   },
   suppress_reply: { enabled: true },
   faq: { fallback_enabled: true },
@@ -120,11 +129,14 @@ function parseBotBlock(raw: unknown): TenantRuntimeSettings['bot'] {
         : defaults.welcome_buttons;
     const followup_prompt = typeof b.followup_prompt === 'string' ? b.followup_prompt : defaults.followup_prompt;
     const leave_message_mode = typeof b.leave_message_mode === 'boolean' ? b.leave_message_mode : defaults.leave_message_mode;
+    const leave_message_prompt_text = typeof b.leave_message_prompt_text === 'string' ? b.leave_message_prompt_text : defaults.leave_message_prompt_text;
+    const leave_message_confirmation_text = typeof b.leave_message_confirmation_text === 'string' ? b.leave_message_confirmation_text : defaults.leave_message_confirmation_text;
     const lead_trigger_after_n =
       typeof b.lead_trigger_after_n === 'number' && b.lead_trigger_after_n >= 0
         ? Math.floor(b.lead_trigger_after_n)
         : defaults.lead_trigger_after_n;
-    return { enabled, persona, welcome_message, welcome_buttons, followup_prompt, leave_message_mode, lead_trigger_after_n };
+    const lead_nudge_text = typeof b.lead_nudge_text === 'string' ? b.lead_nudge_text : defaults.lead_nudge_text;
+    return { enabled, persona, welcome_message, welcome_buttons, followup_prompt, leave_message_mode, leave_message_prompt_text, leave_message_confirmation_text, lead_trigger_after_n, lead_nudge_text };
   }
   return { ...defaults };
 }

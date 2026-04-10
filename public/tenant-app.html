@@ -1262,16 +1262,24 @@
     }
 
     function normalizeLead(l) {
-      const summary = l.summary || l.note || l.last_message || '';
+      const inquirySummary = l.inquiry_summary || l.summary || '';
+      const latestNote = l.latest_note || l.note || '';
+      const summary = inquirySummary || latestNote || l.last_message || '';
+      const isLeaveMessage = inquirySummary.startsWith('[留言]') || latestNote.startsWith('[留言]');
       return {
         id: String(l.id),
         name: l.name || '—',
+        phone: l.phone || '',
+        email: l.email || '',
         source_channel: l.source_channel || '—',
         status: l.status || 'new',
         owner_principal_id: l.owner_principal_id || null,
         updated_at: leadShortTime(l.updated_at),
         created_at: leadShortTime(l.created_at || l.updated_at),
         summary: summary || '（无摘要）',
+        inquiry_summary: inquirySummary,
+        latest_note: latestNote,
+        is_leave_message: isLeaveMessage,
         conversation_id: l.conversation_id || l.source_conversation_id || null,
         _rawUpdated: l.updated_at || null,
         _rawCreated: l.created_at || l.updated_at || null,
@@ -2009,7 +2017,8 @@
 
       var bot = {
         persona: '', welcome_message: '', welcome_buttons: [], followup_prompt: '',
-        leave_message_mode: false, lead_trigger_after_n: 0,
+        leave_message_mode: false, leave_message_prompt_text: '', leave_message_confirmation_text: '',
+        lead_trigger_after_n: 0, lead_nudge_text: '',
       };
       var apiNote = '';
       try {
@@ -2061,13 +2070,19 @@
           '<div class="fld-group" style="margin-bottom:1.5rem">' +
           '<label class="legacy" style="font-weight:600">Leave-a-Message Mode</label>' +
           '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.5rem">无客服在线时，机器人自动收集留言。</p>' +
-          '<label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">' +
-          '<input type="checkbox" id="bsLeaveMsg"' + (bot.leave_message_mode ? ' checked' : '') + ' /> 启用 Leave-a-Message</label></div>' +
+          '<label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin-bottom:0.75rem">' +
+          '<input type="checkbox" id="bsLeaveMsg"' + (bot.leave_message_mode ? ' checked' : '') + ' /> 启用 Leave-a-Message</label>' +
+          '<label class="legacy" style="font-size:0.8rem">提示语 <span style="color:var(--muted)">(留空使用默认)</span></label>' +
+          '<textarea class="legacy" id="bsLeavePrompt" rows="2" style="width:100%;resize:vertical;margin-bottom:0.5rem" placeholder="目前客服暂时不在线，请留下你的姓名、联系方式和需求，我们会尽快联系你。">' + esc(bot.leave_message_prompt_text || '') + '</textarea>' +
+          '<label class="legacy" style="font-size:0.8rem">确认语 <span style="color:var(--muted)">(留空使用默认)</span></label>' +
+          '<textarea class="legacy" id="bsLeaveConfirm" rows="2" style="width:100%;resize:vertical" placeholder="好的，我们已记录你的留言，客服人员会尽快联系你。谢谢！">' + esc(bot.leave_message_confirmation_text || '') + '</textarea></div>' +
 
           '<div class="fld-group" style="margin-bottom:1.5rem">' +
           '<label class="legacy" style="font-weight:600">Lead Collection Trigger <span style="font-weight:400;color:var(--muted)">(exchanges before prompt)</span></label>' +
           '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.5rem">经过 N 轮对话后提示用户留下联系方式。0 = 禁用。</p>' +
-          '<input class="legacy" type="number" id="bsLeadN" min="0" max="20" value="' + (bot.lead_trigger_after_n || 0) + '" style="width:100px" /></div>' +
+          '<input class="legacy" type="number" id="bsLeadN" min="0" max="20" value="' + (bot.lead_trigger_after_n || 0) + '" style="width:100px;margin-bottom:0.5rem" />' +
+          '<label class="legacy" style="font-size:0.8rem;display:block;margin-top:0.5rem">引导文案 <span style="color:var(--muted)">(留空使用默认)</span></label>' +
+          '<input class="legacy" type="text" id="bsLeadNudge" value="' + esc(bot.lead_nudge_text || '') + '" style="width:100%" placeholder="如果你愿意，也可以留下联系方式，我们方便进一步协助你。" /></div>' +
 
           '<div style="display:flex;gap:0.75rem;margin-top:1rem">' +
           '<button type="button" class="btn btn-primary" id="bsSave">' + (saving ? 'Saving…' : 'Save Bot Settings') + '</button>' +
@@ -2111,7 +2126,10 @@
             bot.welcome_message = (document.getElementById('bsWelcome').value || '').trim();
             bot.followup_prompt = (document.getElementById('bsFollowup').value || '').trim();
             bot.leave_message_mode = document.getElementById('bsLeaveMsg').checked;
+            bot.leave_message_prompt_text = (document.getElementById('bsLeavePrompt').value || '').trim();
+            bot.leave_message_confirmation_text = (document.getElementById('bsLeaveConfirm').value || '').trim();
             bot.lead_trigger_after_n = parseInt(document.getElementById('bsLeadN').value) || 0;
+            bot.lead_nudge_text = (document.getElementById('bsLeadNudge').value || '').trim();
 
             saving = true;
             mount();
@@ -3137,6 +3155,7 @@
                 '</p><div class="leads-row-foot"><span class="leads-ch-pill wb-chip">' +
                 esc(l.source_channel) +
                 '</span>' +
+                (l.is_leave_message ? '<span class="wb-chip" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;font-size:0.6rem">留言</span>' : '') +
                 leadStatusTag(l) +
                 leadPriorityUi(l) +
                 '</div></button>'
@@ -3169,6 +3188,8 @@
             '<div class="leads-info-cell"><div class="k">负责人</div><div class="v">' +
             esc(selected.owner_principal_id || '未分配') +
             '</div></div>' +
+            (selected.phone ? '<div class="leads-info-cell"><div class="k">电话</div><div class="v">' + esc(selected.phone) + '</div></div>' : '') +
+            (selected.email ? '<div class="leads-info-cell"><div class="k">邮箱</div><div class="v">' + esc(selected.email) + '</div></div>' : '') +
             '<div class="leads-info-cell"><div class="k">创建</div><div class="v">' +
             esc(selected.created_at) +
             '</div></div>' +
@@ -3176,6 +3197,11 @@
             esc(selected.updated_at) +
             '</div></div>' +
             '</div>' +
+            (selected.is_leave_message
+              ? '<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:0.65rem 0.85rem;margin:0 0 0.75rem;font-size:0.875rem">' +
+                '<p style="margin:0 0 0.25rem;font-weight:600;color:#795548">📩 留言内容</p>' +
+                '<p style="margin:0;white-space:pre-wrap;color:#333">' + esc(selected.inquiry_summary.replace(/^\[留言\]\s*/, '') || selected.latest_note.replace(/^\[留言\]\s*/, '')) + '</p></div>'
+              : '') +
             '<p class="muted" style="margin:0 0 0.65rem;font-size:0.8125rem;line-height:1.45"><strong>来源会话 / 渠道</strong> · ' +
             convLine +
             ' · 渠道 <span class="leads-ch-pill wb-chip">' +
@@ -3196,6 +3222,8 @@
           sideHtml +=
             '<div class="leads-side-block"><h4>Contact snapshot</h4><p>' +
             esc(selected.name) +
+            (selected.phone ? '<br/><span class="muted">📞 ' + esc(selected.phone) + '</span>' : '') +
+            (selected.email ? '<br/><span class="muted">✉️ ' + esc(selected.email) + '</span>' : '') +
             '<br/><span class="muted">ID · ' +
             esc(selected.id) +
             '</span></p></div>';

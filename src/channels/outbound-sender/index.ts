@@ -458,7 +458,12 @@ function createLineRealChannelSender(): ChannelSender {
         const outbound = mapUnifiedResponseToOutboundPayload({ ...response, channel: 'line' });
         void outbound;
 
-        const sendResult = await sendLineTextMessage(config, response.session_id, response.reply_text);
+        const sendResult = await sendLineTextMessage(
+          config,
+          response.session_id,
+          response.reply_text,
+          response.quick_reply_buttons,
+        );
 
         if (sendResult.skipped) {
           return {

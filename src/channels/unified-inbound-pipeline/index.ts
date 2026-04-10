@@ -352,25 +352,31 @@ export async function runUnifiedInboundPipeline(
   const collectingLeaveMessage = sessionAfterHandoffCheck.metadata?.leave_message_collecting === true;
 
   if (leaveMessageMode && !isFirstContact) {
+    const DEFAULT_LEAVE_PROMPT = '目前客服暂时不在线，请留下你的姓名、联系方式和需求，我们会尽快联系你。';
+    const DEFAULT_LEAVE_CONFIRM = '好的，我们已记录你的留言，客服人员会尽快联系你。谢谢！';
+
     if (collectingLeaveMessage) {
       // User's current message IS the leave-note. Store it via lead capture collected_fields.
+      const leaveText = message.text ?? '';
       sessionAfterHandoffCheck.lead_capture_state = {
         ...sessionAfterHandoffCheck.lead_capture_state,
         collected_fields: {
           ...(sessionAfterHandoffCheck.lead_capture_state.collected_fields ?? {}),
-          leave_message: message.text ?? '',
+          leave_message: leaveText,
           leave_message_at: new Date().toISOString(),
         },
         status: sessionAfterHandoffCheck.lead_capture_state.status === 'none'
           ? 'partial'
           : sessionAfterHandoffCheck.lead_capture_state.status,
       };
+      // Also write to conversation_summary so operator can see it if lead is created
+      sessionAfterHandoffCheck.conversation_summary = `[留言] ${leaveText}`;
       sessionAfterHandoffCheck.metadata = {
         ...sessionAfterHandoffCheck.metadata,
         leave_message_collecting: false,
         leave_message_recorded: true,
       };
-      finalReplyText = '好的，我们已记录你的留言，客服人员会尽快联系你。谢谢！';
+      finalReplyText = botSettings!.leave_message_confirmation_text?.trim() || DEFAULT_LEAVE_CONFIRM;
       finalShouldSend = true;
       isLeaveMessageTurn = true;
       debug_steps.push('leave_message_recorded');
@@ -380,7 +386,7 @@ export async function runUnifiedInboundPipeline(
         ...sessionAfterHandoffCheck.metadata,
         leave_message_collecting: true,
       };
-      finalReplyText = '目前客服暂时不在线，请留下你的姓名、联系方式和需求，我们会尽快联系你。';
+      finalReplyText = botSettings!.leave_message_prompt_text?.trim() || DEFAULT_LEAVE_PROMPT;
       finalShouldSend = true;
       isLeaveMessageTurn = true;
       debug_steps.push('leave_message_prompt_sent');
@@ -446,7 +452,8 @@ export async function runUnifiedInboundPipeline(
     finalShouldSend; // only append if we're already sending a reply
 
   if (shouldNudgeLead) {
-    const nudge = '如果你愿意，也可以留下联系方式，我们方便进一步协助你。';
+    const DEFAULT_NUDGE = '如果你愿意，也可以留下联系方式，我们方便进一步协助你。';
+    const nudge = botSettings?.lead_nudge_text?.trim() || DEFAULT_NUDGE;
     finalReplyText = finalReplyText ? `${finalReplyText}\n\n${nudge}` : nudge;
     sessionAfterHandoffCheck.metadata = {
       ...sessionAfterHandoffCheck.metadata,

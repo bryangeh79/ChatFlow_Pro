@@ -40,7 +40,9 @@ export function parseLineRecipientFromSessionId(sessionId: string): string | nul
 export async function sendLineTextMessage(
   config: LineMessagingConfig,
   sessionId: string,
-  text: string | null | undefined
+  text: string | null | undefined,
+  /** Optional quick-reply button labels rendered as LINE quickReply items. */
+  quickReplyButtons?: string[],
 ): Promise<SendResult> {
   const debugSteps: string[] = [];
   
@@ -82,14 +84,25 @@ export async function sendLineTextMessage(
     
     // 4. Build request
     const url = `${config.apiBaseUrl}/v2/bot/message/push`;
+
+    // Build LINE quickReply items if buttons provided (max 13 per LINE spec, we cap at 5)
+    const lineMessage: Record<string, unknown> = { type: 'text', text: messageText };
+    if (quickReplyButtons && quickReplyButtons.length > 0) {
+      lineMessage.quickReply = {
+        items: quickReplyButtons.slice(0, 5).map((label) => ({
+          type: 'action',
+          action: {
+            type: 'message',
+            label: label.substring(0, 20), // LINE label max 20 chars
+            text: label,
+          },
+        })),
+      };
+    }
+
     const body = JSON.stringify({
       to: recipient,
-      messages: [
-        {
-          type: 'text',
-          text: messageText,
-        },
-      ],
+      messages: [lineMessage],
     });
     
     debugSteps.push(`sendLineTextMessage: POST ${url}`);

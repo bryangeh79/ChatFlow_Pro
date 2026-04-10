@@ -1053,7 +1053,10 @@ export async function handleSaaSAdminRequest(
           welcome_buttons: Array.isArray(botRaw.welcome_buttons) ? botRaw.welcome_buttons : [],
           followup_prompt: typeof botRaw.followup_prompt === 'string' ? botRaw.followup_prompt : '',
           leave_message_mode: typeof botRaw.leave_message_mode === 'boolean' ? botRaw.leave_message_mode : false,
+          leave_message_prompt_text: typeof botRaw.leave_message_prompt_text === 'string' ? botRaw.leave_message_prompt_text : '',
+          leave_message_confirmation_text: typeof botRaw.leave_message_confirmation_text === 'string' ? botRaw.leave_message_confirmation_text : '',
           lead_trigger_after_n: typeof botRaw.lead_trigger_after_n === 'number' ? botRaw.lead_trigger_after_n : 0,
+          lead_nudge_text: typeof botRaw.lead_nudge_text === 'string' ? botRaw.lead_nudge_text : '',
         },
       },
     };
@@ -1080,7 +1083,10 @@ export async function handleSaaSAdminRequest(
     }
     if (typeof incoming.followup_prompt === 'string') patch.followup_prompt = incoming.followup_prompt.trim();
     if (typeof incoming.leave_message_mode === 'boolean') patch.leave_message_mode = incoming.leave_message_mode;
+    if (typeof incoming.leave_message_prompt_text === 'string') patch.leave_message_prompt_text = incoming.leave_message_prompt_text.trim();
+    if (typeof incoming.leave_message_confirmation_text === 'string') patch.leave_message_confirmation_text = incoming.leave_message_confirmation_text.trim();
     if (typeof incoming.lead_trigger_after_n === 'number') patch.lead_trigger_after_n = Math.max(0, Math.floor(incoming.lead_trigger_after_n));
+    if (typeof incoming.lead_nudge_text === 'string') patch.lead_nudge_text = incoming.lead_nudge_text.trim();
 
     // Deep merge: preserve existing bot keys not in this patch
     const existingRaw = await getTenantSettingsJson(tenant.id);
