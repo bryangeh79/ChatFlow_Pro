@@ -1335,8 +1335,7 @@ export async function handleSaaSAdminRequest(
     if (!source) {
       return { status: 404, body: { ok: false, error: 'source_entry_not_found' } };
     }
-    // Load tenant OpenAI key
-    const { getTenantCredentialsForOutbound } = await import('./repository');
+    // Load tenant OpenAI key (static import already at top of file)
     const creds = await getTenantCredentialsForOutbound(tenant.id);
     const openAiKey = creds.get('OPENAI_API_KEY') ?? '';
     if (!openAiKey.trim()) {
@@ -1349,9 +1348,10 @@ export async function handleSaaSAdminRequest(
     const langName = langNames[targetLang] ?? targetLang;
     let translatedQ = source.question;
     let translatedA = source.answer;
+    let openAiError: string | null = null;
     try {
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 15000);
+      const timer = setTimeout(() => ctrl.abort(), 20000);
       const resp = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { Authorization: `Bearer ${openAiKey}`, 'Content-Type': 'application/json' },
@@ -1381,11 +1381,20 @@ export async function handleSaaSAdminRequest(
           if (parsed2.question) translatedQ = parsed2.question;
           if (parsed2.answer) translatedA = parsed2.answer;
         } catch { /* keep originals */ }
+      } else {
+        openAiError = `OpenAI API error: ${resp.status}`;
       }
-    } catch { /* keep originals */ }
-    // Save as draft
-    const row = await upsertFaqTranslation(tenant.id, sourceFaqId, targetLang, translatedQ, translatedA, 'draft');
-    return { status: 200, body: { ok: true, translation: row } };
+    } catch (fetchErr) {
+      openAiError = fetchErr instanceof Error ? fetchErr.message : 'Translation request failed';
+    }
+    // Save as draft regardless (use source text as fallback if OpenAI failed)
+    try {
+      const row = await upsertFaqTranslation(tenant.id, sourceFaqId, targetLang, translatedQ, translatedA, 'draft');
+      return { status: 200, body: { ok: true, translation: row, warning: openAiError ?? undefined } };
+    } catch (dbErr) {
+      const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+      return { status: 500, body: { ok: false, error: `db_error: ${msg}` } };
+    }
   }
 
   const tenantIdKnowledgeImport = pathname.match(tenantIdRegexSuffix('/knowledge/import'));

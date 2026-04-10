@@ -835,7 +835,7 @@
         const text = await r.text();
         let j = null;
         try { j = JSON.parse(text); } catch (_) {}
-        if (!r.ok) throw new Error((j && (j.message || j.error)) || text || r.status);
+        if (!r.ok) throw new Error((j && (j.message || j.error)) || (r.status === 502 || r.status === 503 || r.status === 504 ? `Server error (${r.status}) — please retry or check server logs` : (text && text.length < 200 ? text : `HTTP ${r.status}`)));
         return j;
       });
     }
@@ -3113,7 +3113,8 @@
             state.trPanel.statusMsg = 'Draft generated — please review before publishing.';
             state.trPanel.statusOk = true;
           } catch (e) {
-            state.trPanel.statusMsg = 'Generate failed: ' + e.message;
+            var errMsg = (e && e.message) ? e.message : String(e);
+            state.trPanel.statusMsg = '⚠ Generate failed: ' + errMsg;
             state.trPanel.statusOk = false;
           }
           state.trPanel.generating = false; mount();
