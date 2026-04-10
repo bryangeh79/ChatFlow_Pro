@@ -434,6 +434,20 @@ export const ADMIN_ROUTE_POLICIES: readonly AdminRoutePolicy[] = [
     allowed_roles: ['platform_admin', 'tenant_admin'],
   },
   {
+    id: 'admin_tenant_id_bot_settings_get',
+    method: 'GET',
+    pathPattern: tenantIdPath('/bot-settings'),
+    resource_scope: 'tenant_targeted',
+    allowed_roles: ['platform_admin', 'tenant_admin', 'tenant_operator_readonly'],
+  },
+  {
+    id: 'admin_tenant_id_bot_settings_put',
+    method: 'PUT',
+    pathPattern: tenantIdPath('/bot-settings'),
+    resource_scope: 'tenant_targeted',
+    allowed_roles: ['platform_admin', 'tenant_admin'],
+  },
+  {
     id: 'admin_tenant_id_channel_selftest_post',
     method: 'POST',
     pathPattern: new RegExp(

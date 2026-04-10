@@ -1033,6 +1033,65 @@ export async function handleSaaSAdminRequest(
     return { status: 200, body: { ok: true } };
   }
 
+  // --- Bot Settings (GET / PUT) ---
+  const tenantIdBotSettings = pathname.match(tenantIdRegexSuffix('/bot-settings'));
+  if (tenantIdBotSettings && method === 'GET') {
+    const tenantId = tenantIdBotSettings[1].toLowerCase();
+    const tenant = await loadTenantOr404(tenantId);
+    if (!tenant) return { status: 404, body: { ok: false, error: 'tenant_not_found' } };
+    const raw = await getTenantSettingsJson(tenant.id);
+    const botRaw = (raw.bot && typeof raw.bot === 'object' && !Array.isArray(raw.bot))
+      ? (raw.bot as Record<string, unknown>)
+      : {};
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        bot: {
+          persona: typeof botRaw.persona === 'string' ? botRaw.persona : '',
+          welcome_message: typeof botRaw.welcome_message === 'string' ? botRaw.welcome_message : '',
+          welcome_buttons: Array.isArray(botRaw.welcome_buttons) ? botRaw.welcome_buttons : [],
+          followup_prompt: typeof botRaw.followup_prompt === 'string' ? botRaw.followup_prompt : '',
+          leave_message_mode: typeof botRaw.leave_message_mode === 'boolean' ? botRaw.leave_message_mode : false,
+          lead_trigger_after_n: typeof botRaw.lead_trigger_after_n === 'number' ? botRaw.lead_trigger_after_n : 0,
+        },
+      },
+    };
+  }
+
+  if (tenantIdBotSettings && method === 'PUT') {
+    const tenantId = tenantIdBotSettings[1].toLowerCase();
+    const tenant = await loadTenantOr404(tenantId);
+    if (!tenant) return { status: 404, body: { ok: false, error: 'tenant_not_found' } };
+    const parsedBody = parseJson(bodyText) as Record<string, unknown> | null;
+    const body = parsedBody ?? {};
+    const incoming = (body.bot && typeof body.bot === 'object' && !Array.isArray(body.bot))
+      ? (body.bot as Record<string, unknown>)
+      : body;
+
+    // Validate and sanitize
+    const patch: Record<string, unknown> = {};
+    if (typeof incoming.persona === 'string') patch.persona = incoming.persona.trim();
+    if (typeof incoming.welcome_message === 'string') patch.welcome_message = incoming.welcome_message.trim();
+    if (Array.isArray(incoming.welcome_buttons)) {
+      patch.welcome_buttons = (incoming.welcome_buttons as unknown[])
+        .filter((x) => typeof x === 'string')
+        .slice(0, 5);
+    }
+    if (typeof incoming.followup_prompt === 'string') patch.followup_prompt = incoming.followup_prompt.trim();
+    if (typeof incoming.leave_message_mode === 'boolean') patch.leave_message_mode = incoming.leave_message_mode;
+    if (typeof incoming.lead_trigger_after_n === 'number') patch.lead_trigger_after_n = Math.max(0, Math.floor(incoming.lead_trigger_after_n));
+
+    // Deep merge: preserve existing bot keys not in this patch
+    const existingRaw = await getTenantSettingsJson(tenant.id);
+    const existingBot = (existingRaw.bot && typeof existingRaw.bot === 'object' && !Array.isArray(existingRaw.bot))
+      ? (existingRaw.bot as Record<string, unknown>)
+      : {};
+    const mergedBot = { ...existingBot, ...patch };
+    await mergeTenantSettings(tenant.id, { bot: mergedBot });
+    return { status: 200, body: { ok: true, bot: mergedBot } };
+  }
+
   const tenantIdKnowledge = pathname.match(tenantIdRegexSuffix('/knowledge'));
   if (tenantIdKnowledge && method === 'GET') {
     const tenantId = tenantIdKnowledge[1].toLowerCase();

@@ -21,6 +21,18 @@ export interface TenantRuntimeSettings {
   /** Default true when omitted. false = no auto outbound reply (tenant path only). */
   bot: {
     enabled: boolean;
+    /** System prompt / bot persona. Empty string = use built-in default. */
+    persona: string;
+    /** First-contact welcome message. Empty string = no proactive greeting. */
+    welcome_message: string;
+    /** Quick-reply button labels shown with welcome message (max 5). */
+    welcome_buttons: string[];
+    /** Appended to every LLM system prompt to guide follow-up. Empty string = disabled. */
+    followup_prompt: string;
+    /** When true, bot collects a leave-a-message when no agent is available. */
+    leave_message_mode: boolean;
+    /** Trigger lead collection prompt after this many exchanges (0 = disabled). */
+    lead_trigger_after_n: number;
   };
   /**
    * Default true when omitted. false = handoff reply suppression (env-driven) cannot apply for this tenant.
@@ -50,7 +62,15 @@ const DEFAULT_RUNTIME: TenantRuntimeSettings = {
   handoff: { enabled: true },
   notify: { enabled: true },
   lead_capture: { enabled: true },
-  bot: { enabled: true },
+  bot: {
+    enabled: true,
+    persona: '',
+    welcome_message: '',
+    welcome_buttons: [],
+    followup_prompt: '',
+    leave_message_mode: false,
+    lead_trigger_after_n: 0,
+  },
   suppress_reply: { enabled: true },
   faq: { fallback_enabled: true },
   llm: { enabled: false, provider: 'openai', model: 'gpt-4o-mini' },
@@ -87,13 +107,26 @@ function parseLeadCaptureBlock(raw: unknown): TenantRuntimeSettings['lead_captur
 }
 
 function parseBotBlock(raw: unknown): TenantRuntimeSettings['bot'] {
+  const defaults = DEFAULT_RUNTIME.bot;
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
     const b = raw as Record<string, unknown>;
-    if (typeof b.enabled === 'boolean') {
-      return { enabled: b.enabled };
-    }
+    const enabled = typeof b.enabled === 'boolean' ? b.enabled : defaults.enabled;
+    const persona = typeof b.persona === 'string' ? b.persona : defaults.persona;
+    const welcome_message = typeof b.welcome_message === 'string' ? b.welcome_message : defaults.welcome_message;
+    const welcome_buttons =
+      Array.isArray(b.welcome_buttons) &&
+      b.welcome_buttons.every((x) => typeof x === 'string')
+        ? (b.welcome_buttons as string[]).slice(0, 5)
+        : defaults.welcome_buttons;
+    const followup_prompt = typeof b.followup_prompt === 'string' ? b.followup_prompt : defaults.followup_prompt;
+    const leave_message_mode = typeof b.leave_message_mode === 'boolean' ? b.leave_message_mode : defaults.leave_message_mode;
+    const lead_trigger_after_n =
+      typeof b.lead_trigger_after_n === 'number' && b.lead_trigger_after_n >= 0
+        ? Math.floor(b.lead_trigger_after_n)
+        : defaults.lead_trigger_after_n;
+    return { enabled, persona, welcome_message, welcome_buttons, followup_prompt, leave_message_mode, lead_trigger_after_n };
   }
-  return { ...DEFAULT_RUNTIME.bot };
+  return { ...defaults };
 }
 
 function parseSuppressReplyBlock(raw: unknown): TenantRuntimeSettings['suppress_reply'] {

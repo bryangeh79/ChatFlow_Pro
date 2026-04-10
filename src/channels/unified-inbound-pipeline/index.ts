@@ -314,6 +314,23 @@ export async function runUnifiedInboundPipeline(
   let finalReplyText = turnPlan.reply_text;
   let finalShouldSend = turnPlan.should_send;
 
+  // --- Welcome message: fire on first contact (no prior messages in session) ---
+  let welcomeQuickButtons: string[] = [];
+  const botSettings = options?.tenantRuntimeSettings?.bot;
+  const isFirstContact =
+    botSettings &&
+    !session && // no pre-existing session passed in = brand new
+    botSettings.welcome_message.trim().length > 0;
+
+  if (isFirstContact) {
+    finalReplyText = botSettings!.welcome_message.trim();
+    finalShouldSend = true;
+    if (botSettings!.welcome_buttons.length > 0) {
+      welcomeQuickButtons = botSettings!.welcome_buttons.slice(0, 5);
+    }
+    debug_steps.push('welcome_sent');
+  }
+
   let llmResult:
     | {
         used: boolean;
@@ -324,6 +341,7 @@ export async function runUnifiedInboundPipeline(
       }
     | undefined;
   if (
+    !isFirstContact &&
     options?.tenantRuntimeSettings?.llm?.enabled === true &&
     turnPlan.policy_path === 'default' &&
     !faqResult.matched &&
@@ -336,6 +354,8 @@ export async function runUnifiedInboundPipeline(
         enabled: options.tenantRuntimeSettings.llm.enabled,
         model: options.tenantRuntimeSettings.llm.model,
       },
+      persona: options.tenantRuntimeSettings.bot?.persona || undefined,
+      followupPrompt: options.tenantRuntimeSettings.bot?.followup_prompt || undefined,
     });
     llmResult = {
       used: r.used,
@@ -397,6 +417,7 @@ export async function runUnifiedInboundPipeline(
     should_send: effectiveShouldSend,
     handoff_required: handoffRequired,
     lead_capture_prompt: turnPlan.lead_capture_prompt,
+    quick_reply_buttons: welcomeQuickButtons.length > 0 ? welcomeQuickButtons : undefined,
     debug_steps: [...debug_steps, `phase:${phaseContext.phase}`, `policy:${turnPlan.policy_path}`],
     debug_metadata: {
       debug_steps: [...debug_steps, `phase:${phaseContext.phase}`, `policy:${turnPlan.policy_path}`],

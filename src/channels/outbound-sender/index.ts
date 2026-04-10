@@ -141,7 +141,12 @@ function createTelegramRealChannelSender(): ChannelSender {
         const outbound = mapUnifiedResponseToOutboundPayload({ ...response, channel: 'telegram' });
         void outbound;
 
-        const sendResult = await sendTelegramTextMessage(config, response.session_id, response.reply_text);
+        const sendResult = await sendTelegramTextMessage(
+          config,
+          response.session_id,
+          response.reply_text,
+          response.quick_reply_buttons,
+        );
 
         if (sendResult.skipped) {
           return {

@@ -21,4 +21,6 @@ export interface UnifiedResponse {
   debug_steps?: string[];
   debug_metadata?: Record<string, unknown>;
   raw_metadata?: Record<string, unknown>;
+  /** Quick-reply button labels to display alongside the reply (platform-specific rendering). */
+  quick_reply_buttons?: string[];
 }

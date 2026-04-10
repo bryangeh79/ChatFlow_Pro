@@ -1112,6 +1112,7 @@
       { path: '/app/settings/golive', title: 'Go-Live / Signoff', desc: '上线检查清单与签核链引用。' },
       { path: '/app/settings/recovery', title: 'Recovery & Audit', desc: '恢复治理只读入口与审计摘要（占位）。' },
       { path: '/app/settings/products', title: 'Products', desc: '产品分类管理，用于 FAQ 知识条目的产品标签。' },
+      { path: '/app/settings/bot', title: 'Bot Settings', desc: 'Persona、欢迎语、快捷按钮与跟进提示。' },
     ];
 
     const INTEGRATION_CHANNELS = [
@@ -1995,6 +1996,142 @@
             }
           };
           nameInput.onkeydown = function(ev) { if (ev.key === 'Enter') addBtn.click(); };
+        }
+      }
+      mount();
+    }
+
+    async function viewBotSettings() {
+      document.getElementById('view').innerHTML =
+        settingsBreadcrumb([{ href: '/app/settings', label: 'Settings' }, { label: 'Bot Settings' }]) +
+        '<div class="stg-page"><div class="page-header"><h1 class="page-title">Bot Settings</h1><p class="page-desc">配置机器人接待个性、欢迎语与快捷按钮。</p></div>' +
+        '<div class="wb-banner">Loading...</div></div>';
+
+      var bot = {
+        persona: '', welcome_message: '', welcome_buttons: [], followup_prompt: '',
+        leave_message_mode: false, lead_trigger_after_n: 0,
+      };
+      var apiNote = '';
+      try {
+        var r = await api(base() + '/bot-settings');
+        if (r.bot) bot = Object.assign(bot, r.bot);
+      } catch (e) { apiNote = 'Load failed: ' + e.message; }
+
+      var saving = false;
+
+      function renderButtons() {
+        var items = Array.isArray(bot.welcome_buttons) ? bot.welcome_buttons : [];
+        return items.map(function(b, i) {
+          return '<div class="bs-btn-row" style="display:flex;gap:0.5rem;margin-bottom:0.4rem">' +
+            '<input class="legacy bs-btn-input" type="text" data-btn-idx="' + i + '" value="' + esc(b) + '" style="flex:1" maxlength="30" placeholder="Button label" />' +
+            '<button type="button" class="btn btn-sm" data-btn-del="' + i + '">✕</button></div>';
+        }).join('') +
+        (items.length < 5
+          ? '<button type="button" class="btn btn-sm" id="bsBtnAdd">+ Add button</button>'
+          : '');
+      }
+
+      function mount() {
+        document.getElementById('view').innerHTML =
+          settingsBreadcrumb([{ href: '/app/settings', label: 'Settings' }, { label: 'Bot Settings' }]) +
+          '<div class="stg-page"><div class="page-header"><h1 class="page-title">Bot Settings</h1><p class="page-desc">配置机器人接待个性、欢迎语与快捷按钮。</p></div>' +
+          (apiNote ? '<div class="wb-banner">' + esc(apiNote) + '</div>' : '') +
+          '<div class="stg-form" style="max-width:640px">' +
+
+          '<div class="fld-group" style="margin-bottom:1.5rem">' +
+          '<label class="legacy" style="font-weight:600">Bot Persona <span style="font-weight:400;color:var(--muted)">(System Prompt)</span></label>' +
+          '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.5rem">机器人的角色设定，空白则使用系统默认。</p>' +
+          '<textarea class="legacy" id="bsPersona" rows="5" style="width:100%;resize:vertical" placeholder="You are a friendly assistant for [Company]. Respond in a warm and professional tone...">' + esc(bot.persona || '') + '</textarea></div>' +
+
+          '<div class="fld-group" style="margin-bottom:1.5rem">' +
+          '<label class="legacy" style="font-weight:600">Welcome Message</label>' +
+          '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.5rem">用户首次发消息时自动发送的欢迎语。留空则不发送。</p>' +
+          '<textarea class="legacy" id="bsWelcome" rows="3" style="width:100%;resize:vertical" placeholder="Hi there! 👋 Welcome to [Company]. How can I help you today?">' + esc(bot.welcome_message || '') + '</textarea></div>' +
+
+          '<div class="fld-group" style="margin-bottom:1.5rem">' +
+          '<label class="legacy" style="font-weight:600">Quick-Reply Buttons <span style="font-weight:400;color:var(--muted)">(max 5, shown with welcome message)</span></label>' +
+          '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.5rem">点击后直接发送该文字给机器人。</p>' +
+          '<div id="bsBtnList">' + renderButtons() + '</div></div>' +
+
+          '<div class="fld-group" style="margin-bottom:1.5rem">' +
+          '<label class="legacy" style="font-weight:600">Follow-up Prompt <span style="font-weight:400;color:var(--muted)">(appended to every AI reply)</span></label>' +
+          '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.5rem">引导 AI 在每次回复后给出跟进提示，留空则不附加。</p>' +
+          '<textarea class="legacy" id="bsFollowup" rows="2" style="width:100%;resize:vertical" placeholder="After answering, always ask if the user needs further help.">' + esc(bot.followup_prompt || '') + '</textarea></div>' +
+
+          '<div class="fld-group" style="margin-bottom:1.5rem">' +
+          '<label class="legacy" style="font-weight:600">Leave-a-Message Mode</label>' +
+          '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.5rem">无客服在线时，机器人自动收集留言。</p>' +
+          '<label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">' +
+          '<input type="checkbox" id="bsLeaveMsg"' + (bot.leave_message_mode ? ' checked' : '') + ' /> 启用 Leave-a-Message</label></div>' +
+
+          '<div class="fld-group" style="margin-bottom:1.5rem">' +
+          '<label class="legacy" style="font-weight:600">Lead Collection Trigger <span style="font-weight:400;color:var(--muted)">(exchanges before prompt)</span></label>' +
+          '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.5rem">经过 N 轮对话后提示用户留下联系方式。0 = 禁用。</p>' +
+          '<input class="legacy" type="number" id="bsLeadN" min="0" max="20" value="' + (bot.lead_trigger_after_n || 0) + '" style="width:100px" /></div>' +
+
+          '<div style="display:flex;gap:0.75rem;margin-top:1rem">' +
+          '<button type="button" class="btn btn-primary" id="bsSave">' + (saving ? 'Saving…' : 'Save Bot Settings') + '</button>' +
+          '<a class="btn" href="/app/settings" data-spa="/app/settings">← Back</a></div></div></div>';
+
+        bindSpaLinks(document.getElementById('view'));
+
+        // Button list interactions
+        document.querySelectorAll('[data-btn-del]').forEach(function(btn) {
+          btn.onclick = function() {
+            var idx = parseInt(btn.getAttribute('data-btn-del'));
+            bot.welcome_buttons = bot.welcome_buttons.filter(function(_, i) { return i !== idx; });
+            mount();
+          };
+        });
+        document.querySelectorAll('.bs-btn-input').forEach(function(inp) {
+          inp.oninput = function() {
+            var idx = parseInt(inp.getAttribute('data-btn-idx'));
+            bot.welcome_buttons[idx] = inp.value;
+          };
+        });
+        var addBtnEl = document.getElementById('bsBtnAdd');
+        if (addBtnEl) {
+          addBtnEl.onclick = function() {
+            if (!bot.welcome_buttons) bot.welcome_buttons = [];
+            if (bot.welcome_buttons.length < 5) { bot.welcome_buttons.push(''); mount(); }
+          };
+        }
+
+        var saveBtn = document.getElementById('bsSave');
+        if (saveBtn) {
+          saveBtn.onclick = async function() {
+            // Collect current button values from inputs (in case user typed without triggering oninput)
+            document.querySelectorAll('.bs-btn-input').forEach(function(inp) {
+              var idx = parseInt(inp.getAttribute('data-btn-idx'));
+              bot.welcome_buttons[idx] = inp.value.trim();
+            });
+            bot.welcome_buttons = (bot.welcome_buttons || []).filter(function(b) { return b && b.trim(); });
+
+            bot.persona = (document.getElementById('bsPersona').value || '').trim();
+            bot.welcome_message = (document.getElementById('bsWelcome').value || '').trim();
+            bot.followup_prompt = (document.getElementById('bsFollowup').value || '').trim();
+            bot.leave_message_mode = document.getElementById('bsLeaveMsg').checked;
+            bot.lead_trigger_after_n = parseInt(document.getElementById('bsLeadN').value) || 0;
+
+            saving = true;
+            mount();
+            try {
+              var res = await api(base() + '/bot-settings', {
+                method: 'PUT',
+                body: JSON.stringify({ bot: bot }),
+              });
+              if (res.ok) {
+                apiNote = '';
+                alert('Bot settings saved.');
+              } else {
+                apiNote = 'Save failed: ' + (res.error || JSON.stringify(res));
+              }
+            } catch (e) {
+              apiNote = 'Save failed: ' + e.message;
+            }
+            saving = false;
+            mount();
+          };
         }
       }
       mount();
@@ -3484,6 +3621,7 @@
         else if (p === '/app/settings/golive') viewAdvGolive();
         else if (p === '/app/settings/recovery') viewAdvRecovery();
         else if (p === '/app/settings/products') await viewSettingsProducts();
+        else if (p === '/app/settings/bot') await viewBotSettings();
         else if (p === '/app/channels') await viewChannels();
         else if (p === '/app/ai') await viewAi();
         else if (p === '/app/knowledge') await viewKnowledge();

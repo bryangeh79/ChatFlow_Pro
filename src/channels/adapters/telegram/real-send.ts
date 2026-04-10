@@ -37,12 +37,20 @@ async function postSendMessageOnce(
   chatId: string,
   text: string,
   dispatcher?: Dispatcher,
+  inlineKeyboard?: string[][],
 ): Promise<{ ok: true; messageId: string } | { ok: false; status: number; description: string; retryable: boolean }> {
   const url = `${TELEGRAM_API}/bot${botToken}/sendMessage`;
-  const body = {
+  const body: Record<string, unknown> = {
     chat_id: chatId,
     text: text.length > MAX_MESSAGE_LENGTH ? text.slice(0, MAX_MESSAGE_LENGTH - 1) + '…' : text,
   };
+  if (inlineKeyboard && inlineKeyboard.length > 0) {
+    body.reply_markup = {
+      inline_keyboard: inlineKeyboard.map((row) =>
+        row.map((label) => ({ text: label, callback_data: label })),
+      ),
+    };
+  }
 
   try {
     const res = await undiciFetch(url, {
@@ -78,12 +86,13 @@ async function postSendMessage(
   chatId: string,
   text: string,
   dispatcher?: Dispatcher,
+  inlineKeyboard?: string[][],
 ): Promise<{ ok: true; messageId: string } | { ok: false; status: number; description: string }> {
-  const first = await postSendMessageOnce(botToken, chatId, text, dispatcher);
+  const first = await postSendMessageOnce(botToken, chatId, text, dispatcher, inlineKeyboard);
   if (first.ok) return first;
   if (first.retryable) {
     await new Promise((r) => setTimeout(r, 1000));
-    const second = await postSendMessageOnce(botToken, chatId, text, dispatcher);
+    const second = await postSendMessageOnce(botToken, chatId, text, dispatcher, inlineKeyboard);
     if (second.ok) return second;
     return { ok: false, status: second.status, description: second.description };
   }
@@ -94,6 +103,8 @@ export async function sendTelegramTextMessage(
   config: TelegramConfig,
   sessionId: string,
   text: string | null | undefined,
+  /** Optional quick-reply buttons rendered as Telegram inline keyboard (one row per button). */
+  quickReplyButtons?: string[],
 ): Promise<{
   transport: 'telegram_real';
   skipped?: boolean;
@@ -121,9 +132,15 @@ export async function sendTelegramTextMessage(
     debug_steps.push('telegram_real_proxy');
   }
 
+  // Build inline keyboard from quick-reply button labels (each label = one row of one button)
+  const inlineKeyboard: string[][] | undefined =
+    quickReplyButtons && quickReplyButtons.length > 0
+      ? quickReplyButtons.map((label) => [label])
+      : undefined;
+
   debug_steps.push('telegram_real_api_call');
   try {
-    const result = await postSendMessage(config.botToken, chatId, trimmed, proxyAgent);
+    const result = await postSendMessage(config.botToken, chatId, trimmed, proxyAgent, inlineKeyboard);
 
     if (result.ok) {
       debug_steps.push('telegram_real_success');
