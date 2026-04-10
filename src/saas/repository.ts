@@ -373,7 +373,9 @@ export async function listTenantKnowledgeEntries(tenantId: string): Promise<Tena
   const rows = await adapter.queryAll(
     `SELECT id, language, topic, question, answer, source_type, is_active, updated_at,
             translation_status, source_faq_id, reviewed_at
-     FROM tenant_faq_entries WHERE tenant_id = ? ORDER BY updated_at DESC`,
+     FROM tenant_faq_entries
+     WHERE tenant_id = ? AND (source_faq_id IS NULL)
+     ORDER BY updated_at DESC`,
     [tenantId],
   );
   return rows.map((r) => mapKnowledgeRow(r as Record<string, unknown>));
