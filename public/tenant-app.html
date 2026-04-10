@@ -721,6 +721,13 @@
     .lang-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 1rem; }
     .lang-tab { padding: 0.45rem 1rem; font-size: 0.8125rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; background: none; border-top: none; border-left: none; border-right: none; }
     .lang-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    /* Translate button in FAQ row */
+    .kn-tr-btn { font-size: 0.75rem; padding: 0.2rem 0.6rem; background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; border-radius: var(--radius-sm, 4px); white-space: nowrap; }
+    .kn-tr-btn:hover { background: #ddd6fe; }
+    /* Import success CTA banner */
+    .kn-import-cta { background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius); padding: 0.85rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+    .kn-import-cta-msg { font-size: 0.875rem; color: #166534; font-weight: 500; }
+    .kn-import-cta-hint { font-size: 0.8rem; color: #166534; margin-top: 0.2rem; }
     /* Translation status pills in knowledge list */
     .tr-pill { display: inline-block; font-size: 0.65rem; font-weight: 600; padding: 0.1rem 0.4rem; border-radius: 999px; background: #f4f4f5; color: var(--muted); }
     .tr-pill.pub { background: #dcfce7; color: #16a34a; }
@@ -2725,6 +2732,7 @@
         panel: null,
         trPanel: null,   // translation workbench panel: { sourceId, activeLang, data, saving, generating }
         importPanel: false,
+        importCta: null, // { count, fail } shown after bulk import success
         saving: false,
         apiNote: apiNote,
       };
@@ -2848,7 +2856,7 @@
               '</div></div>' +
               '<div class="kn-faq-row-actions">' +
               '<button type="button" class="kn-toggle' + (isOn ? ' on' : '') + '" title="' + (isOn ? 'Disable' : 'Enable') + '" data-kn-toggle="' + esc(e.id) + '" data-kn-active="' + (isOn ? '1' : '0') + '"></button>' +
-              '<button type="button" class="icon-btn" title="Translate" data-kn-translate="' + esc(e.id) + '" style="font-size:0.75rem">🌐</button>' +
+              '<button type="button" class="btn btn-sm kn-tr-btn" data-kn-translate="' + esc(e.id) + '">🌐 Translate</button>' +
               '<button type="button" class="icon-btn" title="Edit" data-kn-edit="' + esc(e.id) + '">\u270e</button>' +
               '<button type="button" class="icon-btn" title="Delete" data-kn-del="' + esc(e.id) + '">\u2715</button>' +
               '</div></div>';
@@ -2869,6 +2877,16 @@
           'Knowledge',
           'FAQ knowledge base.',
           (state.apiNote ? '<div class="wb-banner">' + esc(state.apiNote) + '</div>' : '') +
+          (state.importCta ? (function() {
+            var firstId = state.entries.length ? state.entries[0].id : null;
+            return '<div class="kn-import-cta">' +
+              '<div>' +
+              '<div class="kn-import-cta-msg">✓ ' + state.importCta.count + ' FAQ entries imported' + (state.importCta.fail ? ', ' + state.importCta.fail + ' failed' : '') + '.</div>' +
+              '<div class="kn-import-cta-hint">Now add translations so users in other languages can get answers.</div>' +
+              '</div>' +
+              (firstId ? '<button type="button" class="btn btn-primary" style="font-size:0.82rem;white-space:nowrap" data-kn-translate="' + esc(firstId) + '">🌐 Open Translations →</button>' : '') +
+              '</div>';
+          })() : '') +
           '<div class="kn-page">' +
           '<div class="kn-toolbar wb-toolbar" style="margin-bottom:0.75rem">' +
           '<div class="fld"><label>Product</label><select class="legacy" id="knProdFilter">' + prodFilterOpts + '</select></div>' +
@@ -2974,7 +2992,8 @@
 
           state.importPanel = false;
           state.saving = false;
-          state.apiNote = ok + ' FAQ entries imported' + (fail ? ', ' + fail + ' failed' : '') + '.';
+          state.importCta = { count: ok, fail: fail };
+          state.apiNote = '';
           mount();
         };
 
