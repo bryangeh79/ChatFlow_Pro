@@ -13,6 +13,8 @@ import { createSafeFallbackResponse } from '../channels/errors';
 import { webhookObservabilityPhases } from './webhook-timing';
 import { guardInboundDedupe } from './inbound-dedupe';
 import type { TenantRuntimeSettings } from '../saas/tenant-runtime-settings';
+import { getTenantIdOrNull } from '../saas/tenant-context';
+import { upsertInboundConversationAndMessage } from '../saas/repository';
 
 function isTelegramStartOrHelp(text: string | null | undefined): boolean {
   const normalized = String(text ?? '').trim().toLowerCase();
@@ -69,6 +71,26 @@ export async function handleTelegramWebhook(rawRequestBody: unknown, opts?: Webh
     
     // 提交 session 到进程内存储（使跨请求 lead 合并生效）
     await commitSessionContext(result.session);
+    const tenantId = getTenantIdOrNull();
+    let persistence: {
+      conversation_id: string;
+      conversation_created: boolean;
+      message_inserted: boolean;
+    } | null = null;
+    if (tenantId) {
+      persistence = await upsertInboundConversationAndMessage({
+        tenant_id: tenantId,
+        channel: message.channel,
+        external_user_id: message.external_user_id,
+        external_session_id: message.external_session_id,
+        message_id: message.message_id,
+        body: message.text ?? '',
+        metadata_json: JSON.stringify({
+          raw_payload: message.raw_payload,
+          trace_request_id: opts?.httpRequestId ?? null,
+        }),
+      });
+    }
     await inboundDedupe.completeIfAccepted();
     
     const trace = createMinimalTraceContext({
@@ -109,6 +131,7 @@ export async function handleTelegramWebhook(rawRequestBody: unknown, opts?: Webh
       message: inboundMessage,
       session: result.session,
       response: result.response,
+      persistence,
       outboundPayload,
       sendResult: { result: sendResult.result },
       trace,
