@@ -13,6 +13,7 @@ import { runLeadCaptureHook } from '../lead-capture-hook';
 import { detectContactIntent } from '../lead-capture-hook/contact-intent-detector';
 import { getLeadCaptureI18n } from '../lead-capture-hook/i18n';
 import { shouldTriggerHandoff, updateHandoffStateIfTriggered } from '../handoff-trigger';
+import { containsHandoffKeyword } from '../../config/handoff';
 import { scheduleHandoffNotify } from '../handoff-trigger/notify-outbound';
 import { resolveConversationPhase } from '../conversation-runtime/phase';
 import { planTurn } from '../conversation-runtime/policy';
@@ -331,6 +332,61 @@ export async function runUnifiedInboundPipeline(
     debug_steps.push('welcome_sent');
   }
 
+  // --- Track exchange count in session metadata (used by lead_trigger_after_n) ---
+  const prevExchangeCount = typeof sessionAfterHandoffCheck.metadata?.bot_exchange_count === 'number'
+    ? sessionAfterHandoffCheck.metadata.bot_exchange_count
+    : 0;
+  const currentExchangeCount = prevExchangeCount + 1;
+  sessionAfterHandoffCheck.metadata = {
+    ...(sessionAfterHandoffCheck.metadata ?? {}),
+    bot_exchange_count: currentExchangeCount,
+  };
+
+  // --- Leave-a-message mode ---
+  // Triggered when: user hit a handoff keyword AND handoff.enabled = false (no real agent)
+  // OR user is in leave_message_collecting mode from prior turn.
+  let isLeaveMessageTurn = false;
+  const leaveMessageMode = botSettings?.leave_message_mode === true;
+  const handoffDisabled = options?.tenantRuntimeSettings?.handoff?.enabled === false;
+  const userWantsHuman = message.text ? containsHandoffKeyword(message.text) : false;
+  const collectingLeaveMessage = sessionAfterHandoffCheck.metadata?.leave_message_collecting === true;
+
+  if (leaveMessageMode && !isFirstContact) {
+    if (collectingLeaveMessage) {
+      // User's current message IS the leave-note. Store it via lead capture collected_fields.
+      sessionAfterHandoffCheck.lead_capture_state = {
+        ...sessionAfterHandoffCheck.lead_capture_state,
+        collected_fields: {
+          ...(sessionAfterHandoffCheck.lead_capture_state.collected_fields ?? {}),
+          leave_message: message.text ?? '',
+          leave_message_at: new Date().toISOString(),
+        },
+        status: sessionAfterHandoffCheck.lead_capture_state.status === 'none'
+          ? 'partial'
+          : sessionAfterHandoffCheck.lead_capture_state.status,
+      };
+      sessionAfterHandoffCheck.metadata = {
+        ...sessionAfterHandoffCheck.metadata,
+        leave_message_collecting: false,
+        leave_message_recorded: true,
+      };
+      finalReplyText = '好的，我们已记录你的留言，客服人员会尽快联系你。谢谢！';
+      finalShouldSend = true;
+      isLeaveMessageTurn = true;
+      debug_steps.push('leave_message_recorded');
+    } else if (userWantsHuman && handoffDisabled) {
+      // User wants human but handoff is off — enter leave-message mode
+      sessionAfterHandoffCheck.metadata = {
+        ...sessionAfterHandoffCheck.metadata,
+        leave_message_collecting: true,
+      };
+      finalReplyText = '目前客服暂时不在线，请留下你的姓名、联系方式和需求，我们会尽快联系你。';
+      finalShouldSend = true;
+      isLeaveMessageTurn = true;
+      debug_steps.push('leave_message_prompt_sent');
+    }
+  }
+
   let llmResult:
     | {
         used: boolean;
@@ -342,6 +398,7 @@ export async function runUnifiedInboundPipeline(
     | undefined;
   if (
     !isFirstContact &&
+    !isLeaveMessageTurn &&
     options?.tenantRuntimeSettings?.llm?.enabled === true &&
     turnPlan.policy_path === 'default' &&
     !faqResult.matched &&
@@ -371,6 +428,31 @@ export async function runUnifiedInboundPipeline(
     } else {
       debug_steps.push(`llm_openai_skipped:${r.reason}`);
     }
+  }
+
+  // --- lead_trigger_after_n: soft nudge after N exchanges if no contact info yet ---
+  const leadTriggerN = botSettings?.lead_trigger_after_n ?? 0;
+  const leadAlreadyNudgedThisSession = sessionAfterHandoffCheck.metadata?.lead_nudge_sent === true;
+  const leadStatus = sessionAfterHandoffCheck.lead_capture_state.status;
+  const inHandoff = sessionAfterHandoffCheck.handoff_state.status !== 'none';
+  const shouldNudgeLead =
+    leadTriggerN > 0 &&
+    currentExchangeCount >= leadTriggerN &&
+    leadStatus === 'none' &&
+    !leadAlreadyNudgedThisSession &&
+    !isFirstContact &&
+    !isLeaveMessageTurn &&
+    !inHandoff &&
+    finalShouldSend; // only append if we're already sending a reply
+
+  if (shouldNudgeLead) {
+    const nudge = '如果你愿意，也可以留下联系方式，我们方便进一步协助你。';
+    finalReplyText = finalReplyText ? `${finalReplyText}\n\n${nudge}` : nudge;
+    sessionAfterHandoffCheck.metadata = {
+      ...sessionAfterHandoffCheck.metadata,
+      lead_nudge_sent: true,
+    };
+    debug_steps.push('lead_nudge_appended');
   }
 
   const botReplyAllowed =
@@ -452,6 +534,11 @@ export async function runUnifiedInboundPipeline(
               llm_enabled: options.tenantRuntimeSettings.llm.enabled === true,
               llm_provider: options.tenantRuntimeSettings.llm.provider,
               llm_model: options.tenantRuntimeSettings.llm.model,
+              leave_message_mode: options.tenantRuntimeSettings.bot?.leave_message_mode ?? false,
+              lead_trigger_after_n: options.tenantRuntimeSettings.bot?.lead_trigger_after_n ?? 0,
+              bot_exchange_count: currentExchangeCount,
+              leave_message_turn: isLeaveMessageTurn,
+              lead_nudge_sent: shouldNudgeLead,
               ...(options.tenantPostSignatureSaasControl !== undefined
                 ? {
                     tenant_post_secret_present: options.tenantPostSignatureSaasControl.tenant_post_secret_present,
