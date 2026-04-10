@@ -2163,7 +2163,7 @@
       }
       const suspended = ov && ov.overview && ov.overview.tenant && ov.overview.tenant.status === 'suspended';
       const llm = a.input || {};
-      const keySaved = !!(a.current_status && a.current_status.openai_key_saved);
+      const keySaved = !!(a.input && a.input.has_openai_key);
       const lastError = a.validation_info && a.validation_info.last_error;
       const lastTested = a.validation_info && a.validation_info.last_tested_at;
 
@@ -2294,8 +2294,15 @@
           st.testing = true; st.msg = ''; render();
           try {
             var t = await api(base() + '/ai/test-connection', { method: 'POST', body: '{}' });
-            st.msg = t.ok ? 'Connection test passed \u2713' : 'Connection test failed';
-            st.msgOk = t.ok;
+            if (t.ok) {
+              st.msg = 'Connection test passed \u2713'; st.msgOk = true;
+            } else {
+              var errCode = t.result && t.result.error_code;
+              st.msg = errCode === 'missing_openai_key' ? 'No API Key saved \u2014 please add your OpenAI API Key above.'
+                : errCode === 'invalid_api_key' ? 'API Key is invalid \u2014 please check and update it.'
+                : 'Test failed: ' + (t.result && t.result.message ? t.result.message : 'Unknown error');
+              st.msgOk = false;
+            }
           } catch (e) { st.msg = 'Test failed: ' + e.message; st.msgOk = false; }
           st.testing = false; render();
         };
