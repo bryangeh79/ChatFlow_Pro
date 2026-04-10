@@ -3176,12 +3176,15 @@
       );
       let raw = [];
       let apiNote = false;
+      let apiError = '';
+      const useMockPreview = queryParam('dev_mock_inbox', '0') === '1';
       try {
         const r = await api(base() + '/conversations?limit=50&offset=0');
         raw = r.conversations || [];
       } catch (e) {
         apiNote = true;
-        raw = MOCK_INBOX_CONVERSATIONS.slice();
+        apiError = (e && e.message ? String(e.message) : 'unknown_error').slice(0, 240);
+        raw = useMockPreview ? MOCK_INBOX_CONVERSATIONS.slice() : [];
       }
       const list = raw.map(normalizeInboxConversation);
       const qStatus = queryParam('status', 'all');
@@ -3199,6 +3202,8 @@
           time: 'all',
         },
         apiNote,
+        apiError,
+        useMockPreview: apiNote && useMockPreview,
         source: qSource,
       };
 
@@ -3212,11 +3217,16 @@
         const selected = filtered.find((x) => x.id === selId) || null;
 
         let listCountLabel = filtered.length + ' 条';
-        if (!state.list.length) listCountLabel = '无会话';
+        if (state.apiError && !state.useMockPreview) listCountLabel = '加载失败';
+        else if (!state.list.length) listCountLabel = '无会话';
         else if (!filtered.length) listCountLabel = '无匹配';
 
         let rowsHtml = '';
-        if (!state.list.length) {
+        if (state.apiError && !state.useMockPreview) {
+          rowsHtml =
+            '<div class="inbox-empty wb-empty"><strong>Inbox load failed</strong>Please check Tenant ID / Token or API status and retry.<br/>' +
+            '<button type="button" class="btn" data-inbox-retry style="margin-top:0.75rem">Retry</button></div>';
+        } else if (!state.list.length) {
           rowsHtml =
             '<div class="inbox-empty wb-empty"><strong>暂无会话</strong>连接渠道后，新对话会出现在此列表。<br/>' +
             '<a href="/app/channels" data-spa="/app/channels" class="btn" style="margin-top:0.75rem">去接入中心</a></div>';
@@ -3250,7 +3260,10 @@
         }
 
         let midHtml = '';
-        if (!selected) {
+        if (state.apiError && !state.useMockPreview) {
+          midHtml =
+            '<div class="inbox-empty wb-empty" style="min-height:12rem;"><strong>Inbox API unavailable</strong>Showing real error state only. No demo/mock conversation data is rendered.</div>';
+        } else if (!selected) {
           midHtml =
             '<div class="inbox-empty wb-empty" style="min-height:12rem;"><strong>未选中会话</strong>从左侧选择一条会话以查看消息与时间线。</div>';
         } else {
@@ -3267,7 +3280,9 @@
         }
 
         let sideHtml = '<div class="inbox-side-head">Context</div><div class="inbox-side-body">';
-        if (!selected) {
+        if (state.apiError && !state.useMockPreview) {
+          sideHtml += '<p class="muted" style="margin:0">API error: <code>' + esc(state.apiError) + '</code></p>';
+        } else if (!selected) {
           sideHtml += '<p class="muted" style="margin:0">选择会话后显示摘要。</p>';
         } else {
           sideHtml +=
@@ -3296,7 +3311,9 @@
         sideHtml += '</div>';
 
         const noteBar = state.apiNote
-          ? '<div class="inbox-api-note wb-banner">Data unavailable. Showing fallback mock for UI preview.</div>'
+          ? state.useMockPreview
+            ? '<div class="inbox-api-note wb-banner">Data unavailable. Showing fallback mock for UI preview (dev override: <code>dev_mock_inbox=1</code>).</div>'
+            : '<div class="inbox-api-note wb-banner">Unable to load real conversations data. Showing error state only. <button type="button" class="btn" data-inbox-retry style="margin-left:0.5rem">Retry</button> <span class="muted">(' + esc(state.apiError || 'request_failed') + ')</span></div>'
           : '';
         const srcBar = state.source
           ? '<div class="inbox-api-note wb-banner">Opened from reports: ' + esc(state.source) + '. Preset filter applied.</div>'
@@ -3427,6 +3444,11 @@
             } catch (e) {
               window.alert('Action failed: ' + e.message);
             }
+          };
+        });
+        document.getElementById('view').querySelectorAll('[data-inbox-retry]').forEach((btn) => {
+          btn.onclick = () => {
+            viewInbox();
           };
         });
       }
