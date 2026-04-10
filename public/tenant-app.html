@@ -3216,11 +3216,7 @@
         else if (!filtered.length) listCountLabel = '无匹配';
 
         let rowsHtml = '';
-        if (state.apiError && !state.useMockPreview) {
-          rowsHtml =
-            '<div class="leads-empty wb-empty"><strong>Leads load failed</strong>Please check Tenant ID / Token or API status and retry.<br/>' +
-            '<button type="button" class="btn" data-leads-retry style="margin-top:0.75rem">Retry</button></div>';
-        } else if (!state.list.length) {
+        if (!state.list.length) {
           rowsHtml =
             '<div class="inbox-empty wb-empty"><strong>暂无会话</strong>连接渠道后，新对话会出现在此列表。<br/>' +
             '<a href="/app/channels" data-spa="/app/channels" class="btn" style="margin-top:0.75rem">去接入中心</a></div>';
