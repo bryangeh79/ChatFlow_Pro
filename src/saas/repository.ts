@@ -346,16 +346,14 @@ export interface TenantKnowledgeRow {
   source_type: string;
   is_active: boolean;
   updated_at: string;
+  translation_status: 'source' | 'draft' | 'published';
+  source_faq_id: string | null;
+  reviewed_at: string | null;
 }
 
-export async function listTenantKnowledgeEntries(tenantId: string): Promise<TenantKnowledgeRow[]> {
-  const adapter = await getSaasDbAdapter();
-  const rows = await adapter.queryAll(
-    `SELECT id, language, topic, question, answer, source_type, is_active, updated_at
-     FROM tenant_faq_entries WHERE tenant_id = ? ORDER BY updated_at DESC`,
-    [tenantId],
-  );
-  return rows.map((r) => ({
+function mapKnowledgeRow(r: Record<string, unknown>): TenantKnowledgeRow {
+  const status = String(r.translation_status ?? 'source');
+  return {
     id: String(r.id),
     language: String(r.language),
     category: String(r.topic),
@@ -364,7 +362,96 @@ export async function listTenantKnowledgeEntries(tenantId: string): Promise<Tena
     source_type: String(r.source_type ?? 'manual'),
     is_active: Number(r.is_active) !== 0,
     updated_at: String(r.updated_at ?? ''),
-  }));
+    translation_status: (status === 'draft' || status === 'published') ? status : 'source',
+    source_faq_id: r.source_faq_id != null ? String(r.source_faq_id) : null,
+    reviewed_at: r.reviewed_at != null ? String(r.reviewed_at) : null,
+  };
+}
+
+export async function listTenantKnowledgeEntries(tenantId: string): Promise<TenantKnowledgeRow[]> {
+  const adapter = await getSaasDbAdapter();
+  const rows = await adapter.queryAll(
+    `SELECT id, language, topic, question, answer, source_type, is_active, updated_at,
+            translation_status, source_faq_id, reviewed_at
+     FROM tenant_faq_entries WHERE tenant_id = ? ORDER BY updated_at DESC`,
+    [tenantId],
+  );
+  return rows.map((r) => mapKnowledgeRow(r as Record<string, unknown>));
+}
+
+/** List only published translations for a given source FAQ entry. */
+export async function listFaqTranslations(tenantId: string, sourceFaqId: string): Promise<TenantKnowledgeRow[]> {
+  const adapter = await getSaasDbAdapter();
+  const rows = await adapter.queryAll(
+    `SELECT id, language, topic, question, answer, source_type, is_active, updated_at,
+            translation_status, source_faq_id, reviewed_at
+     FROM tenant_faq_entries
+     WHERE tenant_id = ? AND source_faq_id = ?
+     ORDER BY language`,
+    [tenantId, sourceFaqId],
+  );
+  return rows.map((r) => mapKnowledgeRow(r as Record<string, unknown>));
+}
+
+/** Upsert a draft or published translation row. */
+export async function upsertFaqTranslation(
+  tenantId: string,
+  sourceFaqId: string,
+  language: string,
+  question: string,
+  answer: string,
+  status: 'draft' | 'published',
+): Promise<TenantKnowledgeRow> {
+  const adapter = await getSaasDbAdapter();
+  const now = nowIso();
+
+  // Find existing translation for this lang
+  const existing = await adapter.queryOne(
+    `SELECT id FROM tenant_faq_entries WHERE tenant_id = ? AND source_faq_id = ? AND language = ?`,
+    [tenantId, sourceFaqId, language],
+  );
+
+  // Fetch source row for topic
+  const sourceRow = await adapter.queryOne(
+    `SELECT topic FROM tenant_faq_entries WHERE tenant_id = ? AND id = ?`,
+    [tenantId, sourceFaqId],
+  );
+  const topic = sourceRow ? String(sourceRow.topic) : language;
+
+  const reviewed_at = status === 'published' ? now : null;
+
+  if (existing) {
+    const id = String(existing.id);
+    await adapter.execute(
+      `UPDATE tenant_faq_entries
+       SET question = ?, answer = ?, translation_status = ?, reviewed_at = ?, updated_at = ?
+       WHERE tenant_id = ? AND id = ?`,
+      [question, answer, status, reviewed_at, now, tenantId, id],
+    );
+    await adapter.persistIfNeeded();
+    return {
+      id, language, category: topic, question, answer,
+      source_type: 'translation', is_active: true,
+      updated_at: now, translation_status: status,
+      source_faq_id: sourceFaqId, reviewed_at,
+    };
+  } else {
+    const id = randomUUID();
+    await adapter.execute(
+      `INSERT INTO tenant_faq_entries
+       (id, tenant_id, language, topic, question, answer, source_type, keywords_json, tags_json,
+        is_active, updated_at, translation_status, source_faq_id, reviewed_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'translation', '[]', '[]', 1, ?, ?, ?, ?)`,
+      [id, tenantId, language, topic, question, answer, now, status, sourceFaqId, reviewed_at],
+    );
+    await adapter.persistIfNeeded();
+    return {
+      id, language, category: topic, question, answer,
+      source_type: 'translation', is_active: true,
+      updated_at: now, translation_status: status,
+      source_faq_id: sourceFaqId, reviewed_at,
+    };
+  }
 }
 
 export async function upsertTenantKnowledgeEntries(
@@ -427,8 +514,9 @@ export async function upsertTenantKnowledgeEntries(
     } else {
       await adapter.execute(
         `INSERT INTO tenant_faq_entries
-         (id, tenant_id, language, topic, question, answer, source_type, keywords_json, tags_json, is_active, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, '[]', '[]', ?, ?)`,
+         (id, tenant_id, language, topic, question, answer, source_type, keywords_json, tags_json,
+          is_active, updated_at, translation_status, source_faq_id, reviewed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, '[]', '[]', ?, ?, 'source', NULL, NULL)`,
         [
           id,
           tenantId,

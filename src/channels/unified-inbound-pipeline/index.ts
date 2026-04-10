@@ -103,6 +103,80 @@ export async function runUnifiedInboundPipeline(
     }
   }
 
+  // ── Step 0: Language Chooser ─────────────────────────────────────────────
+  // Runs before any FAQ/lead/handoff logic. Returns early with chooser UI
+  // or resolves session language so all downstream i18n uses the right lang.
+  const chooser = options?.tenantRuntimeSettings?.language_chooser;
+  if (chooser && !session) {
+    // Brand-new session: determine language
+    const platformLang = message.language ?? null;
+    const shouldAutoSkip = chooser.auto_skip_if_platform_lang && platformLang !== null;
+
+    if (chooser.enabled && !shouldAutoSkip) {
+      // Send language chooser UI — user must pick before anything else
+      nextSession.metadata = { ...(nextSession.metadata ?? {}), awaiting_language_choice: true };
+      const supported = chooser.supported.length > 0 ? chooser.supported : ['zh', 'en', 'vi', 'ms-MY'];
+      const LANG_LABELS: Record<string, string> = {
+        zh: '中文', en: 'English', vi: 'Tiếng Việt', 'ms-MY': 'Bahasa Melayu',
+      };
+      const chooserButtons = supported.map((l) => LANG_LABELS[l] ?? l);
+      const chooserText = '请选择语言 / Please choose your language / Sila pilih bahasa / Vui lòng chọn ngôn ngữ';
+
+      const chooserResponse = applyUnifiedDispatchPlaceholder({
+        channel: message.channel,
+        session_id: nextSession.session_id,
+        kind: 'text',
+        reply_text: chooserText,
+        should_send: true,
+        handoff_required: false,
+        lead_capture_prompt: null,
+        quick_reply_buttons: chooserButtons,
+        debug_steps: ['language_chooser_sent'],
+        debug_metadata: { language_chooser: true, supported },
+      });
+      return { session: nextSession, response: chooserResponse };
+    }
+
+    // Auto-skip or chooser disabled: write resolved language into session
+    const resolvedLang = platformLang ?? chooser.default_language;
+    nextSession = { ...nextSession, current_language: resolvedLang };
+  } else if (session?.metadata?.awaiting_language_choice === true && message.text) {
+    // Returning user is answering the language chooser
+    const LABEL_TO_LANG: Record<string, TenantRuntimeSettings['language_chooser']['default_language']> = {
+      '中文': 'zh', 'english': 'en', 'tiếng việt': 'vi', 'bahasa melayu': 'ms-MY',
+      'zh': 'zh', 'en': 'en', 'vi': 'vi', 'ms-my': 'ms-MY',
+    };
+    const pick = LABEL_TO_LANG[message.text.trim().toLowerCase()];
+    if (pick) {
+      nextSession = {
+        ...nextSession,
+        current_language: pick,
+        metadata: { ...(nextSession.metadata ?? {}), awaiting_language_choice: false, language_chosen: true },
+      };
+      // Now send the welcome message in the chosen language
+      const botSettings = options?.tenantRuntimeSettings?.bot;
+      const byLang = botSettings?.welcome_by_language?.[pick];
+      const welcomeMsg = byLang?.message?.trim() || botSettings?.welcome_message?.trim() || '';
+      const welcomeBtns = byLang?.buttons?.length ? byLang.buttons.slice(0, 5) : (botSettings?.welcome_buttons ?? []);
+      if (welcomeMsg) {
+        const welcomeResponse = applyUnifiedDispatchPlaceholder({
+          channel: message.channel,
+          session_id: nextSession.session_id,
+          kind: 'text',
+          reply_text: welcomeMsg,
+          should_send: true,
+          handoff_required: false,
+          lead_capture_prompt: null,
+          quick_reply_buttons: welcomeBtns.length > 0 ? welcomeBtns : undefined,
+          debug_steps: ['language_chosen', `welcome_by_lang:${pick}`],
+          debug_metadata: { language_chosen: pick },
+        });
+        return { session: nextSession, response: welcomeResponse };
+      }
+    }
+  }
+  // ── End Step 0 ───────────────────────────────────────────────────────────
+
   // 准备意图分类
   const intentPreparation = prepareUnifiedInboundIntent(message, nextSession);
   const dispatchResult = dispatchUnifiedInboundIntent(intentPreparation);

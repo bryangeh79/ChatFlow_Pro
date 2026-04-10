@@ -44,6 +44,20 @@ export function coerceTelegramWebhookBody(body: unknown): TelegramRawInboundEven
   return r as TelegramRawInboundEvent;
 }
 
+/**
+ * Normalize Telegram IETF language_code to our 4 supported codes.
+ * Telegram sends: "zh-hans", "zh-hant", "zh-TW", "ms", "ms-MY", "en-US", "vi", etc.
+ */
+export function normalizeTelegramLanguageCode(code: string | undefined): UnifiedInboundMessage['language'] {
+  if (!code) return null;
+  const lc = code.toLowerCase();
+  if (lc.startsWith('zh')) return 'zh';
+  if (lc.startsWith('ms')) return 'ms-MY';
+  if (lc.startsWith('vi')) return 'vi';
+  if (lc.startsWith('en')) return 'en';
+  return null; // unsupported — LLM will naturally follow user text language
+}
+
 export function normalizeTelegramInbound(rawEvent: TelegramRawInboundEvent): UnifiedInboundMessage {
   return {
     channel: 'telegram',
@@ -52,7 +66,7 @@ export function normalizeTelegramInbound(rawEvent: TelegramRawInboundEvent): Uni
     message_id: String(rawEvent.update_id ?? 'telegram-generated-id'),
     message_type: rawEvent.text ? 'text' : 'event',
     text: rawEvent.text ?? null,
-    language: (rawEvent.from?.language_code as UnifiedInboundMessage['language']) ?? null,
+    language: normalizeTelegramLanguageCode(rawEvent.from?.language_code),
     timestamp: rawEvent.timestamp ?? new Date().toISOString(),
     raw_payload: rawEvent,
   };

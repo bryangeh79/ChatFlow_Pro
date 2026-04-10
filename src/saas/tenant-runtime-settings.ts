@@ -5,6 +5,14 @@
 
 import { getTenantSettingsJson } from './repository';
 
+export type SupportedLang = 'zh' | 'en' | 'vi' | 'ms-MY';
+
+/** Per-language welcome content block. */
+export interface WelcomeByLangEntry {
+  message: string;
+  buttons: string[];
+}
+
 export interface TenantRuntimeSettings {
   handoff: {
     /** Default true when omitted. false = no keyword/API path may set pending / notify. */
@@ -23,22 +31,41 @@ export interface TenantRuntimeSettings {
     enabled: boolean;
     /** System prompt / bot persona. Empty string = use built-in default. */
     persona: string;
-    /** First-contact welcome message. Empty string = no proactive greeting. */
+    /** First-contact welcome message (zh fallback). Empty string = no proactive greeting. */
     welcome_message: string;
-    /** Quick-reply button labels shown with welcome message (max 5). */
+    /** Quick-reply button labels shown with welcome message (max 5, zh fallback). */
     welcome_buttons: string[];
+    /** Per-language welcome message + buttons. Overrides welcome_message/welcome_buttons when language matches. */
+    welcome_by_language?: Partial<Record<SupportedLang, WelcomeByLangEntry>>;
     /** Appended to every LLM system prompt to guide follow-up. Empty string = disabled. */
     followup_prompt: string;
     /** When true, bot collects a leave-a-message when no agent is available. */
     leave_message_mode: boolean;
-    /** Bot reply prompting user to leave their message. Empty = use built-in default. */
+    /** Bot reply prompting user to leave their message (zh fallback). Empty = use built-in default. */
     leave_message_prompt_text: string;
-    /** Bot confirmation after user leaves a message. Empty = use built-in default. */
+    /** Bot confirmation after user leaves a message (zh fallback). Empty = use built-in default. */
     leave_message_confirmation_text: string;
+    /** Per-language leave-message prompt. */
+    leave_message_prompt_by_language?: Partial<Record<SupportedLang, string>>;
+    /** Per-language leave-message confirmation. */
+    leave_message_confirmation_by_language?: Partial<Record<SupportedLang, string>>;
     /** Trigger lead collection prompt after this many exchanges (0 = disabled). */
     lead_trigger_after_n: number;
-    /** Soft nudge text appended to replies to invite contact info. Empty = use built-in default. */
+    /** Soft nudge text appended to replies to invite contact info (zh fallback). Empty = use built-in default. */
     lead_nudge_text: string;
+    /** Per-language lead nudge text. */
+    lead_nudge_by_language?: Partial<Record<SupportedLang, string>>;
+  };
+  /** Language chooser shown to new users before welcome message. */
+  language_chooser: {
+    /** When true, send language selection buttons on first contact (if language unknown). */
+    enabled: boolean;
+    /** Which language buttons to show. */
+    supported: SupportedLang[];
+    /** Fallback language when no choice made / platform lang unavailable. */
+    default_language: SupportedLang;
+    /** When true, skip chooser if platform (Telegram) provides a reliable language_code. */
+    auto_skip_if_platform_lang: boolean;
   };
   /**
    * Default true when omitted. false = handoff reply suppression (env-driven) cannot apply for this tenant.
@@ -80,6 +107,12 @@ const DEFAULT_RUNTIME: TenantRuntimeSettings = {
     lead_trigger_after_n: 0,
     lead_nudge_text: '',
   },
+  language_chooser: {
+    enabled: false,
+    supported: ['zh', 'en', 'vi', 'ms-MY'],
+    default_language: 'zh',
+    auto_skip_if_platform_lang: true,
+  },
   suppress_reply: { enabled: true },
   faq: { fallback_enabled: true },
   llm: { enabled: false, provider: 'openai', model: 'gpt-4o-mini' },
@@ -115,6 +148,40 @@ function parseLeadCaptureBlock(raw: unknown): TenantRuntimeSettings['lead_captur
   return { ...DEFAULT_RUNTIME.lead_capture };
 }
 
+const SUPPORTED_LANGS: SupportedLang[] = ['zh', 'en', 'vi', 'ms-MY'];
+
+function isSupportedLang(v: unknown): v is SupportedLang {
+  return typeof v === 'string' && (SUPPORTED_LANGS as string[]).includes(v);
+}
+
+function parseWelcomeByLanguage(raw: unknown): Partial<Record<SupportedLang, WelcomeByLangEntry>> | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const r = raw as Record<string, unknown>;
+  const out: Partial<Record<SupportedLang, WelcomeByLangEntry>> = {};
+  for (const lang of SUPPORTED_LANGS) {
+    const entry = r[lang];
+    if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+      const e = entry as Record<string, unknown>;
+      const message = typeof e.message === 'string' ? e.message : '';
+      const buttons = Array.isArray(e.buttons)
+        ? (e.buttons as unknown[]).filter((x) => typeof x === 'string').slice(0, 5) as string[]
+        : [];
+      out[lang] = { message, buttons };
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function parseLangTextMap(raw: unknown): Partial<Record<SupportedLang, string>> | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const r = raw as Record<string, unknown>;
+  const out: Partial<Record<SupportedLang, string>> = {};
+  for (const lang of SUPPORTED_LANGS) {
+    if (typeof r[lang] === 'string') out[lang] = r[lang] as string;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 function parseBotBlock(raw: unknown): TenantRuntimeSettings['bot'] {
   const defaults = DEFAULT_RUNTIME.bot;
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
@@ -127,16 +194,44 @@ function parseBotBlock(raw: unknown): TenantRuntimeSettings['bot'] {
       b.welcome_buttons.every((x) => typeof x === 'string')
         ? (b.welcome_buttons as string[]).slice(0, 5)
         : defaults.welcome_buttons;
+    const welcome_by_language = parseWelcomeByLanguage(b.welcome_by_language);
     const followup_prompt = typeof b.followup_prompt === 'string' ? b.followup_prompt : defaults.followup_prompt;
     const leave_message_mode = typeof b.leave_message_mode === 'boolean' ? b.leave_message_mode : defaults.leave_message_mode;
     const leave_message_prompt_text = typeof b.leave_message_prompt_text === 'string' ? b.leave_message_prompt_text : defaults.leave_message_prompt_text;
     const leave_message_confirmation_text = typeof b.leave_message_confirmation_text === 'string' ? b.leave_message_confirmation_text : defaults.leave_message_confirmation_text;
+    const leave_message_prompt_by_language = parseLangTextMap(b.leave_message_prompt_by_language);
+    const leave_message_confirmation_by_language = parseLangTextMap(b.leave_message_confirmation_by_language);
     const lead_trigger_after_n =
       typeof b.lead_trigger_after_n === 'number' && b.lead_trigger_after_n >= 0
         ? Math.floor(b.lead_trigger_after_n)
         : defaults.lead_trigger_after_n;
     const lead_nudge_text = typeof b.lead_nudge_text === 'string' ? b.lead_nudge_text : defaults.lead_nudge_text;
-    return { enabled, persona, welcome_message, welcome_buttons, followup_prompt, leave_message_mode, leave_message_prompt_text, leave_message_confirmation_text, lead_trigger_after_n, lead_nudge_text };
+    const lead_nudge_by_language = parseLangTextMap(b.lead_nudge_by_language);
+    return {
+      enabled, persona, welcome_message, welcome_buttons, welcome_by_language,
+      followup_prompt, leave_message_mode,
+      leave_message_prompt_text, leave_message_confirmation_text,
+      leave_message_prompt_by_language, leave_message_confirmation_by_language,
+      lead_trigger_after_n, lead_nudge_text, lead_nudge_by_language,
+    };
+  }
+  return { ...defaults };
+}
+
+function parseLanguageChooserBlock(raw: unknown): TenantRuntimeSettings['language_chooser'] {
+  const defaults = DEFAULT_RUNTIME.language_chooser;
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const r = raw as Record<string, unknown>;
+    const enabled = typeof r.enabled === 'boolean' ? r.enabled : defaults.enabled;
+    const supported = Array.isArray(r.supported)
+      ? (r.supported as unknown[]).filter(isSupportedLang)
+      : defaults.supported;
+    const default_language = isSupportedLang(r.default_language) ? r.default_language : defaults.default_language;
+    const auto_skip_if_platform_lang =
+      typeof r.auto_skip_if_platform_lang === 'boolean'
+        ? r.auto_skip_if_platform_lang
+        : defaults.auto_skip_if_platform_lang;
+    return { enabled, supported: supported.length > 0 ? supported : defaults.supported, default_language, auto_skip_if_platform_lang };
   }
   return { ...defaults };
 }
@@ -185,6 +280,7 @@ export function parseTenantRuntimeSettings(raw: Record<string, unknown>): Tenant
     notify: parseNotifyBlock(raw.notify),
     lead_capture: parseLeadCaptureBlock(raw.lead_capture),
     bot: parseBotBlock(raw.bot),
+    language_chooser: parseLanguageChooserBlock(raw.language_chooser),
     suppress_reply: parseSuppressReplyBlock(raw.suppress_reply),
     faq: parseFaqBlock(raw.faq),
     llm: parseLlmBlock(raw.llm),

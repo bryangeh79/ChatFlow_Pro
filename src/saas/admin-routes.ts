@@ -38,6 +38,8 @@ import {
   listPlatformLogs,
   listTenantActivityEvents,
   listTenantKnowledgeEntries,
+  listFaqTranslations,
+  upsertFaqTranslation,
   listTenantWebsiteDomains,
   setTenantKnowledgeActiveState,
   setTenantLifecycleStatus,
@@ -1043,6 +1045,9 @@ export async function handleSaaSAdminRequest(
     const botRaw = (raw.bot && typeof raw.bot === 'object' && !Array.isArray(raw.bot))
       ? (raw.bot as Record<string, unknown>)
       : {};
+    const lcRaw = (raw.language_chooser && typeof raw.language_chooser === 'object' && !Array.isArray(raw.language_chooser))
+      ? (raw.language_chooser as Record<string, unknown>)
+      : {};
     return {
       status: 200,
       body: {
@@ -1051,12 +1056,22 @@ export async function handleSaaSAdminRequest(
           persona: typeof botRaw.persona === 'string' ? botRaw.persona : '',
           welcome_message: typeof botRaw.welcome_message === 'string' ? botRaw.welcome_message : '',
           welcome_buttons: Array.isArray(botRaw.welcome_buttons) ? botRaw.welcome_buttons : [],
+          welcome_by_language: botRaw.welcome_by_language ?? {},
           followup_prompt: typeof botRaw.followup_prompt === 'string' ? botRaw.followup_prompt : '',
           leave_message_mode: typeof botRaw.leave_message_mode === 'boolean' ? botRaw.leave_message_mode : false,
           leave_message_prompt_text: typeof botRaw.leave_message_prompt_text === 'string' ? botRaw.leave_message_prompt_text : '',
           leave_message_confirmation_text: typeof botRaw.leave_message_confirmation_text === 'string' ? botRaw.leave_message_confirmation_text : '',
+          leave_message_prompt_by_language: botRaw.leave_message_prompt_by_language ?? {},
+          leave_message_confirmation_by_language: botRaw.leave_message_confirmation_by_language ?? {},
           lead_trigger_after_n: typeof botRaw.lead_trigger_after_n === 'number' ? botRaw.lead_trigger_after_n : 0,
           lead_nudge_text: typeof botRaw.lead_nudge_text === 'string' ? botRaw.lead_nudge_text : '',
+          lead_nudge_by_language: botRaw.lead_nudge_by_language ?? {},
+        },
+        language_chooser: {
+          enabled: typeof lcRaw.enabled === 'boolean' ? lcRaw.enabled : false,
+          supported: Array.isArray(lcRaw.supported) ? lcRaw.supported : ['zh', 'en', 'vi', 'ms-MY'],
+          default_language: typeof lcRaw.default_language === 'string' ? lcRaw.default_language : 'zh',
+          auto_skip_if_platform_lang: typeof lcRaw.auto_skip_if_platform_lang === 'boolean' ? lcRaw.auto_skip_if_platform_lang : true,
         },
       },
     };
@@ -1081,12 +1096,24 @@ export async function handleSaaSAdminRequest(
         .filter((x) => typeof x === 'string')
         .slice(0, 5);
     }
+    if (incoming.welcome_by_language && typeof incoming.welcome_by_language === 'object' && !Array.isArray(incoming.welcome_by_language)) {
+      patch.welcome_by_language = incoming.welcome_by_language;
+    }
     if (typeof incoming.followup_prompt === 'string') patch.followup_prompt = incoming.followup_prompt.trim();
     if (typeof incoming.leave_message_mode === 'boolean') patch.leave_message_mode = incoming.leave_message_mode;
     if (typeof incoming.leave_message_prompt_text === 'string') patch.leave_message_prompt_text = incoming.leave_message_prompt_text.trim();
     if (typeof incoming.leave_message_confirmation_text === 'string') patch.leave_message_confirmation_text = incoming.leave_message_confirmation_text.trim();
+    if (incoming.leave_message_prompt_by_language && typeof incoming.leave_message_prompt_by_language === 'object') {
+      patch.leave_message_prompt_by_language = incoming.leave_message_prompt_by_language;
+    }
+    if (incoming.leave_message_confirmation_by_language && typeof incoming.leave_message_confirmation_by_language === 'object') {
+      patch.leave_message_confirmation_by_language = incoming.leave_message_confirmation_by_language;
+    }
     if (typeof incoming.lead_trigger_after_n === 'number') patch.lead_trigger_after_n = Math.max(0, Math.floor(incoming.lead_trigger_after_n));
     if (typeof incoming.lead_nudge_text === 'string') patch.lead_nudge_text = incoming.lead_nudge_text.trim();
+    if (incoming.lead_nudge_by_language && typeof incoming.lead_nudge_by_language === 'object') {
+      patch.lead_nudge_by_language = incoming.lead_nudge_by_language;
+    }
 
     // Deep merge: preserve existing bot keys not in this patch
     const existingRaw = await getTenantSettingsJson(tenant.id);
@@ -1094,7 +1121,23 @@ export async function handleSaaSAdminRequest(
       ? (existingRaw.bot as Record<string, unknown>)
       : {};
     const mergedBot = { ...existingBot, ...patch };
-    await mergeTenantSettings(tenant.id, { bot: mergedBot });
+
+    // Handle language_chooser block in same PUT request
+    const settingsPatch: Record<string, unknown> = { bot: mergedBot };
+    if (body.language_chooser && typeof body.language_chooser === 'object' && !Array.isArray(body.language_chooser)) {
+      const lc = body.language_chooser as Record<string, unknown>;
+      const existingLc = (existingRaw.language_chooser && typeof existingRaw.language_chooser === 'object')
+        ? (existingRaw.language_chooser as Record<string, unknown>)
+        : {};
+      const lcPatch: Record<string, unknown> = {};
+      if (typeof lc.enabled === 'boolean') lcPatch.enabled = lc.enabled;
+      if (Array.isArray(lc.supported)) lcPatch.supported = lc.supported;
+      if (typeof lc.default_language === 'string') lcPatch.default_language = lc.default_language;
+      if (typeof lc.auto_skip_if_platform_lang === 'boolean') lcPatch.auto_skip_if_platform_lang = lc.auto_skip_if_platform_lang;
+      settingsPatch.language_chooser = { ...existingLc, ...lcPatch };
+    }
+
+    await mergeTenantSettings(tenant.id, settingsPatch);
     return { status: 200, body: { ok: true, bot: mergedBot } };
   }
 
@@ -1243,6 +1286,106 @@ export async function handleSaaSAdminRequest(
       message: `Knowledge entry disabled (${entryId})`,
     });
     return { status: 200, body: { ok: true } };
+  }
+
+  // --- FAQ Translations: GET /knowledge/:id/translations ---
+  const tenantIdKnowledgeTranslations = pathname.match(tenantIdRegexSuffix('/knowledge/([^/]+)/translations'));
+  if (tenantIdKnowledgeTranslations && method === 'GET') {
+    const tenantId = tenantIdKnowledgeTranslations[1].toLowerCase();
+    const entryId = tenantIdKnowledgeTranslations[2];
+    const tenant = await loadTenantOr404(tenantId);
+    if (!tenant) return { status: 404, body: { ok: false, error: 'tenant_not_found' } };
+    const translations = await listFaqTranslations(tenant.id, entryId);
+    return { status: 200, body: { ok: true, translations } };
+  }
+
+  // --- FAQ Translation: PUT /knowledge/:id/translations/:lang ---
+  const tenantIdTranslationLang = pathname.match(tenantIdRegexSuffix('/knowledge/([^/]+)/translations/([^/]+)'));
+  if (tenantIdTranslationLang && method === 'PUT') {
+    const tenantId = tenantIdTranslationLang[1].toLowerCase();
+    const sourceFaqId = tenantIdTranslationLang[2];
+    const lang = tenantIdTranslationLang[3];
+    const tenant = await loadTenantOr404(tenantId);
+    if (!tenant) return { status: 404, body: { ok: false, error: 'tenant_not_found' } };
+    const parsed = parseJson(bodyText) as { question?: string; answer?: string; status?: string } | null;
+    if (!parsed?.question || !parsed?.answer) {
+      return { status: 400, body: { ok: false, error: 'question_and_answer_required' } };
+    }
+    const status = parsed.status === 'published' ? 'published' : 'draft';
+    const row = await upsertFaqTranslation(tenant.id, sourceFaqId, lang, parsed.question, parsed.answer, status);
+    return { status: 200, body: { ok: true, translation: row } };
+  }
+
+  // --- FAQ Translation Generate: POST /knowledge/:id/generate-translation ---
+  const tenantIdGenTranslation = pathname.match(tenantIdRegexSuffix('/knowledge/([^/]+)/generate-translation'));
+  if (tenantIdGenTranslation && method === 'POST') {
+    const tenantId = tenantIdGenTranslation[1].toLowerCase();
+    const sourceFaqId = tenantIdGenTranslation[2];
+    const tenant = await loadTenantOr404(tenantId);
+    if (!tenant) return { status: 404, body: { ok: false, error: 'tenant_not_found' } };
+    const parsed = parseJson(bodyText) as { lang?: string } | null;
+    const targetLang = String(parsed?.lang ?? 'en');
+    const SUPPORTED = ['zh', 'en', 'vi', 'ms-MY'];
+    if (!SUPPORTED.includes(targetLang)) {
+      return { status: 400, body: { ok: false, error: 'unsupported_lang' } };
+    }
+    // Load source entry
+    const entries = await listTenantKnowledgeEntries(tenant.id);
+    const source = entries.find((e) => e.id === sourceFaqId && e.source_faq_id === null);
+    if (!source) {
+      return { status: 404, body: { ok: false, error: 'source_entry_not_found' } };
+    }
+    // Load tenant OpenAI key
+    const { getTenantCredentialsForOutbound } = await import('./repository');
+    const creds = await getTenantCredentialsForOutbound(tenant.id);
+    const openAiKey = creds.get('OPENAI_API_KEY') ?? '';
+    if (!openAiKey.trim()) {
+      return { status: 422, body: { ok: false, error: 'openai_key_not_configured' } };
+    }
+    // Generate translation via OpenAI
+    const langNames: Record<string, string> = {
+      zh: 'Simplified Chinese', en: 'English', vi: 'Vietnamese', 'ms-MY': 'Malay',
+    };
+    const langName = langNames[targetLang] ?? targetLang;
+    let translatedQ = source.question;
+    let translatedA = source.answer;
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 15000);
+      const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${openAiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          temperature: 0.2,
+          max_tokens: 600,
+          messages: [
+            {
+              role: 'system',
+              content: `You are a professional translator. Translate the given FAQ question and answer into ${langName}. Return valid JSON with keys "question" and "answer". Output only the JSON object, nothing else.`,
+            },
+            {
+              role: 'user',
+              content: JSON.stringify({ question: source.question, answer: source.answer }),
+            },
+          ],
+        }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(timer);
+      if (resp.ok) {
+        const raw = await resp.json() as { choices?: Array<{ message?: { content?: string } }> };
+        const content = raw?.choices?.[0]?.message?.content ?? '';
+        try {
+          const parsed2 = JSON.parse(content.trim()) as { question?: string; answer?: string };
+          if (parsed2.question) translatedQ = parsed2.question;
+          if (parsed2.answer) translatedA = parsed2.answer;
+        } catch { /* keep originals */ }
+      }
+    } catch { /* keep originals */ }
+    // Save as draft
+    const row = await upsertFaqTranslation(tenant.id, sourceFaqId, targetLang, translatedQ, translatedA, 'draft');
+    return { status: 200, body: { ok: true, translation: row } };
   }
 
   const tenantIdKnowledgeImport = pathname.match(tenantIdRegexSuffix('/knowledge/import'));

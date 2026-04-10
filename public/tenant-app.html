@@ -706,6 +706,30 @@
     .kn-toggle.on::after { transform: translateX(16px); }
     .icon-btn { background: transparent; border: none; cursor: pointer; padding: 0.2rem 0.3rem; border-radius: var(--radius-sm, 4px); color: var(--muted); font-size: 0.875rem; }
     .icon-btn:hover { background: #f4f4f5; color: var(--text); }
+    /* Avatar dropdown menu */
+    .avatar-menu { position: relative; }
+    .avatar-btn { width: 32px; height: 32px; border-radius: 999px; background: linear-gradient(135deg, #a5b4fc, var(--primary)); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.75rem; font-weight: 700; }
+    .avatar-dropdown { position: absolute; right: 0; top: calc(100% + 8px); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,0.12); min-width: 200px; z-index: 200; }
+    .avatar-dropdown-header { padding: 0.85rem 1rem 0.65rem; }
+    .avatar-dropdown-header strong { display: block; font-size: 0.875rem; color: var(--text); }
+    .avatar-dropdown-header .avd-email { font-size: 0.75rem; color: var(--muted); }
+    .avatar-dropdown hr { margin: 0; border: none; border-top: 1px solid var(--border); }
+    .avatar-dropdown a { display: block; padding: 0.6rem 1rem; font-size: 0.8125rem; color: var(--text); text-decoration: none; cursor: pointer; }
+    .avatar-dropdown a:hover { background: #f4f4f5; }
+    .avatar-dropdown a.avd-danger { color: #dc2626; }
+    /* Lang tabs for Bot Experience */
+    .lang-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 1rem; }
+    .lang-tab { padding: 0.45rem 1rem; font-size: 0.8125rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; background: none; border-top: none; border-left: none; border-right: none; }
+    .lang-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    /* Translation status pills in knowledge list */
+    .tr-pill { display: inline-block; font-size: 0.65rem; font-weight: 600; padding: 0.1rem 0.4rem; border-radius: 999px; background: #f4f4f5; color: var(--muted); }
+    .tr-pill.pub { background: #dcfce7; color: #16a34a; }
+    .tr-pill.draft { background: #fef9c3; color: #a16207; }
+    /* FAQ translation panel (wider) */
+    .kn-panel-wide { width: 720px; }
+    .kn-tr-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 800px) { .kn-tr-cols { grid-template-columns: 1fr; } .kn-panel-wide { width: 100vw; } }
+    .kn-section-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0 0 0.75rem; }
   </style>
 </head>
 <body>
@@ -728,7 +752,20 @@
         <span class="workspace-pill" id="workspaceLabel">Workspace · 未连接</span>
         <div class="search-placeholder" aria-hidden="true">搜索会话、联系人…（即将推出）</div>
         <div class="topbar-right">
-          <span class="avatar" title="账户菜单（占位）"></span>
+          <div class="avatar-menu" id="avatarMenu">
+            <button class="avatar-btn" id="avatarBtn" title="Account menu">B</button>
+            <div class="avatar-dropdown" id="avatarDropdown" hidden>
+              <div class="avatar-dropdown-header">
+                <strong id="avdName">Workspace</strong>
+                <span class="avd-email" id="avdEmail">API Connection required</span>
+              </div>
+              <hr>
+              <a href="#" data-spa="/app/settings/workspace">Workspace</a>
+              <a href="#" id="avdApiConn">API Connection</a>
+              <hr>
+              <a href="#" id="avdLogout" class="avd-danger">Disconnect</a>
+            </div>
+          </div>
         </div>
       </header>
       <details class="connection" id="connectionPanel">
@@ -1112,7 +1149,7 @@
       { path: '/app/settings/golive', title: 'Go-Live / Signoff', desc: '上线检查清单与签核链引用。' },
       { path: '/app/settings/recovery', title: 'Recovery & Audit', desc: '恢复治理只读入口与审计摘要（占位）。' },
       { path: '/app/settings/products', title: 'Products', desc: '产品分类管理，用于 FAQ 知识条目的产品标签。' },
-      { path: '/app/settings/bot', title: 'Bot Settings', desc: 'Persona、欢迎语、快捷按钮与跟进提示。' },
+      { path: '/app/settings/bot', title: 'Bot Experience', desc: '语言选择层、多语言欢迎语、AI 风格、留言与线索触发。' },
     ];
 
     const INTEGRATION_CHANNELS = [
@@ -2010,145 +2047,275 @@
     }
 
     async function viewBotSettings() {
+      const LANGS = [
+        { code: 'zh', label: '中文' },
+        { code: 'en', label: 'English' },
+        { code: 'vi', label: 'Tiếng Việt' },
+        { code: 'ms-MY', label: 'Bahasa Melayu' },
+      ];
       document.getElementById('view').innerHTML =
-        settingsBreadcrumb([{ href: '/app/settings', label: 'Settings' }, { label: 'Bot Settings' }]) +
-        '<div class="stg-page"><div class="page-header"><h1 class="page-title">Bot Settings</h1><p class="page-desc">配置机器人接待个性、欢迎语与快捷按钮。</p></div>' +
+        settingsBreadcrumb([{ href: '/app/settings', label: 'Settings' }, { label: 'Bot Experience' }]) +
+        '<div class="stg-page"><div class="page-header"><h1 class="page-title">Bot Experience</h1><p class="page-desc">语言选择层、多语言欢迎语、AI 风格、留言与线索触发。</p></div>' +
         '<div class="wb-banner">Loading...</div></div>';
 
       var bot = {
-        persona: '', welcome_message: '', welcome_buttons: [], followup_prompt: '',
-        leave_message_mode: false, leave_message_prompt_text: '', leave_message_confirmation_text: '',
-        lead_trigger_after_n: 0, lead_nudge_text: '',
+        persona: '', welcome_message: '', welcome_buttons: [], welcome_by_language: {},
+        followup_prompt: '', leave_message_mode: false,
+        leave_message_prompt_text: '', leave_message_confirmation_text: '',
+        leave_message_prompt_by_language: {}, leave_message_confirmation_by_language: {},
+        lead_trigger_after_n: 0, lead_nudge_text: '', lead_nudge_by_language: {},
       };
+      var chooser = { enabled: false, supported: ['zh','en','vi','ms-MY'], default_language: 'zh', auto_skip_if_platform_lang: true };
       var apiNote = '';
       try {
         var r = await api(base() + '/bot-settings');
         if (r.bot) bot = Object.assign(bot, r.bot);
+        if (r.language_chooser) chooser = Object.assign(chooser, r.language_chooser);
       } catch (e) { apiNote = 'Load failed: ' + e.message; }
 
       var saving = false;
+      var welcomeLangTab = 'zh';
+      var leaveLangTab = 'zh';
+      var nudgeLangTab = 'zh';
 
-      function renderButtons() {
-        var items = Array.isArray(bot.welcome_buttons) ? bot.welcome_buttons : [];
+      function getLangWelcome(lang) {
+        return (bot.welcome_by_language && bot.welcome_by_language[lang]) || { message: '', buttons: [] };
+      }
+      function setLangWelcome(lang, msg, btns) {
+        if (!bot.welcome_by_language) bot.welcome_by_language = {};
+        bot.welcome_by_language[lang] = { message: msg, buttons: btns };
+      }
+
+      function renderBtnList(btns, prefix) {
+        var items = Array.isArray(btns) ? btns : [];
         return items.map(function(b, i) {
-          return '<div class="bs-btn-row" style="display:flex;gap:0.5rem;margin-bottom:0.4rem">' +
-            '<input class="legacy bs-btn-input" type="text" data-btn-idx="' + i + '" value="' + esc(b) + '" style="flex:1" maxlength="30" placeholder="Button label" />' +
-            '<button type="button" class="btn btn-sm" data-btn-del="' + i + '">✕</button></div>';
+          return '<div style="display:flex;gap:0.5rem;margin-bottom:0.4rem">' +
+            '<input class="legacy" type="text" data-wbtn-idx="' + i + '" data-wbtn-prefix="' + prefix + '" value="' + esc(b) + '" style="flex:1" maxlength="30" placeholder="Button label" />' +
+            '<button type="button" class="btn btn-sm" data-wbtn-del="' + i + '" data-wbtn-prefix="' + prefix + '">✕</button></div>';
         }).join('') +
-        (items.length < 5
-          ? '<button type="button" class="btn btn-sm" id="bsBtnAdd">+ Add button</button>'
-          : '');
+        (items.length < 5 ? '<button type="button" class="btn btn-sm" data-wbtn-add="' + prefix + '">+ Add button</button>' : '');
+      }
+
+      function langTabsHtml(activeTab, idPrefix, langs) {
+        return '<div class="lang-tabs">' +
+          langs.map(function(l) {
+            return '<button type="button" class="lang-tab' + (activeTab === l.code ? ' active' : '') + '" data-lang-tab="' + l.code + '" data-tab-group="' + idPrefix + '">' + l.label + '</button>';
+          }).join('') +
+          '</div>';
+      }
+
+      function sectionHr(title) {
+        return '<div style="margin:2rem 0 1.25rem;padding-top:1.5rem;border-top:2px solid var(--border)">' +
+          '<h2 style="font-size:1rem;font-weight:700;margin:0 0 0.25rem">' + title + '</h2></div>';
+      }
+
+      function collectCurrentTabInputs() {
+        // Collect welcome by language tab
+        var wa = document.querySelector('[data-wblang="' + welcomeLangTab + '"]');
+        if (wa) {
+          var msg = wa.querySelector('[data-wb-msg]') ? wa.querySelector('[data-wb-msg]').value.trim() : '';
+          var btns = Array.from(wa.querySelectorAll('[data-wbtn-idx]')).map(function(x) { return x.value.trim(); }).filter(Boolean);
+          setLangWelcome(welcomeLangTab, msg, btns);
+        }
       }
 
       function mount() {
-        document.getElementById('view').innerHTML =
-          settingsBreadcrumb([{ href: '/app/settings', label: 'Settings' }, { label: 'Bot Settings' }]) +
-          '<div class="stg-page"><div class="page-header"><h1 class="page-title">Bot Settings</h1><p class="page-desc">配置机器人接待个性、欢迎语与快捷按钮。</p></div>' +
+        var wlEntry = getLangWelcome(welcomeLangTab);
+
+        var html = settingsBreadcrumb([{ href: '/app/settings', label: 'Settings' }, { label: 'Bot Experience' }]) +
+          '<div class="stg-page">' +
+          '<div class="page-header"><h1 class="page-title">Bot Experience</h1><p class="page-desc">语言选择层、多语言欢迎语、AI 风格、留言与线索触发。</p></div>' +
           (apiNote ? '<div class="wb-banner">' + esc(apiNote) + '</div>' : '') +
-          '<div class="stg-form" style="max-width:640px">' +
+          '<div class="stg-form" style="max-width:700px">' +
 
-          '<div class="fld-group" style="margin-bottom:1.5rem">' +
+          // ── Section 1: Entry Experience
+          sectionHr('1 · Entry Experience') +
+          '<div class="fld-group" style="margin-bottom:1rem">' +
+          '<label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:600">' +
+          '<input type="checkbox" id="beChooserEnabled"' + (chooser.enabled ? ' checked' : '') + ' /> Enable language selection on first contact</label>' +
+          '<p style="font-size:0.82rem;color:var(--muted);margin:0.4rem 0 0 1.5rem">新用户联系时先显示语言选择层，再发欢迎语。</p></div>' +
+
+          '<div class="fld-group" style="margin-bottom:1rem">' +
+          '<label class="legacy" style="font-weight:500;font-size:0.82rem">Supported languages</label>' +
+          '<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.4rem">' +
+          LANGS.map(function(l) {
+            var checked = chooser.supported.indexOf(l.code) >= 0;
+            return '<label style="display:flex;align-items:center;gap:0.35rem;cursor:pointer;font-size:0.875rem"><input type="checkbox" class="be-lang-sup" data-lang="' + l.code + '"' + (checked ? ' checked' : '') + ' /> ' + l.label + '</label>';
+          }).join('') +
+          '</div></div>' +
+
+          '<div class="fld-group" style="margin-bottom:1rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem">' +
+          '<div><label class="legacy" style="font-size:0.82rem">Default fallback language</label>' +
+          '<select class="legacy" id="beDefaultLang" style="margin-top:0.3rem">' +
+          LANGS.map(function(l) { return '<option value="' + l.code + '"' + (chooser.default_language === l.code ? ' selected' : '') + '>' + l.label + '</option>'; }).join('') +
+          '</select></div>' +
+          '<div style="display:flex;align-items:flex-end;padding-bottom:0.2rem">' +
+          '<label style="display:flex;align-items:center;gap:0.35rem;cursor:pointer;font-size:0.875rem"><input type="checkbox" id="beAutoSkip"' + (chooser.auto_skip_if_platform_lang ? ' checked' : '') + ' /> Auto-skip chooser if platform language is reliable <span style="font-size:0.75rem;color:var(--muted)">(e.g. Telegram)</span></label></div>' +
+          '</div>' +
+
+          // ── Section 2: Welcome by Language
+          sectionHr('2 · Welcome by Language') +
+          '<p style="font-size:0.82rem;color:var(--muted);margin:-0.75rem 0 1rem">为每个语言分别设置欢迎语与快捷按钮。用户选择语言后，系统发送对应版本。</p>' +
+          langTabsHtml(welcomeLangTab, 'wb', LANGS) +
+          LANGS.map(function(l) {
+            var wl = getLangWelcome(l.code);
+            var isActive = welcomeLangTab === l.code;
+            return '<div data-wblang="' + l.code + '" style="display:' + (isActive ? 'block' : 'none') + '">' +
+              '<div class="fld-group" style="margin-bottom:0.85rem">' +
+              '<label class="legacy" style="font-size:0.82rem">Welcome Message (' + l.label + ')</label>' +
+              '<textarea class="legacy" data-wb-msg rows="3" style="width:100%;resize:vertical;margin-top:0.3rem" placeholder="' + (l.code === 'zh' ? '欢迎来到…' : l.code === 'en' ? 'Welcome to…' : l.code === 'vi' ? 'Chào mừng bạn…' : 'Selamat datang…') + '">' + esc(wl.message || '') + '</textarea></div>' +
+              '<div class="fld-group" style="margin-bottom:0.85rem">' +
+              '<label class="legacy" style="font-size:0.82rem">Quick-Reply Buttons (' + l.label + ') <span style="color:var(--muted)">max 5</span></label>' +
+              '<div style="margin-top:0.3rem" data-wbbtn-list>' + renderBtnList(wl.buttons, l.code) + '</div></div>' +
+              '</div>';
+          }).join('') +
+
+          // ── Section 3: AI Response Style
+          sectionHr('3 · AI Response Style') +
+          '<div class="fld-group" style="margin-bottom:1.25rem">' +
           '<label class="legacy" style="font-weight:600">Bot Persona <span style="font-weight:400;color:var(--muted)">(System Prompt)</span></label>' +
-          '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.5rem">机器人的角色设定，空白则使用系统默认。</p>' +
-          '<textarea class="legacy" id="bsPersona" rows="5" style="width:100%;resize:vertical" placeholder="You are a friendly assistant for [Company]. Respond in a warm and professional tone...">' + esc(bot.persona || '') + '</textarea></div>' +
-
-          '<div class="fld-group" style="margin-bottom:1.5rem">' +
-          '<label class="legacy" style="font-weight:600">Welcome Message</label>' +
-          '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.5rem">用户首次发消息时自动发送的欢迎语。留空则不发送。</p>' +
-          '<textarea class="legacy" id="bsWelcome" rows="3" style="width:100%;resize:vertical" placeholder="Hi there! 👋 Welcome to [Company]. How can I help you today?">' + esc(bot.welcome_message || '') + '</textarea></div>' +
-
-          '<div class="fld-group" style="margin-bottom:1.5rem">' +
-          '<label class="legacy" style="font-weight:600">Quick-Reply Buttons <span style="font-weight:400;color:var(--muted)">(max 5, shown with welcome message)</span></label>' +
-          '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.5rem">点击后直接发送该文字给机器人。</p>' +
-          '<div id="bsBtnList">' + renderButtons() + '</div></div>' +
-
-          '<div class="fld-group" style="margin-bottom:1.5rem">' +
+          '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.4rem">机器人的角色设定，空白则使用系统默认。</p>' +
+          '<textarea class="legacy" id="bsPersona" rows="4" style="width:100%;resize:vertical" placeholder="You are a friendly assistant for [Company].">' + esc(bot.persona || '') + '</textarea></div>' +
+          '<div class="fld-group" style="margin-bottom:1.25rem">' +
           '<label class="legacy" style="font-weight:600">Follow-up Prompt <span style="font-weight:400;color:var(--muted)">(appended to every AI reply)</span></label>' +
-          '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.5rem">引导 AI 在每次回复后给出跟进提示，留空则不附加。</p>' +
-          '<textarea class="legacy" id="bsFollowup" rows="2" style="width:100%;resize:vertical" placeholder="After answering, always ask if the user needs further help.">' + esc(bot.followup_prompt || '') + '</textarea></div>' +
+          '<textarea class="legacy" id="bsFollowup" rows="2" style="width:100%;resize:vertical;margin-top:0.3rem" placeholder="After answering, gently guide user to next step.">' + esc(bot.followup_prompt || '') + '</textarea></div>' +
 
-          '<div class="fld-group" style="margin-bottom:1.5rem">' +
-          '<label class="legacy" style="font-weight:600">Leave-a-Message Mode</label>' +
-          '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.5rem">无客服在线时，机器人自动收集留言。</p>' +
-          '<label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin-bottom:0.75rem">' +
-          '<input type="checkbox" id="bsLeaveMsg"' + (bot.leave_message_mode ? ' checked' : '') + ' /> 启用 Leave-a-Message</label>' +
-          '<label class="legacy" style="font-size:0.8rem">提示语 <span style="color:var(--muted)">(留空使用默认)</span></label>' +
-          '<textarea class="legacy" id="bsLeavePrompt" rows="2" style="width:100%;resize:vertical;margin-bottom:0.5rem" placeholder="目前客服暂时不在线，请留下你的姓名、联系方式和需求，我们会尽快联系你。">' + esc(bot.leave_message_prompt_text || '') + '</textarea>' +
-          '<label class="legacy" style="font-size:0.8rem">确认语 <span style="color:var(--muted)">(留空使用默认)</span></label>' +
-          '<textarea class="legacy" id="bsLeaveConfirm" rows="2" style="width:100%;resize:vertical" placeholder="好的，我们已记录你的留言，客服人员会尽快联系你。谢谢！">' + esc(bot.leave_message_confirmation_text || '') + '</textarea></div>' +
+          // ── Section 4: Capture & Handoff
+          sectionHr('4 · Capture & Handoff') +
+          '<div class="fld-group" style="margin-bottom:1rem">' +
+          '<label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:600">' +
+          '<input type="checkbox" id="bsLeaveMsg"' + (bot.leave_message_mode ? ' checked' : '') + ' /> Enable Leave-a-Message Mode</label>' +
+          '<p style="font-size:0.82rem;color:var(--muted);margin:0.3rem 0 0 1.5rem">无客服在线时，机器人自动收集留言。</p></div>' +
 
-          '<div class="fld-group" style="margin-bottom:1.5rem">' +
+          '<div class="fld-group" style="margin-bottom:1rem">' +
+          '<label class="legacy" style="font-size:0.82rem;font-weight:500">Leave-Message Prompt by Language</label>' +
+          langTabsHtml(leaveLangTab, 'lv', LANGS) +
+          LANGS.map(function(l) {
+            var val = (bot.leave_message_prompt_by_language && bot.leave_message_prompt_by_language[l.code]) || '';
+            return '<div data-lvlang="' + l.code + '" style="display:' + (leaveLangTab === l.code ? 'block' : 'none') + '">' +
+              '<textarea class="legacy" data-lv-prompt data-lv-lang="' + l.code + '" rows="2" style="width:100%;resize:vertical" placeholder="' + (l.code === 'zh' ? '目前客服暂时不在线…' : 'No agents available right now…') + '">' + esc(val) + '</textarea></div>';
+          }).join('') +
+          '</div>' +
+
+          '<div class="fld-group" style="margin-bottom:1.25rem">' +
+          '<label class="legacy" style="font-size:0.82rem;font-weight:500">Leave-Message Confirmation by Language</label>' +
+          LANGS.map(function(l) {
+            var val = (bot.leave_message_confirmation_by_language && bot.leave_message_confirmation_by_language[l.code]) || '';
+            return '<div style="margin-top:0.4rem">' +
+              '<label class="legacy" style="font-size:0.75rem;color:var(--muted)">' + l.label + '</label>' +
+              '<textarea class="legacy" data-lv-confirm data-lv-lang="' + l.code + '" rows="1" style="width:100%;resize:vertical" placeholder="' + (l.code === 'zh' ? '好的，我们已记录你的留言…' : 'Got it! We have recorded…') + '">' + esc(val) + '</textarea></div>';
+          }).join('') +
+          '</div>' +
+
+          '<div class="fld-group" style="margin-bottom:1rem">' +
           '<label class="legacy" style="font-weight:600">Lead Collection Trigger <span style="font-weight:400;color:var(--muted)">(exchanges before prompt)</span></label>' +
-          '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.5rem">经过 N 轮对话后提示用户留下联系方式。0 = 禁用。</p>' +
-          '<input class="legacy" type="number" id="bsLeadN" min="0" max="20" value="' + (bot.lead_trigger_after_n || 0) + '" style="width:100px;margin-bottom:0.5rem" />' +
-          '<label class="legacy" style="font-size:0.8rem;display:block;margin-top:0.5rem">引导文案 <span style="color:var(--muted)">(留空使用默认)</span></label>' +
-          '<input class="legacy" type="text" id="bsLeadNudge" value="' + esc(bot.lead_nudge_text || '') + '" style="width:100%" placeholder="如果你愿意，也可以留下联系方式，我们方便进一步协助你。" /></div>' +
+          '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.4rem">经过 N 轮对话后提示用户留下联系方式。0 = 禁用。</p>' +
+          '<input class="legacy" type="number" id="bsLeadN" min="0" max="20" value="' + (bot.lead_trigger_after_n || 0) + '" style="width:100px" /></div>' +
 
-          '<div style="display:flex;gap:0.75rem;margin-top:1rem">' +
-          '<button type="button" class="btn btn-primary" id="bsSave">' + (saving ? 'Saving…' : 'Save Bot Settings') + '</button>' +
-          '<a class="btn" href="/app/settings" data-spa="/app/settings">← Back</a></div></div></div>';
+          '<div class="fld-group" style="margin-bottom:1.5rem">' +
+          '<label class="legacy" style="font-size:0.82rem;font-weight:500">Lead Nudge Text by Language</label>' +
+          LANGS.map(function(l) {
+            var val = (bot.lead_nudge_by_language && bot.lead_nudge_by_language[l.code]) || '';
+            return '<div style="margin-top:0.4rem">' +
+              '<label class="legacy" style="font-size:0.75rem;color:var(--muted)">' + l.label + '</label>' +
+              '<input class="legacy" type="text" data-nudge-lang="' + l.code + '" value="' + esc(val) + '" style="width:100%" placeholder="' + (l.code === 'zh' ? '如果你愿意，也可以留下联系方式…' : 'Feel free to leave your contact…') + '" /></div>';
+          }).join('') +
+          '</div>' +
 
+          '<div style="display:flex;gap:0.75rem;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">' +
+          '<button type="button" class="btn btn-primary" id="bsSave">' + (saving ? 'Saving…' : 'Save Bot Experience') + '</button>' +
+          '<a class="btn" href="/app/settings" data-spa="/app/settings">← Back</a></div>' +
+          '</div></div>';
+
+        document.getElementById('view').innerHTML = html;
         bindSpaLinks(document.getElementById('view'));
 
-        // Button list interactions
-        document.querySelectorAll('[data-btn-del]').forEach(function(btn) {
-          btn.onclick = function() {
-            var idx = parseInt(btn.getAttribute('data-btn-del'));
-            bot.welcome_buttons = bot.welcome_buttons.filter(function(_, i) { return i !== idx; });
+        // Language tab switching — Welcome
+        document.querySelectorAll('[data-tab-group="wb"]').forEach(function(tab) {
+          tab.onclick = function() {
+            collectCurrentTabInputs();
+            welcomeLangTab = tab.getAttribute('data-lang-tab');
             mount();
           };
         });
-        document.querySelectorAll('.bs-btn-input').forEach(function(inp) {
-          inp.oninput = function() {
-            var idx = parseInt(inp.getAttribute('data-btn-idx'));
-            bot.welcome_buttons[idx] = inp.value;
+        // Language tab switching — Leave prompt
+        document.querySelectorAll('[data-tab-group="lv"]').forEach(function(tab) {
+          tab.onclick = function() {
+            leaveLangTab = tab.getAttribute('data-lang-tab');
+            mount();
           };
         });
-        var addBtnEl = document.getElementById('bsBtnAdd');
-        if (addBtnEl) {
-          addBtnEl.onclick = function() {
-            if (!bot.welcome_buttons) bot.welcome_buttons = [];
-            if (bot.welcome_buttons.length < 5) { bot.welcome_buttons.push(''); mount(); }
-          };
-        }
 
+        // Dynamic button add/del for welcome tabs
+        document.querySelectorAll('[data-wbtn-del]').forEach(function(btn) {
+          btn.onclick = function() {
+            collectCurrentTabInputs();
+            var lang = btn.getAttribute('data-wbtn-prefix');
+            var idx = parseInt(btn.getAttribute('data-wbtn-del'));
+            var wl = getLangWelcome(lang);
+            wl.buttons = wl.buttons.filter(function(_, i) { return i !== idx; });
+            setLangWelcome(lang, wl.message, wl.buttons);
+            mount();
+          };
+        });
+        document.querySelectorAll('[data-wbtn-add]').forEach(function(btn) {
+          btn.onclick = function() {
+            collectCurrentTabInputs();
+            var lang = btn.getAttribute('data-wbtn-add');
+            var wl = getLangWelcome(lang);
+            wl.buttons = wl.buttons || [];
+            if (wl.buttons.length < 5) { wl.buttons.push(''); setLangWelcome(lang, wl.message, wl.buttons); mount(); }
+          };
+        });
+
+        // Save
         var saveBtn = document.getElementById('bsSave');
         if (saveBtn) {
           saveBtn.onclick = async function() {
-            // Collect current button values from inputs (in case user typed without triggering oninput)
-            document.querySelectorAll('.bs-btn-input').forEach(function(inp) {
-              var idx = parseInt(inp.getAttribute('data-btn-idx'));
-              bot.welcome_buttons[idx] = inp.value.trim();
-            });
-            bot.welcome_buttons = (bot.welcome_buttons || []).filter(function(b) { return b && b.trim(); });
-
+            collectCurrentTabInputs();
             bot.persona = (document.getElementById('bsPersona').value || '').trim();
-            bot.welcome_message = (document.getElementById('bsWelcome').value || '').trim();
             bot.followup_prompt = (document.getElementById('bsFollowup').value || '').trim();
             bot.leave_message_mode = document.getElementById('bsLeaveMsg').checked;
-            bot.leave_message_prompt_text = (document.getElementById('bsLeavePrompt').value || '').trim();
-            bot.leave_message_confirmation_text = (document.getElementById('bsLeaveConfirm').value || '').trim();
             bot.lead_trigger_after_n = parseInt(document.getElementById('bsLeadN').value) || 0;
-            bot.lead_nudge_text = (document.getElementById('bsLeadNudge').value || '').trim();
 
-            saving = true;
-            mount();
+            // Collect leave prompts
+            var promptMap = {}; var confirmMap = {};
+            document.querySelectorAll('[data-lv-prompt]').forEach(function(x) { promptMap[x.getAttribute('data-lv-lang')] = x.value.trim(); });
+            document.querySelectorAll('[data-lv-confirm]').forEach(function(x) { confirmMap[x.getAttribute('data-lv-lang')] = x.value.trim(); });
+            bot.leave_message_prompt_by_language = promptMap;
+            bot.leave_message_confirmation_by_language = confirmMap;
+            // zh fallback
+            bot.leave_message_prompt_text = promptMap['zh'] || bot.leave_message_prompt_text;
+            bot.leave_message_confirmation_text = confirmMap['zh'] || bot.leave_message_confirmation_text;
+
+            // Collect nudge
+            var nudgeMap = {};
+            document.querySelectorAll('[data-nudge-lang]').forEach(function(x) { nudgeMap[x.getAttribute('data-nudge-lang')] = x.value.trim(); });
+            bot.lead_nudge_by_language = nudgeMap;
+            bot.lead_nudge_text = nudgeMap['zh'] || bot.lead_nudge_text;
+
+            // Chooser
+            var supported = Array.from(document.querySelectorAll('.be-lang-sup:checked')).map(function(x) { return x.getAttribute('data-lang'); });
+            chooser.enabled = document.getElementById('beChooserEnabled').checked;
+            chooser.supported = supported.length > 0 ? supported : ['zh'];
+            chooser.default_language = document.getElementById('beDefaultLang').value;
+            chooser.auto_skip_if_platform_lang = document.getElementById('beAutoSkip').checked;
+
+            // welcome_message / welcome_buttons: use zh tab as fallback
+            var zhWl = getLangWelcome('zh');
+            bot.welcome_message = zhWl.message || bot.welcome_message;
+            bot.welcome_buttons = zhWl.buttons || bot.welcome_buttons;
+
+            saving = true; mount();
             try {
               var res = await api(base() + '/bot-settings', {
                 method: 'PUT',
-                body: JSON.stringify({ bot: bot }),
+                body: JSON.stringify({ bot: bot, language_chooser: chooser }),
               });
-              if (res.ok) {
-                apiNote = '';
-                alert('Bot settings saved.');
-              } else {
-                apiNote = 'Save failed: ' + (res.error || JSON.stringify(res));
-              }
-            } catch (e) {
-              apiNote = 'Save failed: ' + e.message;
-            }
-            saving = false;
-            mount();
+              if (res.ok) { apiNote = ''; alert('Bot Experience saved.'); }
+              else { apiNote = 'Save failed: ' + (res.error || JSON.stringify(res)); }
+            } catch (e) { apiNote = 'Save failed: ' + e.message; }
+            saving = false; mount();
           };
         }
       }
@@ -2543,11 +2710,20 @@
         apiNote = 'Knowledge unavailable: ' + e.message;
       }
 
+      var TR_LANGS = [
+        { code: 'en', label: 'EN' },
+        { code: 'vi', label: 'VI' },
+        { code: 'ms-MY', label: 'MS' },
+      ];
+      // translations cache: { [sourceFaqId]: { [lang]: row } }
+      var trCache = {};
+
       var state = {
         entries: entries,
         products: products,
         filters: { product: 'all', language: 'all' },
         panel: null,
+        trPanel: null,   // translation workbench panel: { sourceId, activeLang, data, saving, generating }
         importPanel: false,
         saving: false,
         apiNote: apiNote,
@@ -2574,7 +2750,7 @@
           state.products.map(function(p) {
             return '<option value="' + esc(p.name) + '"' + (e.category === p.name ? ' selected' : '') + '>' + esc(p.name) + '</option>';
           }).join('');
-        var langOpts = ['en','zh','vi'].map(function(l) {
+        var langOpts = ['en','zh','vi','ms-MY'].map(function(l) {
           return '<option value="' + l + '"' + (e.language === l ? ' selected' : '') + '>' + l.toUpperCase() + '</option>';
         }).join('');
         return '<div class="kn-panel-overlay" id="knPanelOverlay">' +
@@ -2593,6 +2769,64 @@
           '</div></div></div>';
       }
 
+      function renderTranslationPanel() {
+        if (!state.trPanel) return '';
+        var tp = state.trPanel;
+        var source = state.entries.find(function(e) { return e.id === tp.sourceId; });
+        if (!source) return '';
+        var activeLang = tp.activeLang || 'en';
+        var trData = tp.data || {};
+        var trRow = trData[activeLang] || {};
+        var tabsHtml = TR_LANGS.map(function(l) {
+          var row = trData[l.code] || {};
+          var dot = row.translation_status === 'published' ? '✓' : row.translation_status === 'draft' ? '·' : '';
+          return '<button type="button" class="lang-tab' + (activeLang === l.code ? ' active' : '') + '" data-tr-tab="' + l.code + '">' + l.label + (dot ? ' <span style="font-size:0.65rem">' + dot + '</span>' : '') + '</button>';
+        }).join('');
+        var statusLabel2 = trRow.translation_status === 'published' ? '<span style="color:#16a34a;font-weight:600">✓ Published</span>'
+          : trRow.translation_status === 'draft' ? '<span style="color:#a16207">· Draft</span>'
+          : '<span style="color:var(--muted)">— Not translated</span>';
+        return '<div class="kn-panel-overlay" id="knTrPanelOverlay">' +
+          '<div class="kn-panel kn-panel-wide">' +
+          '<div class="kn-panel-head"><h3>FAQ & Translations</h3>' +
+          '<button type="button" class="icon-btn" id="knTrClose">✕</button></div>' +
+          '<div class="kn-tr-cols" style="padding:1.1rem;flex:1;overflow-y:auto">' +
+          // Left: source
+          '<div>' +
+          '<p class="kn-section-title">Source (Chinese / 主稿)</p>' +
+          '<label class="legacy" style="font-size:0.8rem">Question</label>' +
+          '<p style="font-size:0.875rem;color:var(--text);margin:0.25rem 0 0.75rem;line-height:1.5">' + esc(source.title) + '</p>' +
+          '<label class="legacy" style="font-size:0.8rem">Answer</label>' +
+          '<p style="font-size:0.875rem;color:var(--text);margin:0.25rem 0;white-space:pre-wrap;line-height:1.5">' + esc(source.content) + '</p>' +
+          '</div>' +
+          // Right: translation tabs
+          '<div>' +
+          '<p class="kn-section-title">Translation</p>' +
+          '<div class="lang-tabs">' + tabsHtml + '</div>' +
+          '<div style="font-size:0.78rem;margin-bottom:0.75rem">' + statusLabel2 + '</div>' +
+          '<label class="legacy" style="font-size:0.8rem">Translated Question</label>' +
+          '<textarea class="legacy" id="trQuestion" rows="2" style="width:100%;resize:vertical;margin-bottom:0.75rem">' + esc(trRow.question || '') + '</textarea>' +
+          '<label class="legacy" style="font-size:0.8rem">Translated Answer</label>' +
+          '<textarea class="legacy" id="trAnswer" rows="6" style="width:100%;resize:vertical">' + esc(trRow.answer || '') + '</textarea>' +
+          '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.85rem">' +
+          '<button type="button" class="btn btn-primary" id="knTrPublish">' + (tp.saving ? 'Saving…' : 'Save & Publish') + '</button>' +
+          '<button type="button" class="btn" id="knTrDraft">Save as Draft</button>' +
+          '<button type="button" class="btn" id="knTrGenerate" style="margin-left:auto">' + (tp.generating ? 'Generating…' : '⚡ Generate Draft') + '</button>' +
+          '</div>' +
+          (tp.statusMsg ? '<p style="font-size:0.8rem;margin:0.5rem 0 0;color:' + (tp.statusOk ? '#16a34a' : 'var(--danger)') + '">' + esc(tp.statusMsg) + '</p>' : '') +
+          '</div>' +
+          '</div>' +
+          '</div></div>';
+      }
+
+      function trStatusPills(entry) {
+        // Show translation status for each non-source language
+        return TR_LANGS.map(function(l) {
+          var cached = trCache[entry.id] && trCache[entry.id][l.code];
+          var cls = cached ? (cached.translation_status === 'published' ? 'pub' : 'draft') : '';
+          return '<span class="tr-pill' + (cls ? ' ' + cls : '') + '" title="' + l.label + '">' + l.label + '</span>';
+        }).join('');
+      }
+
       function mount() {
         var list = filtered();
         var rowsHtml = '';
@@ -2603,15 +2837,18 @@
         } else {
           rowsHtml = list.map(function(e) {
             var isOn = e.status === 'published';
+            var trPills = trStatusPills(e);
             return '<div class="kn-faq-row">' +
               '<div class="kn-faq-row-info">' +
               '<p class="kn-faq-row-q">' + esc(e.title) + '</p>' +
               '<div class="kn-faq-row-tags">' +
               (e.category ? '<span class="kn-chip wb-chip">' + esc(productName(e.category)) + '</span>' : '') +
               '<span class="kn-chip wb-chip">' + esc(e.language.toUpperCase()) + '</span>' +
+              trPills +
               '</div></div>' +
               '<div class="kn-faq-row-actions">' +
               '<button type="button" class="kn-toggle' + (isOn ? ' on' : '') + '" title="' + (isOn ? 'Disable' : 'Enable') + '" data-kn-toggle="' + esc(e.id) + '" data-kn-active="' + (isOn ? '1' : '0') + '"></button>' +
+              '<button type="button" class="icon-btn" title="Translate" data-kn-translate="' + esc(e.id) + '" style="font-size:0.75rem">🌐</button>' +
               '<button type="button" class="icon-btn" title="Edit" data-kn-edit="' + esc(e.id) + '">\u270e</button>' +
               '<button type="button" class="icon-btn" title="Delete" data-kn-del="' + esc(e.id) + '">\u2715</button>' +
               '</div></div>';
@@ -2624,7 +2861,7 @@
           }).join('');
         var langFilterOpts =
           '<option value="all"' + (state.filters.language === 'all' ? ' selected' : '') + '>All languages</option>' +
-          ['en','zh','vi'].map(function(l) {
+          ['en','zh','vi','ms-MY'].map(function(l) {
             return '<option value="' + l + '"' + (state.filters.language === l ? ' selected' : '') + '>' + l.toUpperCase() + '</option>';
           }).join('');
 
@@ -2645,10 +2882,11 @@
           rowsHtml +
           '</div></div>' +
           renderPanel() +
+          renderTranslationPanel() +
           (state.importPanel ? (function() {
             var prodOpts = '<option value="">— No product —</option>' +
               state.products.map(function(p) { return '<option value="' + esc(p.name) + '">' + esc(p.name) + '</option>'; }).join('');
-            var langOpts = ['en','zh','vi'].map(function(l) {
+            var langOpts = ['en','zh','vi','ms-MY'].map(function(l) {
               return '<option value="' + l + '">' + l.toUpperCase() + '</option>';
             }).join('');
             return '<div class="kn-panel-overlay" id="knImportOverlay">' +
@@ -2774,6 +3012,93 @@
             } catch (e) { alert('Delete failed: ' + e.message); }
           };
         });
+
+        // Translation workbench
+        document.querySelectorAll('[data-kn-translate]').forEach(function(btn) {
+          btn.onclick = async function() {
+            var id = btn.getAttribute('data-kn-translate');
+            state.panel = null; state.importPanel = false;
+            state.trPanel = { sourceId: id, activeLang: 'en', data: trCache[id] || {}, saving: false, generating: false };
+            mount();
+            // Load translations async
+            try {
+              var r = await api(base() + '/knowledge/' + encodeURIComponent(id) + '/translations');
+              var data = {};
+              (r.translations || []).forEach(function(t) { data[t.language] = t; });
+              trCache[id] = data;
+              state.trPanel.data = data;
+              mount();
+            } catch (_) {}
+          };
+        });
+
+        var knTrOverlay = document.getElementById('knTrPanelOverlay');
+        var knTrClose = document.getElementById('knTrClose');
+        function closeTrPanel() { state.trPanel = null; mount(); }
+        if (knTrOverlay) knTrOverlay.onclick = function(ev) { if (ev.target === knTrOverlay) closeTrPanel(); };
+        if (knTrClose) knTrClose.onclick = closeTrPanel;
+
+        // Translation language tabs
+        document.querySelectorAll('[data-tr-tab]').forEach(function(tab) {
+          tab.onclick = function() {
+            if (state.trPanel) {
+              state.trPanel.activeLang = tab.getAttribute('data-tr-tab');
+              mount();
+            }
+          };
+        });
+
+        async function saveTr(status) {
+          if (!state.trPanel) return;
+          var q = (document.getElementById('trQuestion').value || '').trim();
+          var a = (document.getElementById('trAnswer').value || '').trim();
+          if (!q || !a) { alert('Translated question and answer are required.'); return; }
+          state.trPanel.saving = true; mount();
+          try {
+            var sid = state.trPanel.sourceId;
+            var lang = state.trPanel.activeLang;
+            var r = await api(base() + '/knowledge/' + encodeURIComponent(sid) + '/translations/' + encodeURIComponent(lang), {
+              method: 'PUT',
+              body: JSON.stringify({ question: q, answer: a, status: status }),
+            });
+            if (!trCache[sid]) trCache[sid] = {};
+            trCache[sid][lang] = r.translation;
+            state.trPanel.data = trCache[sid];
+            state.trPanel.statusMsg = status === 'published' ? '✓ Published successfully' : '· Saved as draft';
+            state.trPanel.statusOk = true;
+          } catch (e) {
+            state.trPanel.statusMsg = 'Save failed: ' + e.message;
+            state.trPanel.statusOk = false;
+          }
+          state.trPanel.saving = false; mount();
+        }
+
+        var knTrPublish = document.getElementById('knTrPublish');
+        var knTrDraft = document.getElementById('knTrDraft');
+        var knTrGen = document.getElementById('knTrGenerate');
+        if (knTrPublish) knTrPublish.onclick = function() { saveTr('published'); };
+        if (knTrDraft) knTrDraft.onclick = function() { saveTr('draft'); };
+        if (knTrGen) knTrGen.onclick = async function() {
+          if (!state.trPanel) return;
+          state.trPanel.generating = true; mount();
+          try {
+            var sid2 = state.trPanel.sourceId;
+            var lang2 = state.trPanel.activeLang;
+            var r2 = await api(base() + '/knowledge/' + encodeURIComponent(sid2) + '/generate-translation', {
+              method: 'POST',
+              body: JSON.stringify({ lang: lang2 }),
+            });
+            if (!trCache[sid2]) trCache[sid2] = {};
+            trCache[sid2][lang2] = r2.translation;
+            state.trPanel.data = trCache[sid2];
+            state.trPanel.statusMsg = 'Draft generated — please review before publishing.';
+            state.trPanel.statusOk = true;
+          } catch (e) {
+            state.trPanel.statusMsg = 'Generate failed: ' + e.message;
+            state.trPanel.statusOk = false;
+          }
+          state.trPanel.generating = false; mount();
+        };
 
         var overlay = document.getElementById('knPanelOverlay');
         var closeBtn = document.getElementById('knPanelClose');
@@ -3705,6 +4030,51 @@
       const connPanel = document.getElementById('connectionPanel');
       if (connPanel) connPanel.open = false;
     };
+
+    // ── Avatar dropdown menu ─────────────────────────────────────────────────
+    (function() {
+      var btn = document.getElementById('avatarBtn');
+      var dropdown = document.getElementById('avatarDropdown');
+      if (!btn || !dropdown) return;
+      btn.onclick = function(e) {
+        e.stopPropagation();
+        var hidden = dropdown.hasAttribute('hidden');
+        // Update label based on connection state
+        var tId = document.getElementById('tenantId');
+        if (tId && tId.value.trim()) {
+          document.getElementById('avdName').textContent = 'Workspace · ' + tId.value.trim().slice(0, 8) + '…';
+          document.getElementById('avdEmail').textContent = 'Connected';
+        }
+        if (hidden) dropdown.removeAttribute('hidden');
+        else dropdown.setAttribute('hidden', '');
+      };
+      document.addEventListener('click', function() { dropdown.setAttribute('hidden', ''); });
+      dropdown.addEventListener('click', function(e) { e.stopPropagation(); });
+      // API Connection → open connection panel
+      var avdConn = document.getElementById('avdApiConn');
+      if (avdConn) avdConn.onclick = function(e) {
+        e.preventDefault();
+        dropdown.setAttribute('hidden', '');
+        var panel = document.getElementById('connectionPanel');
+        if (panel) { panel.open = true; panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      };
+      // Disconnect → clear stored credentials
+      var avdLogout = document.getElementById('avdLogout');
+      if (avdLogout) avdLogout.onclick = function(e) {
+        e.preventDefault();
+        if (!confirm('Disconnect? This clears your stored Tenant ID and Token.')) return;
+        localStorage.removeItem('cf_tenant_id');
+        localStorage.removeItem('cf_token');
+        document.getElementById('tenantId').value = '';
+        document.getElementById('token').value = '';
+        dropdown.setAttribute('hidden', '');
+        document.getElementById('avdName').textContent = 'Workspace';
+        document.getElementById('avdEmail').textContent = 'API Connection required';
+        updateWorkspaceLabel();
+        route();
+      };
+    })();
+    // ────────────────────────────────────────────────────────────────────────
 
     window.addEventListener('popstate', route);
     document.querySelectorAll('aside a[data-nav]').forEach((a) => {
