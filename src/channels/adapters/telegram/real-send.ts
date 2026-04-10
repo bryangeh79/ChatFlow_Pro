@@ -8,11 +8,17 @@ const MAX_MESSAGE_LENGTH = 4096;
 
 export function parseTelegramChatIdFromSessionId(sessionId: string): string | null {
   const parts = sessionId.split(':');
-  if (parts[0] !== 'telegram' || parts.length < 3) {
-    return null;
+  // SaaS multi-tenant format: {tenant_id}:telegram:{user_id}:{chat_id}
+  if (parts[1] === 'telegram' && parts.length >= 4) {
+    const chatId = parts[3];
+    return chatId && chatId !== 'unknown' ? chatId : null;
   }
-  const chatId = parts[2];
-  return chatId && chatId !== 'unknown' ? chatId : null;
+  // Legacy format: telegram:{user_id}:{chat_id}
+  if (parts[0] === 'telegram' && parts.length >= 3) {
+    const chatId = parts[2];
+    return chatId && chatId !== 'unknown' ? chatId : null;
+  }
+  return null;
 }
 
 interface TelegramApiResponse {
