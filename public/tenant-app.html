@@ -2153,98 +2153,154 @@
     }
 
     async function viewAi() {
-      document.getElementById('view').innerHTML = wrapPage('AI Settings', 'Configure AI reply capability for your workspace.', '<div class="wb-banner">Loading AI settings...</div>');
+      document.getElementById('view').innerHTML = wrapPage('AI & Model', 'Loading...', '<div class="wb-banner">Loading...</div>');
       let a, ov;
       try {
         [a, ov] = await Promise.all([api(base() + '/ai'), api(base() + '/overview')]);
       } catch (e) {
-        document.getElementById('view').innerHTML = wrapPage('AI Settings', '', '<div class="wb-banner">Failed to load: ' + esc(e.message) + '</div>');
+        document.getElementById('view').innerHTML = wrapPage('AI & Model', '', '<div class="wb-banner">Failed to load: ' + esc(e.message) + '</div>');
         return;
       }
       const suspended = ov && ov.overview && ov.overview.tenant && ov.overview.tenant.status === 'suspended';
       const llm = a.input || {};
-      const aiEnabled = !!(a.current_status && a.current_status.ai_enabled);
+      const keySaved = !!(a.current_status && a.current_status.openai_key_saved);
       const lastError = a.validation_info && a.validation_info.last_error;
       const lastTested = a.validation_info && a.validation_info.last_tested_at;
 
-      function render(status, statusOk) {
+      // mutable state
+      var st = {
+        enabled: !!(a.current_status && a.current_status.ai_enabled),
+        model: llm.model || 'gpt-4o-mini',
+        showKeyInput: false,
+        msg: '',
+        msgOk: false,
+        testing: false,
+      };
+
+      function render() {
+        var statusDot = st.enabled
+          ? '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--success,#22c55e);margin-right:6px"></span><strong style="color:var(--success,#22c55e)">Enabled</strong>'
+          : '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#d4d4d8;margin-right:6px"></span><strong style="color:var(--muted)">Disabled</strong>';
+        var keyStatus = keySaved
+          ? '<span style="color:var(--success,#22c55e)">\u2713 API Key configured</span>'
+          : '<span style="color:var(--danger,#ef4444)">\u2717 No API Key</span>';
+
         document.getElementById('view').innerHTML = wrapPage(
-          'AI Settings',
-          'Enable AI replies for your bot. When disabled, the bot replies using FAQ only.',
-          (suspended ? '<div class="wb-banner" style="color:var(--warning)">Tenant suspended — AI test disabled.</div>' : '') +
-          '<div class="stg-page" style="max-width:600px">' +
+          'AI & Model',
+          'Control AI reply behaviour for your workspace.',
+          (suspended ? '<div class="wb-banner" style="color:var(--warning)">Tenant suspended \u2014 test disabled.</div>' : '') +
+          '<div class="stg-page" style="max-width:580px">' +
 
-          // Card 1: AI toggle
+          // ── Card 1: Status summary ──
+          '<div class="panel" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem">' +
+          '<div style="display:flex;gap:2rem;flex-wrap:wrap">' +
+          '<div><p class="muted" style="margin:0 0 0.2rem;font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em">AI Status</p><p style="margin:0;font-size:0.9rem">' + statusDot + '</p></div>' +
+          '<div><p class="muted" style="margin:0 0 0.2rem;font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em">Model</p><p style="margin:0;font-size:0.9rem;font-weight:500">' + esc(st.model) + '</p></div>' +
+          '<div><p class="muted" style="margin:0 0 0.2rem;font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em">API Key</p><p style="margin:0;font-size:0.9rem">' + keyStatus + '</p></div>' +
+          '</div>' +
+          '</div>' +
+
+          // ── Card 2: ON/OFF toggle ──
           '<div class="panel" style="margin-bottom:1rem">' +
-          '<div class="page-header" style="margin-bottom:0.75rem"><h2 class="page-title" style="font-size:1rem">AI Reply</h2>' +
-          '<p class="page-desc" style="margin:0">When enabled, the bot uses OpenAI to generate replies. FAQ entries are always used as context.</p></div>' +
-          '<div class="quick-row" style="align-items:center;gap:1rem;margin-bottom:1rem">' +
-          '<span style="font-size:0.875rem;font-weight:500">Enable AI replies</span>' +
-          '<label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer">' +
-          '<input type="checkbox" id="aiToggle"' + (aiEnabled ? ' checked' : '') + ' style="width:16px;height:16px" />' +
-          '<span style="font-size:0.875rem" id="aiToggleLabel">' + (aiEnabled ? 'On' : 'Off') + '</span></label></div>' +
-          '<div id="aiKeySection" style="' + (aiEnabled ? '' : 'display:none') + '">' +
-          '<label class="legacy" for="openAiKey">OpenAI API Key</label>' +
-          '<input class="legacy" type="password" id="openAiKey" placeholder="sk-..." autocomplete="off" style="margin-bottom:0.75rem;width:100%;box-sizing:border-box" />' +
-          '<p class="muted" style="margin:0 0 0.75rem;font-size:0.78rem">Your key is encrypted and stored securely. Leave blank to keep the existing key.</p>' +
-          '<label class="legacy" for="aiModel">Model</label>' +
-          '<select class="legacy" id="aiModel" style="margin-bottom:0.75rem;width:100%;box-sizing:border-box">' +
-          '<option value="gpt-4o-mini"' + ((!llm.model || llm.model === 'gpt-4o-mini') ? ' selected' : '') + '>gpt-4o-mini (fast, affordable)</option>' +
-          '<option value="gpt-4o"' + (llm.model === 'gpt-4o' ? ' selected' : '') + '>gpt-4o (more capable)</option>' +
-          '<option value="gpt-4-turbo"' + (llm.model === 'gpt-4-turbo' ? ' selected' : '') + '>gpt-4-turbo</option>' +
-          '</select></div>' +
-          '<div class="quick-row" style="gap:0.5rem">' +
-          '<button type="button" class="btn btn-primary" id="aiSaveBtn">Save</button>' +
-          '<button type="button" class="btn" id="aiTestBtn"' + (suspended ? ' disabled' : '') + '>Save &amp; Test</button></div>' +
-          (status ? '<p style="margin-top:0.65rem;font-size:0.875rem;color:' + (statusOk ? 'var(--success)' : 'var(--danger)') + '">' + esc(status) + '</p>' : '') +
-          (lastError ? '<p class="muted" style="margin-top:0.35rem;font-size:0.78rem">Last error: ' + esc(lastError) + '</p>' : '') +
+          '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem">' +
+          '<div><p style="margin:0;font-size:0.95rem;font-weight:600">AI Replies</p>' +
+          '<p class="muted" style="margin:0.2rem 0 0;font-size:0.82rem">' + (st.enabled ? 'Bot uses OpenAI + FAQ to reply.' : 'Bot uses FAQ only. No API key needed.') + '</p></div>' +
+          '<button type="button" id="aiMainToggle" class="btn' + (st.enabled ? ' btn-primary' : '') + '" style="min-width:90px">' + (st.enabled ? 'Turn Off' : 'Turn On') + '</button>' +
+          '</div>' +
+          '</div>' +
+
+          // ── Card 3: API Key (only when enabled) ──
+          (st.enabled ? (
+          '<div class="panel" style="margin-bottom:1rem">' +
+          '<p style="margin:0 0 0.65rem;font-size:0.95rem;font-weight:600">OpenAI API Key</p>' +
+          (keySaved && !st.showKeyInput
+            ? '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem">' +
+              '<span class="muted" style="font-size:0.875rem">\u25cf\u25cf\u25cf\u25cf\u25cf\u25cf\u25cf\u25cf\u25cf\u25cf\u25cf\u25cf (saved)</span>' +
+              '<button type="button" class="btn" id="aiChangeKeyBtn">Change Key</button></div>'
+            : '<input class="legacy" type="password" id="openAiKey" placeholder="sk-..." autocomplete="off" style="width:100%;box-sizing:border-box;margin-bottom:0.5rem" />' +
+              '<p class="muted" style="margin:0 0 0.65rem;font-size:0.78rem">Stored securely. Leave blank to keep existing key.</p>' +
+              '<button type="button" class="btn btn-primary" id="aiSaveKeyBtn">Save Key</button>'
+          ) +
+          '</div>' +
+
+          // ── Card 4: Model ──
+          '<div class="panel" style="margin-bottom:1rem">' +
+          '<p style="margin:0 0 0.65rem;font-size:0.95rem;font-weight:600">Model</p>' +
+          '<select class="legacy" id="aiModel" style="width:100%;box-sizing:border-box;margin-bottom:0.75rem">' +
+          '<option value="gpt-4o-mini"' + (st.model === 'gpt-4o-mini' ? ' selected' : '') + '>gpt-4o-mini \u2014 Fast &amp; affordable (recommended)</option>' +
+          '<option value="gpt-4o"' + (st.model === 'gpt-4o' ? ' selected' : '') + '>gpt-4o \u2014 More capable, higher cost</option>' +
+          '<option value="gpt-4-turbo"' + (st.model === 'gpt-4-turbo' ? ' selected' : '') + '>gpt-4-turbo</option>' +
+          '</select>' +
+          '<div style="display:flex;gap:0.5rem">' +
+          '<button type="button" class="btn btn-primary" id="aiSaveModelBtn">Save Model</button>' +
+          '<button type="button" class="btn" id="aiTestBtn"' + (suspended ? ' disabled' : '') + '>' + (st.testing ? 'Testing\u2026' : 'Test Connection') + '</button>' +
+          '</div>' +
+          (lastError ? '<p class="muted" style="margin-top:0.5rem;font-size:0.78rem">\u26a0 Last error: ' + esc(lastError) + '</p>' : '') +
           (lastTested ? '<p class="muted" style="margin-top:0.2rem;font-size:0.78rem">Last tested: ' + esc(lastTested) + '</p>' : '') +
-          '</div>' +
+          '</div>'
+          ) : (
+          '<div class="panel" style="margin-bottom:1rem;background:#f9f9fb">' +
+          '<p style="margin:0;font-size:0.875rem;color:var(--muted)">Turn on AI replies above to configure your API key and model.</p>' +
+          '</div>'
+          )) +
 
-          // Card 2: FAQ only mode note
-          '<div class="panel" style="margin-bottom:1rem">' +
-          '<h2 class="page-title" style="font-size:1rem;margin:0 0 0.5rem">FAQ-only mode</h2>' +
-          '<p class="muted" style="margin:0">When AI is <strong>off</strong>, the bot matches user messages against FAQ entries and replies with the closest match. No API key needed.</p>' +
-          '</div>' +
+          // status message
+          (st.msg ? '<p style="font-size:0.875rem;color:' + (st.msgOk ? 'var(--success,#22c55e)' : 'var(--danger,#ef4444)') + ';margin:0 0 1rem">' + esc(st.msg) + '</p>' : '') +
           '</div>'
         );
 
-        // Toggle show/hide key section
-        const toggle = document.getElementById('aiToggle');
-        const label = document.getElementById('aiToggleLabel');
-        const keySection = document.getElementById('aiKeySection');
-        if (toggle) toggle.onchange = function() {
-          label.textContent = toggle.checked ? 'On' : 'Off';
-          keySection.style.display = toggle.checked ? '' : 'none';
-        };
-
-        async function doSave() {
-          const enabled = document.getElementById('aiToggle').checked;
-          const key = (document.getElementById('openAiKey') ? document.getElementById('openAiKey').value.trim() : '');
-          const model = (document.getElementById('aiModel') ? document.getElementById('aiModel').value : 'gpt-4o-mini');
-          const body = { settings: { llm: { enabled: enabled, provider: 'openai', model: model } } };
-          if (key) body.credentials = { OPENAI_API_KEY: key };
-          await api(base() + '/ai', { method: 'PUT', body: JSON.stringify(body) });
-        }
-
-        const saveBtn = document.getElementById('aiSaveBtn');
-        if (saveBtn) saveBtn.onclick = async function() {
+        // ── Bindings ──
+        var mainToggle = document.getElementById('aiMainToggle');
+        if (mainToggle) mainToggle.onclick = async function() {
           try {
-            await doSave();
-            render('Saved successfully.', true);
-          } catch (e) { render('Save failed: ' + e.message, false); }
+            await api(base() + '/ai', { method: 'PUT', body: JSON.stringify({ settings: { llm: { enabled: !st.enabled, provider: 'openai', model: st.model } } }) });
+            st.enabled = !st.enabled;
+            st.msg = st.enabled ? 'AI replies enabled.' : 'AI replies disabled.';
+            st.msgOk = true;
+          } catch (e) { st.msg = 'Failed: ' + e.message; st.msgOk = false; }
+          render();
         };
 
-        const testBtn = document.getElementById('aiTestBtn');
+        var changeKeyBtn = document.getElementById('aiChangeKeyBtn');
+        if (changeKeyBtn) changeKeyBtn.onclick = function() { st.showKeyInput = true; render(); };
+
+        var saveKeyBtn = document.getElementById('aiSaveKeyBtn');
+        if (saveKeyBtn) saveKeyBtn.onclick = async function() {
+          var key = (document.getElementById('openAiKey').value || '').trim();
+          if (!key) { st.msg = 'Please enter an API key.'; st.msgOk = false; render(); return; }
+          try {
+            await api(base() + '/ai', { method: 'PUT', body: JSON.stringify({ credentials: { OPENAI_API_KEY: key } }) });
+            st.showKeyInput = false;
+            st.msg = 'API key saved.';
+            st.msgOk = true;
+          } catch (e) { st.msg = 'Save failed: ' + e.message; st.msgOk = false; }
+          render();
+        };
+
+        var saveModelBtn = document.getElementById('aiSaveModelBtn');
+        if (saveModelBtn) saveModelBtn.onclick = async function() {
+          var model = document.getElementById('aiModel').value;
+          try {
+            await api(base() + '/ai', { method: 'PUT', body: JSON.stringify({ settings: { llm: { enabled: st.enabled, provider: 'openai', model: model } } }) });
+            st.model = model;
+            st.msg = 'Model saved: ' + model;
+            st.msgOk = true;
+          } catch (e) { st.msg = 'Save failed: ' + e.message; st.msgOk = false; }
+          render();
+        };
+
+        var testBtn = document.getElementById('aiTestBtn');
         if (testBtn) testBtn.onclick = async function() {
+          st.testing = true; st.msg = ''; render();
           try {
-            await doSave();
-            const t = await api(base() + '/ai/test-connection', { method: 'POST', body: '{}' });
-            render(t.ok ? 'AI test passed \u2713' : 'AI test failed', t.ok);
-          } catch (e) { render('Test failed: ' + e.message, false); }
+            var t = await api(base() + '/ai/test-connection', { method: 'POST', body: '{}' });
+            st.msg = t.ok ? 'Connection test passed \u2713' : 'Connection test failed';
+            st.msgOk = t.ok;
+          } catch (e) { st.msg = 'Test failed: ' + e.message; st.msgOk = false; }
+          st.testing = false; render();
         };
       }
-      render('', false);
+      render();
     }
 
     const MOCK_KNOWLEDGE = [
