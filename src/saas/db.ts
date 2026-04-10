@@ -222,6 +222,15 @@ CREATE TABLE IF NOT EXISTS tenant_activity_events (
 CREATE INDEX IF NOT EXISTS idx_tae_tenant_created
   ON tenant_activity_events(tenant_id, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS tenant_products (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_tp_tenant_created ON tenant_products(tenant_id, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS conversations (
   id TEXT PRIMARY KEY,
   tenant_id TEXT NOT NULL,
@@ -433,6 +442,18 @@ export async function getSaaSDatabase(): Promise<SqlJsDatabase> {
       applyTenantStatusColumnMigration(db);
       applyPhaseBFaqAndPlatformMigrations(db);
       applyPhaseCWorkflowMigrations(db);
+      db.run(
+        `CREATE TABLE IF NOT EXISTS tenant_products (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+        )`
+      );
+      db.run(
+        `CREATE INDEX IF NOT EXISTS idx_tp_tenant_created ON tenant_products(tenant_id, created_at DESC)`
+      );
       dbInstance = db;
       return db;
     })();

@@ -180,6 +180,17 @@ const SAAS_DB_MIGRATIONS_BASE: readonly MigrationBase[] = [
     asset_path: 'postgres/pg_0015_phasedc3b_dedupe_manual_repair_audit.sql',
     asset_kind: 'sql_file',
   },
+  {
+    id: 'pg_0016_phasee_tenant_products',
+    description: 'Phase E: tenant_products table for per-tenant product category management.',
+    target_driver: 'postgres',
+    phase_tag: 'phasee_v1',
+    kind: 'schema',
+    up_summary: 'CREATE tenant_products per postgres/pg_0016_phasee_tenant_products.sql.',
+    down_summary: 'no rollback',
+    asset_path: 'postgres/pg_0016_phasee_tenant_products.sql',
+    asset_kind: 'sql_file',
+  },
 ];
 
 function buildMigrationsWithChecksums(): readonly SaasDbMigrationDef[] {

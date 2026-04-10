@@ -463,6 +463,48 @@ export async function setTenantKnowledgeActiveState(
   await adapter.persistIfNeeded();
 }
 
+export interface TenantProductRow {
+  id: string;
+  tenant_id: string;
+  name: string;
+  created_at: string;
+}
+
+export async function listTenantProducts(tenantId: string): Promise<TenantProductRow[]> {
+  const adapter = await getSaasDbAdapter();
+  const rows = await adapter.queryAll(
+    'SELECT id, tenant_id, name, created_at FROM tenant_products WHERE tenant_id = ? ORDER BY created_at DESC',
+    [tenantId],
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    name: String(r.name),
+    created_at: String(r.created_at),
+  }));
+}
+
+export async function createTenantProduct(tenantId: string, name: string): Promise<TenantProductRow> {
+  const adapter = await getSaasDbAdapter();
+  const id = randomUUID();
+  const now = nowIso();
+  await adapter.execute(
+    'INSERT INTO tenant_products (id, tenant_id, name, created_at) VALUES (?, ?, ?, ?)',
+    [id, tenantId, name.trim(), now],
+  );
+  await adapter.persistIfNeeded();
+  return { id, tenant_id: tenantId, name: name.trim(), created_at: now };
+}
+
+export async function deleteTenantProduct(tenantId: string, productId: string): Promise<void> {
+  const adapter = await getSaasDbAdapter();
+  await adapter.execute(
+    'DELETE FROM tenant_products WHERE tenant_id = ? AND id = ?',
+    [tenantId, productId],
+  );
+  await adapter.persistIfNeeded();
+}
+
 export async function getTenantSettingsJson(tenantId: string): Promise<Record<string, unknown>> {
   const adapter = await getSaasDbAdapter();
   const row = await adapter.queryOne('SELECT settings_json FROM tenant_settings WHERE tenant_id = ?', [

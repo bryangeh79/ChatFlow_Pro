@@ -50,6 +50,9 @@ import {
   canTransitLeadStatus,
   createLeadFromConversation,
   upsertTenantWebsiteDomain,
+  listTenantProducts,
+  createTenantProduct,
+  deleteTenantProduct,
 } from './repository';
 import type { TenantPrincipalRole, TenantRow } from './repository';
 import { getSaaSDbPathForDisplay } from './db';
@@ -994,6 +997,39 @@ export async function handleSaaSAdminRequest(
       message: 'Updated channel credentials',
     });
     await refreshTenantRuntimeHealth(tenant.id);
+    return { status: 200, body: { ok: true } };
+  }
+
+  // --- Products ---
+  const tenantIdProducts = pathname.match(tenantIdRegexSuffix('/products'));
+  if (tenantIdProducts && method === 'GET') {
+    const tenantId = tenantIdProducts[1].toLowerCase();
+    const tenant = await loadTenantOr404(tenantId);
+    if (!tenant) return { status: 404, body: { ok: false, error: 'tenant_not_found' } };
+    const products = await listTenantProducts(tenant.id);
+    return { status: 200, body: { ok: true, products } };
+  }
+
+  if (tenantIdProducts && method === 'POST') {
+    const tenantId = tenantIdProducts[1].toLowerCase();
+    const tenant = await loadTenantOr404(tenantId);
+    if (!tenant) return { status: 404, body: { ok: false, error: 'tenant_not_found' } };
+    const parsed = parseJson(bodyText) as { name?: string } | null;
+    const name = typeof parsed?.name === 'string' ? parsed.name.trim() : '';
+    if (!name) {
+      return { status: 400, body: { ok: false, error: 'name_required' } };
+    }
+    const product = await createTenantProduct(tenant.id, name);
+    return { status: 201, body: { ok: true, product } };
+  }
+
+  const tenantIdProductDelete = pathname.match(tenantIdRegexSuffix('/products/([^/]+)'));
+  if (tenantIdProductDelete && method === 'DELETE') {
+    const tenantId = tenantIdProductDelete[1].toLowerCase();
+    const productId = tenantIdProductDelete[2];
+    const tenant = await loadTenantOr404(tenantId);
+    if (!tenant) return { status: 404, body: { ok: false, error: 'tenant_not_found' } };
+    await deleteTenantProduct(tenant.id, productId);
     return { status: 200, body: { ok: true } };
   }
 

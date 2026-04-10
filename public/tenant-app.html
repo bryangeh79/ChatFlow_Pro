@@ -681,6 +681,31 @@
     .rep-section-panel { border: 1px dashed var(--border); border-radius: var(--radius); padding: 1rem 1.1rem; background: #fafafa; margin-top: 1rem; }
     .rep-section-panel h4 { margin: 0 0 0.35rem; font-size: 0.9375rem; font-weight: 600; }
     .rep-section-panel p { margin: 0; font-size: 0.8125rem; color: var(--muted); line-height: 1.45; }
+    /* Products settings page */
+    .prod-page { max-width: 700px; }
+    .prod-list { list-style: none; padding: 0; margin: 0 0 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .prod-item { display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); gap: 0.75rem; }
+    .prod-item-name { font-size: 0.875rem; font-weight: 500; color: var(--text); flex: 1; }
+    .prod-add-row { display: flex; gap: 0.5rem; align-items: flex-end; }
+    .prod-add-row input { flex: 1; }
+    /* Knowledge panel (slide-in form) */
+    .kn-panel-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.18); display: flex; align-items: stretch; justify-content: flex-end; }
+    .kn-panel { width: 420px; max-width: 100vw; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; box-shadow: -4px 0 24px rgba(0,0,0,0.1); }
+    .kn-panel-head { padding: 1rem 1.1rem 0.75rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .kn-panel-head h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+    .kn-panel-body { flex: 1; overflow-y: auto; padding: 1.1rem; display: flex; flex-direction: column; gap: 0.85rem; }
+    .kn-panel-actions { padding: 0.85rem 1.1rem; border-top: 1px solid var(--border); display: flex; gap: 0.5rem; flex-shrink: 0; }
+    .kn-faq-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.85rem; border: none; border-bottom: 1px solid var(--border); background: transparent; width: 100%; text-align: left; cursor: default; }
+    .kn-faq-row-info { flex: 1; min-width: 0; }
+    .kn-faq-row-q { font-size: 0.875rem; font-weight: 500; color: var(--text); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .kn-faq-row-tags { display: flex; gap: 0.3rem; margin-top: 0.25rem; flex-wrap: wrap; }
+    .kn-faq-row-actions { display: flex; gap: 0.35rem; align-items: center; flex-shrink: 0; }
+    .kn-toggle { cursor: pointer; width: 36px; height: 20px; border-radius: 999px; border: none; background: #d4d4d8; position: relative; flex-shrink: 0; transition: background 0.15s; }
+    .kn-toggle.on { background: var(--primary, #6366f1); }
+    .kn-toggle::after { content: ''; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 999px; background: #fff; transition: transform 0.15s; }
+    .kn-toggle.on::after { transform: translateX(16px); }
+    .icon-btn { background: transparent; border: none; cursor: pointer; padding: 0.2rem 0.3rem; border-radius: var(--radius-sm, 4px); color: var(--muted); font-size: 0.875rem; }
+    .icon-btn:hover { background: #f4f4f5; color: var(--text); }
   </style>
 </head>
 <body>
@@ -1086,6 +1111,7 @@
       { path: '/app/settings/access', title: 'Roles & Access', desc: '成员、角色与邀请。' },
       { path: '/app/settings/golive', title: 'Go-Live / Signoff', desc: '上线检查清单与签核链引用。' },
       { path: '/app/settings/recovery', title: 'Recovery & Audit', desc: '恢复治理只读入口与审计摘要（占位）。' },
+      { path: '/app/settings/products', title: 'Products', desc: '产品分类管理，用于 FAQ 知识条目的产品标签。' },
     ];
 
     const INTEGRATION_CHANNELS = [
@@ -1904,6 +1930,76 @@
       viewAdvancedShell('Recovery & Audit', '恢复治理只读摘要与审计入口（占位，不接深逻辑）。', null, null);
     }
 
+    async function viewSettingsProducts() {
+      document.getElementById('view').innerHTML =
+        settingsBreadcrumb([{ href: '/app/settings', label: 'Settings' }, { label: 'Products' }]) +
+        '<div class="stg-page"><div class="page-header"><h1 class="page-title">Products</h1><p class="page-desc">产品分类：FAQ 知识条目的产品标签。</p></div>' +
+        '<div class="wb-banner">Loading products...</div></div>';
+
+      let products = [];
+      let apiNote = '';
+      try {
+        const r = await api(base() + '/products');
+        products = Array.isArray(r.products) ? r.products : [];
+      } catch (e) {
+        apiNote = 'Products API unavailable: ' + e.message;
+      }
+
+      function mount() {
+        const listHtml = products.length
+          ? '<ul class="prod-list">' + products.map(function(p) {
+              return '<li class="prod-item"><span class="prod-item-name">' + esc(p.name) + '</span>' +
+              '<button type="button" class="btn btn-sm" data-prod-del="' + esc(p.id) + '">Delete</button></li>';
+            }).join('') + '</ul>'
+          : '<p class="muted" style="margin:0 0 1rem">No products yet. Add one below.</p>';
+
+        document.getElementById('view').innerHTML =
+          settingsBreadcrumb([{ href: '/app/settings', label: 'Settings' }, { label: 'Products' }]) +
+          '<div class="stg-page"><div class="page-header"><h1 class="page-title">Products</h1><p class="page-desc">产品分类：FAQ 知识条目的产品标签。</p></div>' +
+          (apiNote ? '<div class="wb-banner">' + esc(apiNote) + '</div>' : '') +
+          '<div class="prod-page">' + listHtml +
+          '<div class="prod-add-row"><input class="legacy" type="text" id="prodNameInput" placeholder="Product name" maxlength="80" />' +
+          '<button type="button" class="btn btn-primary" id="prodAddBtn">Add product</button></div></div>' +
+          '<div class="quick-row" style="margin-top:1rem"><a class="btn" href="/app/settings" data-spa="/app/settings">← Settings</a></div></div>';
+
+        bindSpaLinks(document.getElementById('view'));
+
+        document.querySelectorAll('[data-prod-del]').forEach(function(btn) {
+          btn.onclick = async function() {
+            var pid = btn.getAttribute('data-prod-del');
+            var nameEl = btn.closest('li').querySelector('.prod-item-name');
+            if (!confirm('Delete product "' + (nameEl ? nameEl.textContent : pid) + '"?')) return;
+            try {
+              await api(base() + '/products/' + encodeURIComponent(pid), { method: 'DELETE' });
+              products = products.filter(function(p) { return p.id !== pid; });
+              mount();
+            } catch (e) {
+              alert('Delete failed: ' + e.message);
+            }
+          };
+        });
+
+        var addBtn = document.getElementById('prodAddBtn');
+        var nameInput = document.getElementById('prodNameInput');
+        if (addBtn && nameInput) {
+          addBtn.onclick = async function() {
+            var name = nameInput.value.trim();
+            if (!name) { alert('Product name is required.'); return; }
+            try {
+              var r = await api(base() + '/products', { method: 'POST', body: JSON.stringify({ name: name }) });
+              products = [r.product].concat(products);
+              nameInput.value = '';
+              mount();
+            } catch (e) {
+              alert('Create failed: ' + e.message);
+            }
+          };
+          nameInput.onkeydown = function(ev) { if (ev.key === 'Enter') addBtn.click(); };
+        }
+      }
+      mount();
+    }
+
     function wrapPage(title, desc, inner) {
       return '<div class="page-header"><h1 class="page-title">' + esc(title) + '</h1>' +
         (desc ? '<p class="page-desc">' + esc(desc) + '</p>' : '') + '</div>' + inner;
@@ -2159,210 +2255,209 @@
     }
 
     async function viewKnowledge() {
-      document.getElementById('view').innerHTML = wrapPage(
-        'Knowledge center',
-        '内容运营视角：浏览知识来源、判断可用状态，并衔接 AI 回复与线索流程。',
-        '<div class="kn-page"><div class="wb-banner">Loading knowledge workspace...</div><div class="kn-board"><section class="kn-col-list"><div class="kn-list-head">Knowledge list</div><div class="kn-list-scroll"><div class="wb-loading"><div class="wb-skeleton"></div><div class="wb-skeleton"></div><div class="wb-skeleton"></div></div><div class="wb-loading"><div class="wb-skeleton"></div><div class="wb-skeleton"></div><div class="wb-skeleton"></div></div></div></section><section class="kn-col-main"><div class="wb-empty"><strong>Loading...</strong>正在加载知识内容。</div></section><aside class="kn-col-side"><div class="wb-empty"><strong>Loading...</strong>正在准备上下文。</div></aside></div></div>'
-      );
-      let entries = [];
-      let apiNote = '';
+      document.getElementById('view').innerHTML = wrapPage('Knowledge', 'FAQ knowledge base.', '<div class="wb-banner">Loading...</div>');
+
+      var products = [];
+      var entries = [];
+      var apiNote = '';
+
       try {
-        const k = await api(base() + '/knowledge');
-        const rawEntries = Array.isArray(k.entries) ? k.entries : [];
-        entries = rawEntries.map(normalizeKnowledgeEntry);
+        var pr = await api(base() + '/products');
+        products = Array.isArray(pr.products) ? pr.products : [];
+      } catch (_) {}
+
+      try {
+        var k = await api(base() + '/knowledge');
+        entries = Array.isArray(k.entries) ? k.entries.map(function(e, i) { return normalizeKnowledgeEntry(e, i); }) : [];
       } catch (e) {
-        entries = MOCK_KNOWLEDGE.slice();
-        apiNote = '知识接口不可用，当前显示示意内容。';
+        apiNote = 'Knowledge unavailable: ' + e.message;
       }
-      if (!entries.length) entries = MOCK_KNOWLEDGE.slice();
 
-      const state = {
-        list: entries,
-        selectedId: entries[0] ? entries[0].id : null,
-        filters: { q: '', category: 'all', status: 'all', language: 'all' },
-        apiNote,
-        authRole: 'unknown',
+      var state = {
+        entries: entries,
+        products: products,
+        filters: { product: 'all', language: 'all' },
+        panel: null,
+        saving: false,
+        apiNote: apiNote,
       };
-      const auth = await authSummary();
-      state.authRole = String(auth.role || 'unknown');
 
-      function mount() {
-        const f = state.filters;
-        const filtered = knowledgeFiltered(state.list, f);
-        let selId = state.selectedId;
-        if (selId && !filtered.some((x) => x.id === selId)) selId = filtered[0] ? filtered[0].id : null;
-        if (!selId && filtered.length) selId = filtered[0].id;
-        state.selectedId = selId;
-        const selected = filtered.find((x) => x.id === selId) || null;
-
-        const cats = Array.from(new Set(state.list.map((x) => x.category))).sort();
-        const langs = Array.from(new Set(state.list.map((x) => x.language))).sort();
-        const statusStats = {
-          draft: state.list.filter((x) => x.status === 'draft').length,
-          published: state.list.filter((x) => x.status === 'published').length,
-          review: state.list.filter((x) => x.status === 'needs_review').length,
-          archived: state.list.filter((x) => x.status === 'archived').length,
-        };
-
-        let rowsHtml = '';
-        if (!state.list.length) {
-          rowsHtml = '<div class="kn-empty wb-empty"><strong>暂无知识内容</strong>先创建 FAQ 或导入基础文档。<br/><a href="/app/settings" data-spa="/app/settings" class="btn" style="margin-top:0.75rem">去 Settings</a></div>';
-        } else if (!filtered.length) {
-          rowsHtml = '<div class="kn-empty wb-empty"><strong>无匹配结果</strong>试试调整筛选条件或清空搜索。</div>';
-        } else {
-          rowsHtml = filtered.map((x) => {
-            const activeCls = x.id === state.selectedId ? 'kn-row active' : 'kn-row';
-            return (
-              '<button type="button" class="' + activeCls + '" data-kn-row="' + esc(x.id) + '">' +
-              '<div class="kn-row-top"><p class="kn-row-title">' + esc(x.title) + '</p>' +
-              '<span class="tag ' + statusTagClass(x.status) + '">' + esc(statusLabel(x.status)) + '</span></div>' +
-              '<p class="kn-row-preview">' + esc(x.preview) + '</p>' +
-              '<div class="kn-row-foot"><span class="kn-chip wb-chip">' + esc(x.type) + '</span><span class="kn-chip wb-chip">' + esc(x.category) + '</span><span class="kn-chip wb-chip">' + esc(x.language.toUpperCase()) + '</span>' +
-              '<span class="wb-row-time">' + esc(fmtTime(x.updated_at)) + '</span></div></button>'
-            );
-          }).join('');
-        }
-
-        let mainHtml = '';
-        let sideHtml = '';
-        if (!selected) {
-          mainHtml = '<div class="kn-empty wb-empty"><strong>未选中内容</strong>从左侧选择一条，查看阅读详情与摘要。</div>';
-          sideHtml = '<div class="kn-empty wb-empty"><strong>暂无上下文</strong>请先选择左侧内容。</div>';
-        } else {
-          const usageHint = selected.status === 'published'
-            ? '可用于 AI 回复（示意）'
-            : selected.status === 'needs_review'
-              ? '建议先复核后再用于自动回复'
-              : selected.status === 'archived'
-                ? '仅保留历史，不建议在回复链路使用'
-                : '草稿状态，暂不进入自动回复';
-          mainHtml =
-            '<div class="kn-main-head"><h2>' + esc(selected.title) + '</h2><div class="kn-main-meta">' +
-            '<span class="tag ' + statusTagClass(selected.status) + '">' + esc(statusLabel(selected.status)) + '</span>' +
-            '<span class="kn-chip wb-chip">' + esc(selected.type) + '</span><span class="kn-chip wb-chip">' + esc(selected.category) + '</span><span class="kn-chip wb-chip">' + esc(selected.language.toUpperCase()) + '</span></div></div>' +
-            '<div class="kn-main-body"><div class="kn-summary-grid">' +
-            '<div class="kn-summary-cell"><p class="k">Last updated</p><p class="v">' + esc(fmtTime(selected.updated_at)) + '</p></div>' +
-            '<div class="kn-summary-cell"><p class="k">Source</p><p class="v">Knowledge base（占位）</p></div>' +
-            '<div class="kn-summary-cell"><p class="k">Support AI reply</p><p class="v">' + esc(usageHint) + '</p></div>' +
-            '<div class="kn-summary-cell"><p class="k">Related channel</p><p class="v">Website / LINE（占位）</p></div>' +
-            '</div><div class="kn-content">' + esc(selected.content) + '</div>' +
-            '<div class="kn-main-actions">' +
-            '<button type="button" class="btn btn-secondary btn-sm" id="knEditBtn">编辑（占位）</button>' +
-            '<button type="button" class="btn btn-secondary btn-sm" id="knPublishBtn">' + (selected.status === 'draft' ? 'Submit review' : selected.status === 'needs_review' ? 'Publish' : selected.status === 'published' ? 'Mark review' : 'Restore draft') + '</button>' +
-            '<a class="btn btn-secondary btn-sm" href="/app/reports" data-spa="/app/reports">查看 Reports</a>' +
-            '</div></div>';
-
-          sideHtml =
-            '<div class="kn-side-head">Knowledge context</div><div class="kn-side-body">' +
-            '<div class="kn-side-block"><h4>Status</h4><p><span class="tag ' + statusTagClass(selected.status) + '">' + esc(statusLabel(selected.status)) + '</span></p></div>' +
-            '<div class="kn-side-block"><h4>Type</h4><p>' + esc(selected.type) + '</p></div>' +
-            '<div class="kn-side-block"><h4>Category</h4><p>' + esc(selected.category) + '</p></div>' +
-            '<div class="kn-side-block"><h4>Language</h4><p>' + esc(selected.language.toUpperCase()) + '</p></div>' +
-            '<div class="kn-side-block"><h4>Related usage</h4><p>' + esc(usageHint) + '</p></div>' +
-            '<div class="kn-side-block"><h4>Quick actions</h4><div class="kn-side-actions">' +
-            '<a class="btn" href="/app/inbox" data-spa="/app/inbox">Open inbox</a>' +
-            '<a class="btn" href="/app/leads" data-spa="/app/leads">Open leads</a>' +
-            '<a class="btn" href="/app/settings" data-spa="/app/settings">Go to settings</a>' +
-            '<button type="button" class="btn" id="knCreateBtn">Create new knowledge</button>' +
-            '<button type="button" class="btn" id="knMarkBtn">Status action</button>' +
-            '</div></div></div>';
-        }
-
-        document.getElementById('view').innerHTML = wrapPage(
-          'Knowledge center',
-          '内容运营视角：浏览知识来源、判断可用状态，并衔接 AI 回复与线索流程。',
-          '<div class="kn-page">' +
-          (state.apiNote ? '<p class="kn-api-note wb-banner">Data unavailable. Showing fallback mock for UI preview.</p>' : '') +
-          '<div class="kn-toolbar wb-toolbar">' +
-          '<div class="fld fld-grow"><label>搜索</label><input class="kn-input wb-input" id="knQ" type="text" placeholder="搜索标题、摘要、正文关键词…" value="' + esc(f.q) + '" /></div>' +
-          '<div class="fld"><label>分类</label><select class="kn-select wb-input" id="knCategory"><option value="all">全部分类</option>' +
-          cats.map((x) => '<option value="' + esc(x) + '"' + (f.category === x ? ' selected' : '') + '>' + esc(x) + '</option>').join('') + '</select></div>' +
-          '<div class="fld"><label>状态</label><select class="kn-select wb-input" id="knStatus">' +
-          '<option value="all"' + (f.status === 'all' ? ' selected' : '') + '>全部状态</option>' +
-          '<option value="draft"' + (f.status === 'draft' ? ' selected' : '') + '>Draft</option>' +
-          '<option value="published"' + (f.status === 'published' ? ' selected' : '') + '>Published</option>' +
-          '<option value="needs_review"' + (f.status === 'needs_review' ? ' selected' : '') + '>Needs review</option>' +
-          '<option value="archived"' + (f.status === 'archived' ? ' selected' : '') + '>Archived</option></select></div>' +
-          '<div class="fld"><label>语言</label><select class="kn-select wb-input" id="knLang"><option value="all">全部语言</option>' +
-          langs.map((x) => '<option value="' + esc(x) + '"' + (f.language === x ? ' selected' : '') + '>' + esc(x.toUpperCase()) + '</option>').join('') + '</select></div>' +
-          '<div class="wb-toolbar-actions"><button type="button" class="btn" id="knSaveView">保存视图（占位）</button><button type="button" class="btn" id="knCreateTop">Create knowledge（占位）</button></div>' +
-          '</div>' +
-          '<div class="kn-board">' +
-          '<section class="kn-col-list"><div class="kn-list-head">Knowledge list · ' + filtered.length + ' 条（Published ' + statusStats.published + ' / Draft ' + statusStats.draft + ' / Review ' + statusStats.review + '）</div><div class="kn-list-scroll">' + rowsHtml + '</div></section>' +
-          '<section class="kn-col-main">' + mainHtml + '</section>' +
-          '<aside class="kn-col-side">' + sideHtml + '</aside>' +
-          '</div></div>'
-        );
-        bindSpaLinks(document.getElementById('view'));
-
-        const q = document.getElementById('knQ');
-        if (q) q.oninput = (ev) => { state.filters.q = ev.target.value; mount(); };
-        const c = document.getElementById('knCategory');
-        if (c) c.onchange = (ev) => { state.filters.category = ev.target.value; mount(); };
-        const s = document.getElementById('knStatus');
-        if (s) s.onchange = (ev) => { state.filters.status = ev.target.value; mount(); };
-        const l = document.getElementById('knLang');
-        if (l) l.onchange = (ev) => { state.filters.language = ev.target.value; mount(); };
-        const sv = document.getElementById('knSaveView');
-        if (sv) sv.onclick = () => alert('Placeholder: Save view preset is not wired in this round.');
-        const ct = document.getElementById('knCreateTop');
-        if (ct) ct.onclick = () => alert('Placeholder: Create knowledge action is not wired in this round.');
-        const eb = document.getElementById('knEditBtn');
-        if (eb) eb.onclick = () => alert('Placeholder: Editor is not wired in this round.');
-        const pb = document.getElementById('knPublishBtn');
-        if (pb) pb.onclick = async () => {
-          const selected = state.list.find((x) => x.id === state.selectedId);
-          if (!selected) return;
-          if (state.authRole.includes('readonly')) {
-            alert('Permission denied: readonly role cannot publish.');
-            return;
-          }
-          try {
-            let next = { status: 'draft', is_active: false, source_type: 'draft' };
-            if (selected.status === 'draft') next = { status: 'needs_review', is_active: false, source_type: 'needs_review' };
-            else if (selected.status === 'needs_review') next = { status: 'published', is_active: true, source_type: 'published' };
-            else if (selected.status === 'published') next = { status: 'needs_review', is_active: false, source_type: 'needs_review' };
-            await api(base() + '/knowledge/' + encodeURIComponent(selected.id), {
-              method: 'PUT',
-              body: JSON.stringify({
-                language: selected.language,
-                category: selected.category,
-                question: selected.title,
-                answer: selected.content,
-                source_type: next.source_type,
-                is_active: next.is_active,
-              }),
-            });
-            if (next.status === 'published') {
-              await api(base() + '/knowledge/' + encodeURIComponent(selected.id) + '/enable', { method: 'POST', body: '{}' });
-            } else {
-              await api(base() + '/knowledge/' + encodeURIComponent(selected.id) + '/disable', { method: 'POST', body: '{}' });
-            }
-            alert('Status updated: ' + next.status + '. Next: ' + (next.status === 'published' ? 'Open Reports or Setup.' : 'Continue review.'));
-            await viewKnowledge();
-          } catch (e) {
-            alert('Status update failed: ' + e.message);
-          }
-        };
-        const cb = document.getElementById('knCreateBtn');
-        if (cb) cb.onclick = () => alert('Placeholder: Create knowledge action is not wired in this round.');
-        const mb = document.getElementById('knMarkBtn');
-        if (mb) mb.onclick = () => {
-          const selected = state.list.find((x) => x.id === state.selectedId);
-          if (!selected) return;
-          if (selected.status === 'published') {
-            alert('Published entry is visible in setup readiness and AI usage hints.');
-          } else if (selected.status === 'needs_review') {
-            alert('Needs review: reviewer should publish after validation.');
-          } else {
-            alert('Draft: submit review before publishing.');
-          }
-        };
-        document.querySelectorAll('[data-kn-row]').forEach((btn) => {
-          btn.onclick = () => { state.selectedId = btn.getAttribute('data-kn-row'); mount(); };
+      function filtered() {
+        return state.entries.filter(function(e) {
+          if (state.filters.language !== 'all' && e.language.toLowerCase() !== state.filters.language) return false;
+          if (state.filters.product !== 'all' && e.category !== state.filters.product) return false;
+          return true;
         });
       }
 
+      function productName(cat) {
+        var p = state.products.find(function(p) { return p.id === cat || p.name === cat; });
+        return p ? p.name : (cat || 'general');
+      }
+
+      function renderPanel() {
+        if (!state.panel) return '';
+        var isEdit = state.panel.mode === 'edit';
+        var e = state.panel.entry || {};
+        var prodOpts = '<option value="">\u2014 No product \u2014</option>' +
+          state.products.map(function(p) {
+            return '<option value="' + esc(p.name) + '"' + (e.category === p.name ? ' selected' : '') + '>' + esc(p.name) + '</option>';
+          }).join('');
+        var langOpts = ['en','zh','vi'].map(function(l) {
+          return '<option value="' + l + '"' + (e.language === l ? ' selected' : '') + '>' + l.toUpperCase() + '</option>';
+        }).join('');
+        return '<div class="kn-panel-overlay" id="knPanelOverlay">' +
+          '<div class="kn-panel">' +
+          '<div class="kn-panel-head"><h3>' + (isEdit ? 'Edit FAQ' : 'New FAQ') + '</h3>' +
+          '<button type="button" class="icon-btn" id="knPanelClose">\u2715</button></div>' +
+          '<div class="kn-panel-body">' +
+          '<div><label class="legacy">Product</label><select class="legacy" id="kpProduct" style="width:100%">' + prodOpts + '</select></div>' +
+          '<div><label class="legacy">Language</label><select class="legacy" id="kpLanguage" style="width:100%">' + langOpts + '</select></div>' +
+          '<div><label class="legacy">Question</label><input class="legacy" type="text" id="kpQuestion" value="' + esc(e.title || '') + '" style="width:100%" placeholder="Enter question" /></div>' +
+          '<div><label class="legacy">Answer</label><textarea class="legacy" id="kpAnswer" rows="8" style="width:100%;resize:vertical">' + esc(e.content || '') + '</textarea></div>' +
+          '</div>' +
+          '<div class="kn-panel-actions">' +
+          '<button type="button" class="btn btn-primary" id="knPanelSave">' + (state.saving ? 'Saving\u2026' : 'Save') + '</button>' +
+          '<button type="button" class="btn" id="knPanelCancel">Cancel</button>' +
+          '</div></div></div>';
+      }
+
+      function mount() {
+        var list = filtered();
+        var rowsHtml = '';
+        if (!state.entries.length) {
+          rowsHtml = '<div class="kn-empty wb-empty"><strong>No FAQ entries yet.</strong><br/>Click "+ New FAQ" to create the first one.<br/><a class="btn" href="/app/settings/products" data-spa="/app/settings/products" style="margin-top:0.75rem">Manage Products first</a></div>';
+        } else if (!list.length) {
+          rowsHtml = '<div class="kn-empty wb-empty"><strong>No results.</strong> Try changing the filters.</div>';
+        } else {
+          rowsHtml = list.map(function(e) {
+            var isOn = e.status === 'published';
+            return '<div class="kn-faq-row">' +
+              '<div class="kn-faq-row-info">' +
+              '<p class="kn-faq-row-q">' + esc(e.title) + '</p>' +
+              '<div class="kn-faq-row-tags">' +
+              (e.category ? '<span class="kn-chip wb-chip">' + esc(productName(e.category)) + '</span>' : '') +
+              '<span class="kn-chip wb-chip">' + esc(e.language.toUpperCase()) + '</span>' +
+              '</div></div>' +
+              '<div class="kn-faq-row-actions">' +
+              '<button type="button" class="kn-toggle' + (isOn ? ' on' : '') + '" title="' + (isOn ? 'Disable' : 'Enable') + '" data-kn-toggle="' + esc(e.id) + '" data-kn-active="' + (isOn ? '1' : '0') + '"></button>' +
+              '<button type="button" class="icon-btn" title="Edit" data-kn-edit="' + esc(e.id) + '">\u270e</button>' +
+              '<button type="button" class="icon-btn" title="Delete" data-kn-del="' + esc(e.id) + '">\u2715</button>' +
+              '</div></div>';
+          }).join('');
+        }
+
+        var prodFilterOpts = '<option value="all">All products</option>' +
+          state.products.map(function(p) {
+            return '<option value="' + esc(p.name) + '"' + (state.filters.product === p.name ? ' selected' : '') + '>' + esc(p.name) + '</option>';
+          }).join('');
+        var langFilterOpts =
+          '<option value="all"' + (state.filters.language === 'all' ? ' selected' : '') + '>All languages</option>' +
+          ['en','zh','vi'].map(function(l) {
+            return '<option value="' + l + '"' + (state.filters.language === l ? ' selected' : '') + '>' + l.toUpperCase() + '</option>';
+          }).join('');
+
+        document.getElementById('view').innerHTML = wrapPage(
+          'Knowledge',
+          'FAQ knowledge base.',
+          (state.apiNote ? '<div class="wb-banner">' + esc(state.apiNote) + '</div>' : '') +
+          '<div class="kn-page">' +
+          '<div class="kn-toolbar wb-toolbar" style="margin-bottom:0.75rem">' +
+          '<div class="fld"><label>Product</label><select class="legacy" id="knProdFilter">' + prodFilterOpts + '</select></div>' +
+          '<div class="fld"><label>Language</label><select class="legacy" id="knLangFilter">' + langFilterOpts + '</select></div>' +
+          '<div class="wb-toolbar-actions"><button type="button" class="btn btn-primary" id="knNewBtn">+ New FAQ</button>' +
+          '<a class="btn" href="/app/settings/products" data-spa="/app/settings/products">Manage products</a></div>' +
+          '</div>' +
+          '<div style="border:1px solid var(--border);border-radius:var(--radius,6px);min-height:300px;">' +
+          '<div style="padding:0.5rem 0.85rem;border-bottom:1px solid var(--border);font-size:0.8rem;color:var(--muted)">FAQ entries \xb7 ' + list.length + ' shown</div>' +
+          rowsHtml +
+          '</div></div>' +
+          renderPanel()
+        );
+        bindSpaLinks(document.getElementById('view'));
+
+        var pf = document.getElementById('knProdFilter');
+        if (pf) pf.onchange = function(ev) { state.filters.product = ev.target.value; mount(); };
+        var lf = document.getElementById('knLangFilter');
+        if (lf) lf.onchange = function(ev) { state.filters.language = ev.target.value; mount(); };
+
+        var nb = document.getElementById('knNewBtn');
+        if (nb) nb.onclick = function() { state.panel = { mode: 'create', entry: { language: 'en' } }; mount(); };
+
+        document.querySelectorAll('[data-kn-toggle]').forEach(function(btn) {
+          btn.onclick = async function() {
+            var id = btn.getAttribute('data-kn-toggle');
+            var isActive = btn.getAttribute('data-kn-active') === '1';
+            try {
+              await api(base() + '/knowledge/' + encodeURIComponent(id) + (isActive ? '/disable' : '/enable'), { method: 'POST', body: '{}' });
+              state.entries = state.entries.map(function(e) {
+                return e.id === id ? Object.assign({}, e, { status: isActive ? 'draft' : 'published' }) : e;
+              });
+              mount();
+            } catch (e) { alert('Toggle failed: ' + e.message); }
+          };
+        });
+
+        document.querySelectorAll('[data-kn-edit]').forEach(function(btn) {
+          btn.onclick = function() {
+            var id = btn.getAttribute('data-kn-edit');
+            var entry = state.entries.find(function(e) { return e.id === id; });
+            if (entry) { state.panel = { mode: 'edit', entry: entry }; mount(); }
+          };
+        });
+
+        document.querySelectorAll('[data-kn-del]').forEach(function(btn) {
+          btn.onclick = async function() {
+            var id = btn.getAttribute('data-kn-del');
+            var entry = state.entries.find(function(e) { return e.id === id; });
+            if (!confirm('Delete "' + (entry ? entry.title : id) + '"?')) return;
+            try {
+              await api(base() + '/knowledge/' + encodeURIComponent(id) + '/disable', { method: 'POST', body: '{}' });
+              state.entries = state.entries.filter(function(e) { return e.id !== id; });
+              mount();
+            } catch (e) { alert('Delete failed: ' + e.message); }
+          };
+        });
+
+        var overlay = document.getElementById('knPanelOverlay');
+        var closeBtn = document.getElementById('knPanelClose');
+        var cancelBtn = document.getElementById('knPanelCancel');
+        function closeFn() { state.panel = null; mount(); }
+        if (overlay) overlay.onclick = function(ev) { if (ev.target === overlay) closeFn(); };
+        if (closeBtn) closeBtn.onclick = closeFn;
+        if (cancelBtn) cancelBtn.onclick = closeFn;
+
+        var saveBtn = document.getElementById('knPanelSave');
+        if (saveBtn) {
+          saveBtn.onclick = async function() {
+            var question = (document.getElementById('kpQuestion').value || '').trim();
+            var answer = (document.getElementById('kpAnswer').value || '').trim();
+            var product = document.getElementById('kpProduct').value || '';
+            var language = document.getElementById('kpLanguage').value || 'en';
+            if (!question || !answer) { alert('Question and answer are required.'); return; }
+            state.saving = true;
+            mount();
+            try {
+              var payload = JSON.stringify({ language: language, category: product || 'general', question: question, answer: answer, source_type: 'manual', is_active: false });
+              if (state.panel && state.panel.mode === 'create') {
+                await api(base() + '/knowledge', { method: 'POST', body: payload });
+                var k2 = await api(base() + '/knowledge');
+                state.entries = Array.isArray(k2.entries) ? k2.entries.map(function(e, i) { return normalizeKnowledgeEntry(e, i); }) : state.entries;
+              } else if (state.panel) {
+                var eid = state.panel.entry.id;
+                await api(base() + '/knowledge/' + encodeURIComponent(eid), { method: 'PUT', body: payload });
+                var k3 = await api(base() + '/knowledge');
+                state.entries = Array.isArray(k3.entries) ? k3.entries.map(function(e, i) { return normalizeKnowledgeEntry(e, i); }) : state.entries;
+              }
+              state.panel = null;
+            } catch (e) {
+              alert('Save failed: ' + e.message);
+            }
+            state.saving = false;
+            mount();
+          };
+        }
+      }
       mount();
     }
 
@@ -3187,6 +3282,7 @@
         else if (p === '/app/settings/access') viewAdvAccess();
         else if (p === '/app/settings/golive') viewAdvGolive();
         else if (p === '/app/settings/recovery') viewAdvRecovery();
+        else if (p === '/app/settings/products') await viewSettingsProducts();
         else if (p === '/app/channels') await viewChannels();
         else if (p === '/app/ai') await viewAi();
         else if (p === '/app/knowledge') await viewKnowledge();
