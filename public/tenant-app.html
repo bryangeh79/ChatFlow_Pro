@@ -2393,6 +2393,7 @@
         products: products,
         filters: { product: 'all', language: 'all' },
         panel: null,
+        importPanel: false,
         saving: false,
         apiNote: apiNote,
       };
@@ -2481,13 +2482,36 @@
           '<div class="fld"><label>Product</label><select class="legacy" id="knProdFilter">' + prodFilterOpts + '</select></div>' +
           '<div class="fld"><label>Language</label><select class="legacy" id="knLangFilter">' + langFilterOpts + '</select></div>' +
           '<div class="wb-toolbar-actions"><button type="button" class="btn btn-primary" id="knNewBtn">+ New FAQ</button>' +
+          '<button type="button" class="btn" id="knImportBtn">Bulk Import</button>' +
           '<a class="btn" href="/app/settings/products" data-spa="/app/settings/products">Manage products</a></div>' +
           '</div>' +
           '<div style="border:1px solid var(--border);border-radius:var(--radius,6px);min-height:300px;">' +
           '<div style="padding:0.5rem 0.85rem;border-bottom:1px solid var(--border);font-size:0.8rem;color:var(--muted)">FAQ entries \xb7 ' + list.length + ' shown</div>' +
           rowsHtml +
           '</div></div>' +
-          renderPanel()
+          renderPanel() +
+          (state.importPanel ? (function() {
+            var prodOpts = '<option value="">— No product —</option>' +
+              state.products.map(function(p) { return '<option value="' + esc(p.name) + '">' + esc(p.name) + '</option>'; }).join('');
+            var langOpts = ['en','zh','vi'].map(function(l) {
+              return '<option value="' + l + '">' + l.toUpperCase() + '</option>';
+            }).join('');
+            return '<div class="kn-panel-overlay" id="knImportOverlay">' +
+              '<div class="kn-panel" style="width:500px">' +
+              '<div class="kn-panel-head"><h3>Bulk Import FAQ</h3><button type="button" class="icon-btn" id="knImportClose">\u2715</button></div>' +
+              '<div class="kn-panel-body">' +
+              '<div><label class="legacy">Product</label><select class="legacy" id="impProduct" style="width:100%">' + prodOpts + '</select></div>' +
+              '<div><label class="legacy">Language</label><select class="legacy" id="impLanguage" style="width:100%">' + langOpts + '</select></div>' +
+              '<div><label class="legacy">Paste FAQ below (Q: / A: format)</label>' +
+              '<textarea class="legacy" id="impText" rows="14" style="width:100%;resize:vertical;font-family:monospace;font-size:0.82rem" placeholder="Q: What is M33 Lotto Bot?\nA: M33 Lotto Bot is an automation system for lottery operations.\n\nQ: What platforms are supported?\nA: Telegram. Web and mobile coming soon."></textarea></div>' +
+              '<p class="muted" style="margin:0;font-size:0.78rem">Each entry starts with <code>Q:</code> and <code>A:</code>. Separate entries with a blank line.</p>' +
+              '</div>' +
+              '<div class="kn-panel-actions">' +
+              '<button type="button" class="btn btn-primary" id="knImportSave">Import</button>' +
+              '<button type="button" class="btn" id="knImportCancel">Cancel</button>' +
+              '<span id="impStatus" style="font-size:0.82rem;margin-left:0.5rem"></span>' +
+              '</div></div></div>';
+          })() : '')
         );
         bindSpaLinks(document.getElementById('view'));
 
@@ -2497,7 +2521,69 @@
         if (lf) lf.onchange = function(ev) { state.filters.language = ev.target.value; mount(); };
 
         var nb = document.getElementById('knNewBtn');
-        if (nb) nb.onclick = function() { state.panel = { mode: 'create', entry: { language: 'en' } }; mount(); };
+        if (nb) nb.onclick = function() { state.panel = { mode: 'create', entry: { language: 'en' } }; state.importPanel = false; mount(); };
+
+        var ib = document.getElementById('knImportBtn');
+        if (ib) ib.onclick = function() { state.importPanel = true; state.panel = null; mount(); };
+
+        // Import panel bindings
+        var importOverlay = document.getElementById('knImportOverlay');
+        var importClose = document.getElementById('knImportClose');
+        var importCancel = document.getElementById('knImportCancel');
+        var closeImport = function() { state.importPanel = false; mount(); };
+        if (importOverlay) importOverlay.onclick = function(ev) { if (ev.target === importOverlay) closeImport(); };
+        if (importClose) importClose.onclick = closeImport;
+        if (importCancel) importCancel.onclick = closeImport;
+
+        var importSave = document.getElementById('knImportSave');
+        if (importSave) importSave.onclick = async function() {
+          var text = (document.getElementById('impText').value || '').trim();
+          var product = document.getElementById('impProduct').value || '';
+          var language = document.getElementById('impLanguage').value || 'en';
+          var status = document.getElementById('impStatus');
+
+          if (!text) { status.textContent = 'Please paste some content.'; status.style.color = 'var(--danger)'; return; }
+
+          // Parse Q: / A: blocks
+          var entries = [];
+          var blocks = text.split(/\n\s*\n/);
+          blocks.forEach(function(block) {
+            var qMatch = block.match(/^Q:\s*(.+)/im);
+            var aMatch = block.match(/^A:\s*([\s\S]+)/im);
+            if (qMatch && aMatch) {
+              entries.push({ question: qMatch[1].trim(), answer: aMatch[1].trim() });
+            }
+          });
+
+          if (!entries.length) { status.textContent = 'No valid Q:/A: pairs found. Check the format.'; status.style.color = 'var(--danger)'; return; }
+
+          status.textContent = 'Importing ' + entries.length + ' entries...';
+          status.style.color = 'var(--muted)';
+          importSave.disabled = true;
+
+          var ok = 0; var fail = 0;
+          for (var i = 0; i < entries.length; i++) {
+            try {
+              await api(base() + '/knowledge', { method: 'POST', body: JSON.stringify({
+                language: language, category: product || 'general',
+                question: entries[i].question, answer: entries[i].answer,
+                source_type: 'manual', is_active: true
+              })});
+              ok++;
+            } catch (_) { fail++; }
+          }
+
+          // Refresh list
+          try {
+            var k2 = await api(base() + '/knowledge');
+            state.entries = Array.isArray(k2.entries) ? k2.entries.map(function(e, i) { return normalizeKnowledgeEntry(e, i); }) : state.entries;
+          } catch (_) {}
+
+          state.importPanel = false;
+          state.saving = false;
+          state.apiNote = ok + ' FAQ entries imported' + (fail ? ', ' + fail + ' failed' : '') + '.';
+          mount();
+        };
 
         document.querySelectorAll('[data-kn-toggle]').forEach(function(btn) {
           btn.onclick = async function() {
