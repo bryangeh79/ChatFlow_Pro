@@ -15,12 +15,19 @@ interface SendResult {
 
 /**
  * Parse recipient userId from Line session ID.
- * Format: line:{userId}:{session_id}
+ * SaaS multi-tenant format: {tenant_id}:line:{userId}:{session_id}
+ * Legacy format: line:{userId}:{session_id}
  * Returns userId or null if parsing fails.
  */
 export function parseLineRecipientFromSessionId(sessionId: string): string | null {
   const parts = sessionId.split(':');
-  if (parts.length >= 3 && parts[0] === 'line') {
+  // SaaS multi-tenant format: {tenant_id}:line:{user_id}:{session_id}
+  if (parts[1] === 'line' && parts.length >= 4) {
+    const userId = parts[2];
+    return userId && userId !== 'unknown' && userId.trim() !== '' ? userId : null;
+  }
+  // Legacy format: line:{userId}:{session_id}
+  if (parts[0] === 'line' && parts.length >= 3) {
     const userId = parts[1];
     return userId && userId !== 'unknown' && userId.trim() !== '' ? userId : null;
   }

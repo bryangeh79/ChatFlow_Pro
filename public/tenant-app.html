@@ -1443,7 +1443,18 @@
         body = '<p class="muted" style="margin:0 0 0.75rem"><strong>' + esc(def.name) + '</strong> — 对外消息入口。完成四步后即可在接入中心查看状态并发起测试。</p>' +
           '<ul class="check"><li>适合：客服收件、自动化接待与人工交接</li><li>本轮：仅结构占位，不接真实写入</li></ul>';
       } else if (step === 1) {
-        if (channelId === 'telegram') {
+        if (channelId === 'line') {
+          body =
+            '<p class="muted" style="margin:0 0 0.75rem">在 LINE Developers Console 取得以下凭证，填写后点击保存。</p>' +
+            '<label class="legacy" for="wizLineToken">Channel Access Token（长期）</label>' +
+            '<input class="legacy" id="wizLineToken" type="password" placeholder="填入 Channel Access Token" style="margin-bottom:0.75rem;width:100%;box-sizing:border-box" autocomplete="off" />' +
+            '<label class="legacy" for="wizLineSecret">Channel Secret</label>' +
+            '<input class="legacy" id="wizLineSecret" type="password" placeholder="填入 Channel Secret" style="margin-bottom:0.75rem;width:100%;box-sizing:border-box" autocomplete="off" />' +
+            '<div class="quick-row" style="margin-top:0.25rem">' +
+            '<button type="button" class="btn btn-primary" id="wizSaveLineToken">Save credentials</button>' +
+            '</div>' +
+            '<p class="muted" id="wizLineCredentialStatus" style="margin-top:0.65rem">未保存</p>';
+        } else if (channelId === 'telegram') {
           body =
             '<p class="muted" style="margin:0 0 0.75rem">在这里填写 Telegram Bot Token。保存后可在第 4 步执行连通性测试。</p>' +
             '<label class="legacy" for="wizTelegramToken">Telegram Bot Token</label>' +
@@ -1458,7 +1469,15 @@
             '<div class="placeholder-notice">占位：该渠道的凭证表单将在后续迭代接入。当前可用底部旧版配置区临时写入 token。</div>';
         }
       } else if (step === 2) {
-        if (channelId === 'telegram') {
+        if (channelId === 'line') {
+          body =
+            '<p class="muted" style="margin:0 0 0.75rem">将下方 Webhook URL 填入 LINE Developers Console → Messaging API → Webhook URL，并开启「Use webhook」。</p>' +
+            '<label class="legacy">LINE Webhook URL（填入 LINE 控制台）</label>' +
+            '<div class="quick-row" style="margin-top:0.35rem;align-items:flex-start;gap:0.5rem">' +
+            '<input class="legacy" id="wizLineWebhookUrl" readonly style="flex:1;min-width:0" value="" />' +
+            '<button type="button" class="btn" id="wizCopyLineWebhookUrl">复制 URL</button></div>' +
+            '<p class="muted" style="margin:0.75rem 0 0;font-size:0.85rem">LINE 会在注册时发送验证请求（X-Line-Signature）；ChatFlow 会自动验证。确保服务已部署在<strong>公网 HTTPS</strong> 再提交。</p>';
+        } else if (channelId === 'telegram') {
           body =
             '<p class="muted" style="margin:0 0 0.75rem">租户 Webhook 路径固定为 <code>/webhooks/t/&lt;slug&gt;/telegram</code>。Telegram <strong>不需要</strong> Verify token（与 WhatsApp / Messenger 不同）。请先将 ChatFlow 部署在<strong>公网 HTTPS</strong>，再向 Telegram 注册下方 URL。</p>' +
             '<label class="legacy" for="wizPublicWebhookBase">公网 Base URL（HTTPS，无尾斜杠）</label>' +
@@ -1557,6 +1576,52 @@
       }
       if (channelId === 'telegram' && step === 2) {
         wireTelegramWebhookStep();
+      }
+      // LINE Step 1 — save credentials
+      const saveLineBtn = document.getElementById('wizSaveLineToken');
+      const lineStatus = document.getElementById('wizLineCredentialStatus');
+      if (saveLineBtn && lineStatus) {
+        const setLineStatus = (msg, ok) => {
+          lineStatus.textContent = msg;
+          lineStatus.style.color = ok ? 'var(--success)' : 'var(--danger)';
+        };
+        saveLineBtn.onclick = async () => {
+          try {
+            const token = String(document.getElementById('wizLineToken')?.value || '').trim();
+            const secret = String(document.getElementById('wizLineSecret')?.value || '').trim();
+            if (!token) { setLineStatus('Channel Access Token 不能为空', false); return; }
+            if (!secret) { setLineStatus('Channel Secret 不能为空', false); return; }
+            await api(base() + '/credentials', {
+              method: 'PUT',
+              body: JSON.stringify({ credentials: { LINE_CHANNEL_ACCESS_TOKEN: token, LINE_CHANNEL_SECRET: secret } }),
+            });
+            setLineStatus('已保存 LINE 凭证', true);
+          } catch (e) {
+            setLineStatus('保存失败：' + e.message, false);
+          }
+        };
+      }
+      // LINE Step 2 — webhook URL
+      const lineWh = document.getElementById('wizLineWebhookUrl');
+      const copyLineWh = document.getElementById('wizCopyLineWebhookUrl');
+      if (lineWh) {
+        const origin = window.location.origin;
+        lineWh.value = origin + '/webhooks/t/loading.../line';
+        void (async () => {
+          try {
+            const ov = await api(base() + '/overview');
+            const slug = ov.overview?.tenant?.slug ? String(ov.overview.tenant.slug).trim().toLowerCase() : '';
+            lineWh.value = origin + '/webhooks/t/' + (slug || tenantId || 'YOUR_SLUG') + '/line';
+          } catch (_) { /* keep placeholder */ }
+        })();
+      }
+      if (copyLineWh && lineWh) {
+        copyLineWh.onclick = () => {
+          navigator.clipboard?.writeText(lineWh.value).then(() => {
+            copyLineWh.textContent = '已复制';
+            setTimeout(() => { copyLineWh.textContent = '复制 URL'; }, 2000);
+          }).catch(() => window.alert(lineWh.value));
+        };
       }
     }
 
