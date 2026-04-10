@@ -1387,10 +1387,19 @@ export async function handleSaaSAdminRequest(
     } catch (fetchErr) {
       openAiError = fetchErr instanceof Error ? fetchErr.message : 'Translation request failed';
     }
-    // Save as draft regardless (use source text as fallback if OpenAI failed)
+    // Hard-fail if OpenAI could not be reached or returned an error — do NOT save Chinese source as draft.
+    if (openAiError) {
+      return { status: 422, body: { ok: false, error: `translation_failed: ${openAiError}` } };
+    }
+    // Hard-fail if the result is identical to the source (translation had no effect).
+    // This catches cases where OpenAI returned the original Chinese text unchanged.
+    if (targetLang !== 'zh' && translatedQ === source.question && translatedA === source.answer) {
+      return { status: 422, body: { ok: false, error: 'translation_not_effective: result identical to source — OpenAI may not have translated' } };
+    }
+    // Save validated draft
     try {
       const row = await upsertFaqTranslation(tenant.id, sourceFaqId, targetLang, translatedQ, translatedA, 'draft');
-      return { status: 200, body: { ok: true, translation: row, warning: openAiError ?? undefined } };
+      return { status: 200, body: { ok: true, translation: row } };
     } catch (dbErr) {
       const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
       return { status: 500, body: { ok: false, error: `db_error: ${msg}` } };
