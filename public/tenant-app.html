@@ -3378,7 +3378,7 @@
         else if (p === '/app/settings/setup') await viewSettingsSetupHub();
         else if (p.startsWith('/app/settings/setup/')) await viewSetupStepDetail(p.slice('/app/settings/setup/'.length));
         else if (p === '/app/settings/workspace') viewAdvWorkspace();
-        else if (p === '/app/settings/ai') viewAdvAi();
+        else if (p === '/app/settings/ai') await viewAi();
         else if (p.startsWith('/app/settings/channels/')) {
           const seg = p.slice('/app/settings/channels/'.length).split('/')[0];
           if (INTEGRATION_CHANNELS.some((c) => c.id === seg)) viewChannelWizard(seg);
