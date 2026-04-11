@@ -1073,6 +1073,18 @@ export async function handleSaaSAdminRequest(
           default_language: typeof lcRaw.default_language === 'string' ? lcRaw.default_language : 'zh',
           auto_skip_if_platform_lang: typeof lcRaw.auto_skip_if_platform_lang === 'boolean' ? lcRaw.auto_skip_if_platform_lang : true,
         },
+        operator_notify: (() => {
+          const on = (raw.operator_notify && typeof raw.operator_notify === 'object' && !Array.isArray(raw.operator_notify))
+            ? (raw.operator_notify as Record<string, unknown>) : {};
+          const tg = (on.telegram && typeof on.telegram === 'object' && !Array.isArray(on.telegram))
+            ? (on.telegram as Record<string, unknown>) : {};
+          return {
+            telegram: {
+              enabled: typeof tg.enabled === 'boolean' ? tg.enabled : false,
+              chat_id: typeof tg.chat_id === 'string' ? tg.chat_id : '',
+            },
+          };
+        })(),
       },
     };
   }
@@ -1135,6 +1147,21 @@ export async function handleSaaSAdminRequest(
       if (typeof lc.default_language === 'string') lcPatch.default_language = lc.default_language;
       if (typeof lc.auto_skip_if_platform_lang === 'boolean') lcPatch.auto_skip_if_platform_lang = lc.auto_skip_if_platform_lang;
       settingsPatch.language_chooser = { ...existingLc, ...lcPatch };
+    }
+
+    // Handle operator_notify block in same PUT request
+    if (body.operator_notify && typeof body.operator_notify === 'object' && !Array.isArray(body.operator_notify)) {
+      const on = body.operator_notify as Record<string, unknown>;
+      const existingOn = (existingRaw.operator_notify && typeof existingRaw.operator_notify === 'object')
+        ? (existingRaw.operator_notify as Record<string, unknown>) : {};
+      const existingTg = (existingOn.telegram && typeof existingOn.telegram === 'object')
+        ? (existingOn.telegram as Record<string, unknown>) : {};
+      const tgIn = (on.telegram && typeof on.telegram === 'object' && !Array.isArray(on.telegram))
+        ? (on.telegram as Record<string, unknown>) : {};
+      const tgPatch: Record<string, unknown> = { ...existingTg };
+      if (typeof tgIn.enabled === 'boolean') tgPatch.enabled = tgIn.enabled;
+      if (typeof tgIn.chat_id === 'string') tgPatch.chat_id = tgIn.chat_id.trim();
+      settingsPatch.operator_notify = { ...existingOn, telegram: tgPatch };
     }
 
     await mergeTenantSettings(tenant.id, settingsPatch);

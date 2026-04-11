@@ -89,6 +89,19 @@ export interface TenantRuntimeSettings {
     provider: 'openai';
     model: string;
   };
+  /**
+   * Operator notification channel settings.
+   * When a user triggers a handoff, the system sends a Telegram message
+   * to the configured operator chat_id using the tenant's bot token.
+   */
+  operator_notify: {
+    telegram: {
+      /** When true, send a Telegram message to operator_chat_id on handoff. */
+      enabled: boolean;
+      /** Telegram chat_id of the operator or group to notify. */
+      chat_id: string;
+    };
+  };
 }
 
 const DEFAULT_RUNTIME: TenantRuntimeSettings = {
@@ -116,6 +129,9 @@ const DEFAULT_RUNTIME: TenantRuntimeSettings = {
   suppress_reply: { enabled: true },
   faq: { fallback_enabled: true },
   llm: { enabled: false, provider: 'openai', model: 'gpt-4o-mini' },
+  operator_notify: {
+    telegram: { enabled: false, chat_id: '' },
+  },
 };
 
 function parseHandoffBlock(raw: unknown): TenantRuntimeSettings['handoff'] {
@@ -271,6 +287,20 @@ function parseLlmBlock(raw: unknown): TenantRuntimeSettings['llm'] {
   return { ...DEFAULT_RUNTIME.llm };
 }
 
+function parseOperatorNotifyBlock(raw: unknown): TenantRuntimeSettings['operator_notify'] {
+  const defaults = DEFAULT_RUNTIME.operator_notify;
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const r = raw as Record<string, unknown>;
+    const tg = r.telegram && typeof r.telegram === 'object' && !Array.isArray(r.telegram)
+      ? (r.telegram as Record<string, unknown>)
+      : {};
+    const enabled = typeof tg.enabled === 'boolean' ? tg.enabled : defaults.telegram.enabled;
+    const chat_id = typeof tg.chat_id === 'string' ? tg.chat_id.trim() : defaults.telegram.chat_id;
+    return { telegram: { enabled, chat_id } };
+  }
+  return { ...defaults, telegram: { ...defaults.telegram } };
+}
+
 /**
  * Parse DB JSON into runtime settings. Unknown keys ignored; invalid shapes fall back to defaults.
  */
@@ -284,6 +314,7 @@ export function parseTenantRuntimeSettings(raw: Record<string, unknown>): Tenant
     suppress_reply: parseSuppressReplyBlock(raw.suppress_reply),
     faq: parseFaqBlock(raw.faq),
     llm: parseLlmBlock(raw.llm),
+    operator_notify: parseOperatorNotifyBlock(raw.operator_notify),
   };
 }
 

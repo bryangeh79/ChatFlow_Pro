@@ -36,6 +36,62 @@ export function scheduleHandoffNotify(payload: HandoffNotifyPayload): void {
   void dispatchHandoffNotifyWithDedupe(payload);
 }
 
+export interface HandoffTelegramNotifyOptions {
+  botToken: string;
+  operatorChatId: string;
+  payload: HandoffNotifyPayload;
+}
+
+/**
+ * Fire-and-forget Telegram message to operator when handoff is triggered.
+ * Uses the tenant's own bot token to message the operator chat_id.
+ * Never throws.
+ */
+export function scheduleHandoffTelegramNotify(opts: HandoffTelegramNotifyOptions): void {
+  void dispatchHandoffTelegramNotify(opts);
+}
+
+async function dispatchHandoffTelegramNotify(opts: HandoffTelegramNotifyOptions): Promise<void> {
+  const { botToken, operatorChatId, payload } = opts;
+  if (!botToken || !operatorChatId) return;
+
+  const channelLabel: Record<string, string> = {
+    telegram: 'Telegram', whatsapp: 'WhatsApp', messenger: 'Messenger',
+    line: 'LINE', zalo: 'Zalo', website: 'Website',
+  };
+  const ch = channelLabel[payload.channel] ?? payload.channel;
+  const time = payload.triggered_at
+    ? new Date(payload.triggered_at).toLocaleString('zh-CN', { timeZone: 'Asia/Kuala_Lumpur' })
+    : new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Kuala_Lumpur' });
+
+  const text = [
+    '🔔 *新客户正在等待人工客服*',
+    '',
+    `📱 频道：${ch}`,
+    `👤 用户 ID：\`${payload.external_user_id}\``,
+    `⏰ 时间：${time}`,
+    payload.reason ? `💬 触发原因：${payload.reason}` : null,
+    '',
+    '请前往 Inbox 处理。',
+  ].filter(Boolean).join('\n');
+
+  try {
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: operatorChatId,
+        text,
+        parse_mode: 'Markdown',
+      }),
+      signal: AbortSignal.timeout(8_000),
+    });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('[HandoffTelegramNotify] failed:', e instanceof Error ? e.message : String(e));
+  }
+}
+
 export async function dispatchHandoffNotifyWithDedupe(
   payload: HandoffNotifyPayload,
 ): Promise<NotifyDispatchResult> {

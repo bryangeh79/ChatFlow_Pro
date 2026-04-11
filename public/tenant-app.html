@@ -2073,11 +2073,13 @@
         lead_trigger_after_n: 0, lead_nudge_text: '', lead_nudge_by_language: {},
       };
       var chooser = { enabled: false, supported: ['zh','en','vi','ms-MY'], default_language: 'zh', auto_skip_if_platform_lang: true };
+      var operatorNotify = { telegram: { enabled: false, chat_id: '' } };
       var apiNote = '';
       try {
         var r = await api(base() + '/bot-settings');
         if (r.bot) bot = Object.assign(bot, r.bot);
         if (r.language_chooser) chooser = Object.assign(chooser, r.language_chooser);
+        if (r.operator_notify) operatorNotify = Object.assign(operatorNotify, r.operator_notify);
       } catch (e) { apiNote = 'Load failed: ' + e.message; }
 
       var saving = false;
@@ -2229,6 +2231,17 @@
           }).join('') +
           '</div>' +
 
+          // ── Section 5: Operator Notification
+          sectionHr('5 · Operator Notification') +
+          '<div class="fld-group" style="margin-bottom:1rem">' +
+          '<label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:600">' +
+          '<input type="checkbox" id="opTgEnabled"' + (operatorNotify.telegram.enabled ? ' checked' : '') + ' /> 收到 Handoff 时，Telegram 通知运营人员</label>' +
+          '<p style="font-size:0.82rem;color:var(--muted);margin:0.3rem 0 0 1.5rem">开启后，每次客户触发人工接待，Bot 会发消息到下方填写的 Telegram Chat ID。</p></div>' +
+          '<div class="fld-group" style="margin-bottom:0.5rem">' +
+          '<label class="legacy" style="font-weight:600">Operator Telegram Chat ID</label>' +
+          '<p style="font-size:0.82rem;color:var(--muted);margin:0.2rem 0 0.4rem">运营人员先向 Bot 发一条消息，然后查询自己的 Chat ID（可用 @userinfobot）。也可填入群组 Chat ID。</p>' +
+          '<input class="legacy" type="text" id="opTgChatId" value="' + esc(operatorNotify.telegram.chat_id || '') + '" placeholder="e.g. 123456789 or -1001234567890" style="width:100%;max-width:360px" /></div>' +
+
           '<div style="display:flex;gap:0.75rem;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">' +
           '<button type="button" class="btn btn-primary" id="bsSave">' + (saving ? 'Saving…' : 'Save Bot Experience') + '</button>' +
           '<a class="btn" href="/app/settings" data-spa="/app/settings">← Back</a></div>' +
@@ -2313,11 +2326,15 @@
             bot.welcome_message = zhWl.message || bot.welcome_message;
             bot.welcome_buttons = zhWl.buttons || bot.welcome_buttons;
 
+            // Collect operator notify
+            operatorNotify.telegram.enabled = document.getElementById('opTgEnabled').checked;
+            operatorNotify.telegram.chat_id = (document.getElementById('opTgChatId').value || '').trim();
+
             saving = true; mount();
             try {
               var res = await api(base() + '/bot-settings', {
                 method: 'PUT',
-                body: JSON.stringify({ bot: bot, language_chooser: chooser }),
+                body: JSON.stringify({ bot: bot, language_chooser: chooser, operator_notify: operatorNotify }),
               });
               if (res.ok) { apiNote = ''; alert('Bot Experience saved.'); }
               else { apiNote = 'Save failed: ' + (res.error || JSON.stringify(res)); }

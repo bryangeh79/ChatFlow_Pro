@@ -14,7 +14,8 @@ import { detectContactIntent } from '../lead-capture-hook/contact-intent-detecto
 import { getLeadCaptureI18n } from '../lead-capture-hook/i18n';
 import { shouldTriggerHandoff, updateHandoffStateIfTriggered } from '../handoff-trigger';
 import { containsHandoffKeyword } from '../../config/handoff';
-import { scheduleHandoffNotify } from '../handoff-trigger/notify-outbound';
+import { scheduleHandoffNotify, scheduleHandoffTelegramNotify } from '../handoff-trigger/notify-outbound';
+import { getTelegramBotTokenRaw } from '../../config/telegram';
 import { resolveConversationPhase } from '../conversation-runtime/phase';
 import { planTurn } from '../conversation-runtime/policy';
 import { emitLeadCaptured, emitQualificationTagsUpdated } from '../conversation-runtime/events';
@@ -333,8 +334,8 @@ export async function runUnifiedInboundPipeline(
       );
     }
 
-    scheduleHandoffNotify({
-      event: 'handoff_pending',
+    const notifyPayload = {
+      event: 'handoff_pending' as const,
       session_id: sessionAfterHandoffCheck.session_id,
       channel: sessionAfterHandoffCheck.channel,
       external_user_id: sessionAfterHandoffCheck.external_user_id,
@@ -355,7 +356,17 @@ export async function runUnifiedInboundPipeline(
         sessionId: sessionAfterHandoffCheck.session_id,
         requestId: options?.traceContext?.request_id,
       }),
-    });
+    };
+    scheduleHandoffNotify(notifyPayload);
+
+    // Telegram operator notification (fire-and-forget)
+    const opNotify = options?.tenantRuntimeSettings?.operator_notify?.telegram;
+    if (opNotify?.enabled && opNotify.chat_id) {
+      const botToken = getTelegramBotTokenRaw();
+      if (botToken) {
+        scheduleHandoffTelegramNotify({ botToken, operatorChatId: opNotify.chat_id, payload: notifyPayload });
+      }
+    }
   }
   
   // 证据对齐：添加 leadCaptureResult
