@@ -50,6 +50,7 @@
 9. ✅ Leads 页面（phone/email、留言 badge、留言高亮块）
 10. ✅ Inbox 消息时间线（GET /conversations/:id/messages，气泡渲染）
 11. ✅ Inbox P0 UX 重构（渠道图标、智能名称、真实预览、4-block 侧栏、固定 header）
+12. ✅ Inbox P1 UX 重构（纯图标 chip、TG #短ID、消息缓存预览、业务状态标签、双行 header+操作按钮、Summary block、去占位字眼）
 12. ✅ isFirstContact 修复（bot_exchange_count === 0）
 13. ✅ FAQ 翻译工作台（generate draft、publish）
 
@@ -57,9 +58,9 @@
 
 | Commit | 内容 |
 |---|---|
+| c0c7ec9 | feat(inbox): P1 UX — icon-only pills, smart names, live preview fallback, business status, dual-row header, Summary block, no placeholder text |
 | 26d9b62 | feat(inbox): P0 UX 重构（channel icons / smart names / sidebar blocks / conv header） |
-| 9da7b11 | fix: restore missing repository exports（新 chat 破坏后修复） |
-| d4bff92 | chore: stage all local work before rebase |
+| 9da7b11 | fix: restore missing repository exports |
 
 ## 防护措施（已部署）
 

@@ -8,12 +8,12 @@
 ## 当前优先事项
 
 ### ✅ 已完成（2026-04-11）
-- Inbox P0 UX 重构（commit 26d9b62，已 push，待 VPS 部署）
+- Inbox P0 UX 重构（commit 26d9b62）
+- Inbox P1 UX 重构（commit c0c7ec9，已 push，待 VPS 部署）
 - pre-push hook 防护（本机已安装）
-- 交接指令更新
 
 ### 📌 待 VPS 部署
-VPS 需要 `git pull origin main` 拉取 commit 26d9b62（Inbox P0 UX）。
+VPS 需要 `git pull origin main` 拉取 commit c0c7ec9（Inbox P1 UX）。
 `public/tenant-app.html` 是静态文件，**不需要 build**，pull 后刷新浏览器即可。
 
 ```bash
@@ -22,12 +22,13 @@ git pull origin main
 # 刷新浏览器 Ctrl+Shift+R
 ```
 
-### 📋 Inbox P0 已实现清单
-- P0-1 ✅ 渠道 SVG 图标（Telegram蓝/WhatsApp绿/LINE绿/Messenger蓝/Web紫/Zalo蓝）
-- P0-2 ✅ 智能联系人名称（inboxDisplayName：telegram:xxx:yyy → #userid）
-- P0-3 ✅ 真实消息预览（空时显示 italic 暂无消息）
-- P0-4 ✅ 右侧栏 4 blocks（👤联系人 / 💬会话信息 / 🙋负责人 / ⚡操作）
-- P0-5 ✅ 固定会话 header（avatar 圆、渠道图标、状态、负责人、时间）
+### 📋 Inbox P1 已实现清单
+- P0-1 ✅ 渠道 chip → 纯图标（无文字，hover tooltip）
+- P0-2 ✅ 左栏标题 → TG #短ID / WA #短ID（渠道前缀 + 8位ID）
+- P0-3 ✅ 左栏预览 → 消息缓存补全，fallback "No messages yet"
+- P0-4 ✅ 状态系统 → New / Active / Waiting Human / With Agent / Resolved
+- P0-5 ✅ 中栏 header → 双行（信息行 + Assign/Handoff/Resolve 操作行）
+- P0-6 ✅ 右栏 → Summary block 新增，操作主次排列，去所有"占位"字眼
 
 ### 🔜 用户可能的下一步需求（待确认）
 - Inbox 继续优化（P1 项）
