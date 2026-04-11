@@ -359,7 +359,23 @@
     .inbox-row-preview { font-size: 0.8125rem; color: var(--muted); margin: 0; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .inbox-row-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-top: 0.45rem; }
     .inbox-ch-pill { font-size: 0.625rem; font-weight: 600; padding: 0.12rem 0.4rem; border-radius: 999px; background: #e4e4e7; color: #3f3f46; text-transform: capitalize; }
+    .inbox-ch-icon { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.625rem; font-weight: 600; padding: 0.12rem 0.45rem 0.12rem 0.3rem; border-radius: 999px; background: #e4e4e7; color: #3f3f46; text-transform: capitalize; }
+    .inbox-ch-icon svg { flex-shrink: 0; }
+    .inbox-ch-icon.ch-telegram { background: rgba(41,182,246,0.15); color: #0277bd; }
+    .inbox-ch-icon.ch-whatsapp { background: rgba(37,211,102,0.15); color: #1a7c3a; }
+    .inbox-ch-icon.ch-line { background: rgba(0,199,94,0.12); color: #007a35; }
+    .inbox-ch-icon.ch-messenger { background: rgba(0,120,255,0.12); color: #0050b3; }
+    .inbox-ch-icon.ch-website { background: rgba(99,102,241,0.12); color: #4338ca; }
+    .inbox-ch-icon.ch-zalo { background: rgba(0,104,255,0.12); color: #003eb3; }
     .inbox-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--primary); flex-shrink: 0; }
+    /* P0-5 conversation header */
+    .inbox-conv-header { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--surface); display: flex; align-items: center; gap: 0.65rem; }
+    .inbox-conv-header-avatar { width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #a5b4fc, var(--primary)); display: flex; align-items: center; justify-content: center; font-size: 0.9375rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .inbox-conv-header-info { flex: 1; min-width: 0; }
+    .inbox-conv-header-name { font-size: 0.9375rem; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .inbox-conv-header-sub { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.2rem; flex-wrap: wrap; }
+    /* P0-4 sidebar blocks */
+    .inbox-side-divider { border: none; border-top: 1px solid var(--border); margin: 0.75rem 0; }
     .inbox-st-new { background: rgba(79, 70, 229, 0.12); color: #4338ca; }
     .inbox-st-open { background: #e4e4e7; color: #52525b; }
     .inbox-st-handoff { background: rgba(202, 138, 4, 0.15); color: #a16207; }
@@ -1212,6 +1228,42 @@
       return '<span class="tag ' + x[1] + '">' + esc(x[0]) + '</span>';
     }
 
+    function channelIcon(ch) {
+      const c = String(ch || '').toLowerCase();
+      const svgs = {
+        telegram: '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8l-1.69 7.96c-.12.56-.46.7-.93.43l-2.57-1.9-1.24 1.19c-.14.14-.25.25-.51.25l.18-2.61 4.72-4.27c.21-.18-.04-.28-.31-.1L7.49 14.6 4.96 13.8c-.54-.17-.55-.54.12-.8l8.87-3.42c.44-.17.83.1.69.82z"/></svg>',
+        whatsapp: '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>',
+        line: '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>',
+        messenger: '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.469 8.652V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.627 0 12-4.975 12-11.111S18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26L10.732 8l3.131 3.259L19.752 8l-6.561 6.963z"/></svg>',
+        website: '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>',
+        zalo: '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12.49 10.272v3.6h-3.6v-3.6h3.6zM24 4.8v14.4c0 2.651-2.149 4.8-4.8 4.8H4.8C2.149 24 0 21.851 0 19.2V4.8C0 2.149 2.149 0 4.8 0h14.4C21.851 0 24 2.149 24 4.8zM7.2 7.2H4.8v9.6h2.4V7.2zm7.2 0H9.6v2.4h2.4v4.8H9.6v2.4h4.8V7.2zm4.8 0h-2.4v9.6h2.4V7.2z"/></svg>',
+      };
+      return svgs[c] || '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 8v4l3 3"/></svg>';
+    }
+
+    function channelIconPill(ch) {
+      const c = String(ch || '').toLowerCase();
+      const label = { telegram: 'Telegram', whatsapp: 'WhatsApp', line: 'LINE', messenger: 'Messenger', website: 'Web', zalo: 'Zalo' }[c] || ch;
+      return '<span class="inbox-ch-icon ch-' + c + '">' + channelIcon(ch) + ' ' + esc(label) + '</span>';
+    }
+
+    function inboxDisplayName(c) {
+      const name = String(c.customer_name || '');
+      const extId = String(c.external_contact_id || '');
+      // Detect ID-like patterns: pure numbers, contains ':', too long, or default fallbacks
+      const isIdLike = !name || name === '访客' || /^\d{6,}$/.test(name) || name.includes(':') || name.length > 40;
+      if (!isIdLike) return name;
+      // Try to extract readable part from external_contact_id
+      if (extId) {
+        const parts = extId.split(':');
+        const idPart = parts[parts.length - 1] || extId;
+        if (/^\d+$/.test(idPart)) return '#' + idPart;
+        if (idPart.length <= 16) return idPart;
+        return '…' + idPart.slice(-10);
+      }
+      return name || '访客';
+    }
+
     function normalizeInboxConversation(c) {
       const preview = c.last_message_preview || c.last_message_snippet || c.preview || '';
       return {
@@ -1220,10 +1272,11 @@
         channel: c.channel || '—',
         customer_name: c.customer_name || c.external_contact_id || '访客',
         external_contact_id: c.external_contact_id || '',
-        last_message_preview: preview || '（无预览）',
+        last_message_preview: preview,
         last_message_at: inboxShortTime(c.last_message_at || c.updated_at),
         current_owner_principal_id: c.current_owner_principal_id || null,
         unread: Boolean(c.unread),
+        _raw: c,
       };
     }
 
@@ -3298,24 +3351,20 @@
           rowsHtml = filtered
             .map((c) => {
               const active = c.id === selId ? ' active' : '';
-              const dot = c.unread ? '<span class="inbox-dot wb-row-dot" title="待处理 / 未读（示意）"></span> ' : '';
+              const dot = c.unread ? '<span class="inbox-dot wb-row-dot" title="未读"></span>' : '';
+              const displayName = inboxDisplayName(c);
+              const previewText = c.last_message_preview
+                ? esc(c.last_message_preview)
+                : '<span style="color:var(--muted);font-style:italic">暂无消息</span>';
               return (
-                '<button type="button" class="inbox-row' +
-                active +
-                '" data-inbox-pick="' +
-                esc(c.id) +
-                '"><div class="inbox-row-top"><p class="inbox-row-title">' +
-                dot +
-                esc(c.customer_name) +
-                '</p><span class="inbox-row-meta wb-row-time">' +
-                esc(c.last_message_at) +
-                '</span></div><p class="inbox-row-preview">' +
-                esc(c.last_message_preview) +
-                '</p><div class="inbox-row-foot"><span class="inbox-ch-pill wb-chip">' +
-                esc(c.channel) +
-                '</span>' +
-                inboxStatusTag(c) +
-                '</div></button>'
+                '<button type="button" class="inbox-row' + active + '" data-inbox-pick="' + esc(c.id) + '">' +
+                '<div class="inbox-row-top">' +
+                '<p class="inbox-row-title" style="display:flex;align-items:center;gap:0.35rem">' + dot + esc(displayName) + '</p>' +
+                '<span class="inbox-row-meta wb-row-time">' + esc(c.last_message_at) + '</span>' +
+                '</div>' +
+                '<p class="inbox-row-preview">' + previewText + '</p>' +
+                '<div class="inbox-row-foot">' + channelIconPill(c.channel) + inboxStatusTag(c) + '</div>' +
+                '</button>'
               );
             })
             .join('');
@@ -3329,45 +3378,93 @@
           midHtml =
             '<div class="inbox-empty wb-empty" style="min-height:12rem;"><strong>未选中会话</strong>从左侧选择一条会话以查看消息与时间线。</div>';
         } else {
+          var convDisplayName = inboxDisplayName(selected);
+          var convInitial = (convDisplayName || '?').charAt(0).toUpperCase() || '?';
+          var ownerLabel = selected.current_owner_principal_id
+            ? '<span style="color:var(--text)">' + esc(selected.current_owner_principal_id) + '</span>'
+            : '<span style="color:var(--muted)">未分配</span>';
+          var extIdLabel = selected.external_contact_id
+            ? '<span style="color:var(--muted);font-size:0.75rem">' + esc(selected.external_contact_id) + '</span>'
+            : '';
           midHtml =
-            '<div class="inbox-detail-head"><h2>' +
-            esc(selected.customer_name) +
-            '</h2><p class="muted" style="margin:0;font-size:0.8125rem;">' +
-            esc(selected.external_contact_id || selected.id) +
-            ' · ' +
+            '<div class="inbox-conv-header">' +
+            '<div class="inbox-conv-header-avatar">' + esc(convInitial) + '</div>' +
+            '<div class="inbox-conv-header-info">' +
+            '<div class="inbox-conv-header-name">' + esc(convDisplayName) + '</div>' +
+            '<div class="inbox-conv-header-sub">' +
+            channelIconPill(selected.channel) +
             inboxStatusTag(selected) +
-            '</p></div><div class="inbox-thread" id="inboxThread" style="display:flex;flex-direction:column;padding:1rem;overflow-y:auto;flex:1">' +
+            (selected.current_owner_principal_id
+              ? '<span style="font-size:0.72rem;color:var(--muted)">负责人: <strong>' + esc(selected.current_owner_principal_id) + '</strong></span>'
+              : '<span style="font-size:0.72rem;color:var(--muted)">未分配</span>') +
+            (selected.last_message_at ? '<span style="font-size:0.72rem;color:var(--muted)">· ' + esc(selected.last_message_at) + '</span>' : '') +
+            '</div>' +
+            '</div>' +
+            (extIdLabel ? '<div style="font-size:0.72rem;color:var(--muted);margin-left:auto;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + extIdLabel + '</div>' : '') +
+            '</div>' +
+            '<div class="inbox-thread" id="inboxThread" style="display:flex;flex-direction:column;padding:1rem;overflow-y:auto;flex:1">' +
             buildMessageTimeline(selected.id) +
             '</div><div class="inbox-compose"><textarea disabled placeholder="回复框占位：发送、模板与内部备注将在后续迭代接入。"></textarea><p class="hint">本轮不接真实发送；不写入后端。</p></div>';
         }
 
-        let sideHtml = '<div class="inbox-side-head">Context</div><div class="inbox-side-body">';
+        let sideHtml = '<div class="inbox-side-head">会话详情</div><div class="inbox-side-body">';
         if (state.apiError && !state.useMockPreview) {
           sideHtml += '<p class="muted" style="margin:0">API error: <code>' + esc(state.apiError) + '</code></p>';
         } else if (!selected) {
-          sideHtml += '<p class="muted" style="margin:0">选择会话后显示摘要。</p>';
+          sideHtml += '<p class="muted" style="margin:0;padding-top:0.5rem">选择一条会话后显示详情。</p>';
         } else {
-          sideHtml +=
-            '<div class="inbox-side-block"><h4>Contact / Lead snapshot</h4><p>' +
-            esc(selected.customer_name) +
-            '<br/><span class="muted">' +
-            esc(selected.external_contact_id || '无外部 ID') +
-            '</span></p></div>';
-          sideHtml +=
-            '<div class="inbox-side-block"><h4>Channel</h4><p><span class="inbox-ch-pill wb-chip">' +
-            esc(selected.channel) +
-            '</span> · <a href="/app/channels" data-spa="/app/channels">接入中心</a> · <a href="/app/settings/channels" data-spa="/app/settings/channels">Settings</a></p></div>';
-          sideHtml +=
-            '<div class="inbox-side-block"><h4>Owner / Handoff</h4><p>Owner: <strong>' +
-            esc(selected.current_owner_principal_id || '未分配') +
-            '</strong><br/><span class="muted">Handoff 状态摘要占位</span></p></div>';
-          const statusActLabel = inboxBucket(selected) === 'closed' ? 'Reopen Conversation' : 'Resolve Conversation';
-          sideHtml += '<div class="inbox-side-block"><h4>Quick actions</h4><div class="inbox-side-actions">';
-          sideHtml += '<a class="btn" href="/app/leads" data-spa="/app/leads">View leads</a>';
-          sideHtml += '<a class="btn" href="/app/knowledge" data-spa="/app/knowledge">Open Knowledge</a>';
+          var sideName = inboxDisplayName(selected);
+          var sideInitial = (sideName || '?').charAt(0).toUpperCase() || '?';
+          var sideChannel = String(selected.channel || '').toLowerCase();
+          var sideChannelLabel = { telegram: 'Telegram', whatsapp: 'WhatsApp', line: 'LINE', messenger: 'Messenger', website: 'Website', zalo: 'Zalo' }[sideChannel] || selected.channel;
+
+          // ── Block 1: Contact ──────────────────────────────────
+          sideHtml += '<div class="inbox-side-block">';
+          sideHtml += '<h4>👤 联系人</h4>';
+          sideHtml += '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">';
+          sideHtml += '<div style="width:32px;height:32px;border-radius:999px;background:linear-gradient(135deg,#a5b4fc,var(--primary));display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:0.875rem;flex-shrink:0">' + esc(sideInitial) + '</div>';
+          sideHtml += '<div style="min-width:0"><div style="font-weight:600;font-size:0.875rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(sideName) + '</div>';
+          if (selected.external_contact_id) {
+            sideHtml += '<div style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem;word-break:break-all">' + esc(selected.external_contact_id) + '</div>';
+          }
+          sideHtml += '</div></div>';
+          sideHtml += '</div>';
+
+          sideHtml += '<hr class="inbox-side-divider">';
+
+          // ── Block 2: Conversation ─────────────────────────────
+          sideHtml += '<div class="inbox-side-block">';
+          sideHtml += '<h4>💬 会话信息</h4>';
+          sideHtml += '<table style="width:100%;font-size:0.8125rem;border-collapse:collapse">';
+          sideHtml += '<tr><td style="color:var(--muted);padding:0.2rem 0;width:56px">渠道</td><td>' + channelIconPill(selected.channel) + '</td></tr>';
+          sideHtml += '<tr><td style="color:var(--muted);padding:0.2rem 0">状态</td><td>' + inboxStatusTag(selected) + '</td></tr>';
+          sideHtml += '<tr><td style="color:var(--muted);padding:0.2rem 0">最后活跃</td><td style="font-size:0.78rem">' + esc(selected.last_message_at || '—') + '</td></tr>';
+          sideHtml += '<tr><td style="color:var(--muted);padding:0.2rem 0">会话 ID</td><td style="font-size:0.72rem;word-break:break-all;color:var(--muted)">' + esc(selected.id) + '</td></tr>';
+          sideHtml += '</table>';
+          sideHtml += '</div>';
+
+          sideHtml += '<hr class="inbox-side-divider">';
+
+          // ── Block 3: Owner / Handoff ──────────────────────────
+          sideHtml += '<div class="inbox-side-block">';
+          sideHtml += '<h4>🙋 负责人 / Handoff</h4>';
+          sideHtml += '<table style="width:100%;font-size:0.8125rem;border-collapse:collapse">';
+          sideHtml += '<tr><td style="color:var(--muted);padding:0.2rem 0;width:56px">Owner</td><td><strong>' + esc(selected.current_owner_principal_id || '未分配') + '</strong></td></tr>';
+          sideHtml += '</table>';
+          if (inboxBucket(selected) === 'pending_handoff') {
+            sideHtml += '<div style="margin-top:0.5rem;padding:0.4rem 0.6rem;background:rgba(202,138,4,0.1);border:1px solid rgba(202,138,4,0.25);border-radius:6px;font-size:0.78rem;color:#92400e">⏳ 等待人工接入</div>';
+          }
+          sideHtml += '</div>';
+
+          sideHtml += '<hr class="inbox-side-divider">';
+
+          // ── Block 4: Actions ──────────────────────────────────
+          var statusActLabel = inboxBucket(selected) === 'closed' ? 'Reopen Conversation' : 'Resolve Conversation';
+          sideHtml += '<div class="inbox-side-block"><h4>⚡ 操作</h4><div class="inbox-side-actions">';
           sideHtml += '<button type="button" class="btn" data-inbox-act="handoff">Handoff to Owner</button>';
           sideHtml += '<button type="button" class="btn" data-inbox-act="status">' + statusActLabel + '</button>';
-          sideHtml += '<a class="btn" href="/app/reports" data-spa="/app/reports">Reports · 摘要</a>';
+          sideHtml += '<a class="btn" href="/app/leads" data-spa="/app/leads">查看线索</a>';
+          sideHtml += '<a class="btn" href="/app/knowledge" data-spa="/app/knowledge">知识库</a>';
           sideHtml += '</div></div>';
         }
         sideHtml += '</div>';
