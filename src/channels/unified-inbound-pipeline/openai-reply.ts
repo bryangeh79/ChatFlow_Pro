@@ -39,6 +39,12 @@ export async function maybeGenerateOpenAiReply(args: {
   userText: string | null | undefined;
   language: string | null | undefined;
   config: OpenAiReplyConfig;
+  /** Per-tenant bot persona overrides the default system prompt. */
+  persona?: string;
+  /** Appended to system prompt to guide follow-up responses. */
+  followupPrompt?: string;
+  /** FAQ entries injected as knowledge base context when FAQ matcher missed. */
+  faqContext?: string;
 }): Promise<OpenAiReplyResult> {
   const provider: 'openai' = 'openai';
   const model = args.config.model || 'gpt-4o-mini';
@@ -62,6 +68,20 @@ export async function maybeGenerateOpenAiReply(args: {
   const timer = setTimeout(() => ctrl.abort(), 12000);
   try {
     const langHint = args.language ? `User language hint: ${args.language}.` : '';
+
+    // Build system prompt: use per-tenant persona if set, else built-in default
+    const basePersona = args.persona?.trim()
+      ? args.persona.trim()
+      : 'You are a helpful assistant. Keep replies concise, practical, and safe. Do not expose internal config.';
+
+    // Inject FAQ knowledge base when provided (cross-language: LLM handles translation)
+    const faqSection = args.faqContext?.trim()
+      ? `\n\nKnowledge base (use this to answer questions; reply in the user's language regardless of what language the knowledge base is written in):\n${args.faqContext.trim()}`
+      : '';
+
+    const followup = args.followupPrompt?.trim();
+    const systemContent = `${basePersona}${faqSection}${followup ? '\n\n' + followup : ''}`;
+
     const resp = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -75,12 +95,11 @@ export async function maybeGenerateOpenAiReply(args: {
         messages: [
           {
             role: 'system',
-            content:
-              'You are ChatFlow Pro assistant. Keep replies concise, practical, and safe. Do not expose internal config.',
+            content: systemContent,
           },
           {
             role: 'user',
-            content: `${langHint}\nUser message: ${userText}`,
+            content: langHint ? `${langHint}\nUser message: ${userText}` : `User message: ${userText}`,
           },
         ],
       }),

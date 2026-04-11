@@ -504,9 +504,9 @@ export async function runUnifiedInboundPipeline(
           name: capturedFields.name != null ? String(capturedFields.name) : null,
           phone: capturedFields.phone != null ? String(capturedFields.phone) : null,
           email: capturedFields.email != null ? String(capturedFields.email) : null,
-        }).then((r) => {
+        }).then((r: { lead: unknown; created: boolean }) => {
           debug_steps.push(r.created ? 'leave_lead_created' : 'leave_lead_exists');
-        }).catch((err) => {
+        }).catch((err: unknown) => {
           // eslint-disable-next-line no-console
           console.warn('[pipeline] leave_message auto-lead failed:', err instanceof Error ? err.message : String(err));
         });
