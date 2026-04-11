@@ -64,31 +64,38 @@ async function dispatchHandoffTelegramNotify(opts: HandoffTelegramNotifyOptions)
     ? new Date(payload.triggered_at).toLocaleString('zh-CN', { timeZone: 'Asia/Kuala_Lumpur' })
     : new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Kuala_Lumpur' });
 
+  // Use plain text (no Markdown) to avoid parse errors with special characters in user IDs
   const text = [
-    '🔔 *新客户正在等待人工客服*',
+    '🔔 新客户正在等待人工客服',
     '',
-    `📱 频道：${ch}`,
-    `👤 用户 ID：\`${payload.external_user_id}\``,
-    `⏰ 时间：${time}`,
-    payload.reason ? `💬 触发原因：${payload.reason}` : null,
+    '频道：' + ch,
+    '用户 ID：' + payload.external_user_id,
+    '时间：' + time,
+    payload.reason ? '触发原因：' + payload.reason : null,
     '',
     '请前往 Inbox 处理。',
   ].filter(Boolean).join('\n');
 
+  // eslint-disable-next-line no-console
+  console.log('[HandoffTelegramNotify] sending to chat_id:', operatorChatId, 'channel:', payload.channel);
   try {
-    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: operatorChatId,
-        text,
-        parse_mode: 'Markdown',
-      }),
+      body: JSON.stringify({ chat_id: operatorChatId, text }),
       signal: AbortSignal.timeout(8_000),
     });
+    const data = await res.json().catch(() => ({})) as Record<string, unknown>;
+    if (!res.ok || !data.ok) {
+      // eslint-disable-next-line no-console
+      console.warn('[HandoffTelegramNotify] Telegram error:', res.status, JSON.stringify(data));
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('[HandoffTelegramNotify] sent ok');
+    }
   } catch (e) {
     // eslint-disable-next-line no-console
-    console.warn('[HandoffTelegramNotify] failed:', e instanceof Error ? e.message : String(e));
+    console.warn('[HandoffTelegramNotify] network error:', e instanceof Error ? e.message : String(e));
   }
 }
 

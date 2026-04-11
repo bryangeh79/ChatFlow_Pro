@@ -361,8 +361,12 @@ export async function runUnifiedInboundPipeline(
 
     // Telegram operator notification (fire-and-forget)
     const opNotify = options?.tenantRuntimeSettings?.operator_notify?.telegram;
+    // eslint-disable-next-line no-console
+    console.log('[pipeline] handoff pending — opNotify:', JSON.stringify(opNotify ?? null));
     if (opNotify?.enabled && opNotify.chat_id) {
       const botToken = getTelegramBotTokenRaw();
+      // eslint-disable-next-line no-console
+      console.log('[pipeline] scheduling Telegram operator notify, token present:', !!botToken);
       if (botToken) {
         scheduleHandoffTelegramNotify({ botToken, operatorChatId: opNotify.chat_id, payload: notifyPayload });
       }
