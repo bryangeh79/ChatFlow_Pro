@@ -107,7 +107,9 @@ export async function runUnifiedInboundPipeline(
   // Runs before any FAQ/lead/handoff logic. Returns early with chooser UI
   // or resolves session language so all downstream i18n uses the right lang.
   const chooser = options?.tenantRuntimeSettings?.language_chooser;
-  if (chooser && !session) {
+  const isNewSession = typeof session?.metadata?.bot_exchange_count !== 'number'
+    || session.metadata.bot_exchange_count === 0;
+  if (chooser && isNewSession) {
     // Brand-new session: determine language
     const platformLang = message.language ?? null;
     const shouldAutoSkip = chooser.auto_skip_if_platform_lang && platformLang !== null;
@@ -399,9 +401,17 @@ export async function runUnifiedInboundPipeline(
       (botSettings.welcome_by_language
         ? Object.values(botSettings.welcome_by_language).some((e) => e?.message?.trim().length > 0)
         : false));
+  // "First contact" = welcome content exists AND user has no prior exchanges.
+  // We cannot rely on !session because createOrUpdateSessionContext always
+  // returns a session object (even for brand-new users). Instead we check
+  // bot_exchange_count: it is written to metadata AFTER this block, so on
+  // the very first message it is always 0 / undefined.
+  const priorExchangeCount = typeof session?.metadata?.bot_exchange_count === 'number'
+    ? session.metadata.bot_exchange_count
+    : 0;
   const isFirstContact =
     hasAnyWelcomeContent &&
-    !session; // no pre-existing session passed in = brand new
+    priorExchangeCount === 0;
 
   if (isFirstContact) {
     // Prefer per-language welcome when language is known (e.g. auto-skip resolved it from platform).
