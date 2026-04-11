@@ -346,14 +346,16 @@ export interface TenantKnowledgeRow {
   source_type: string;
   is_active: boolean;
   updated_at: string;
-  translation_status: 'source' | 'draft' | 'published';
-  source_faq_id: string | null;
-  reviewed_at: string | null;
 }
 
-function mapKnowledgeRow(r: Record<string, unknown>): TenantKnowledgeRow {
-  const status = String(r.translation_status ?? 'source');
-  return {
+export async function listTenantKnowledgeEntries(tenantId: string): Promise<TenantKnowledgeRow[]> {
+  const adapter = await getSaasDbAdapter();
+  const rows = await adapter.queryAll(
+    `SELECT id, language, topic, question, answer, source_type, is_active, updated_at
+     FROM tenant_faq_entries WHERE tenant_id = ? ORDER BY updated_at DESC`,
+    [tenantId],
+  );
+  return rows.map((r) => ({
     id: String(r.id),
     language: String(r.language),
     category: String(r.topic),
@@ -362,98 +364,7 @@ function mapKnowledgeRow(r: Record<string, unknown>): TenantKnowledgeRow {
     source_type: String(r.source_type ?? 'manual'),
     is_active: Number(r.is_active) !== 0,
     updated_at: String(r.updated_at ?? ''),
-    translation_status: (status === 'draft' || status === 'published') ? status : 'source',
-    source_faq_id: r.source_faq_id != null ? String(r.source_faq_id) : null,
-    reviewed_at: r.reviewed_at != null ? String(r.reviewed_at) : null,
-  };
-}
-
-export async function listTenantKnowledgeEntries(tenantId: string): Promise<TenantKnowledgeRow[]> {
-  const adapter = await getSaasDbAdapter();
-  const rows = await adapter.queryAll(
-    `SELECT id, language, topic, question, answer, source_type, is_active, updated_at,
-            translation_status, source_faq_id, reviewed_at
-     FROM tenant_faq_entries
-     WHERE tenant_id = ? AND (source_faq_id IS NULL)
-     ORDER BY updated_at DESC`,
-    [tenantId],
-  );
-  return rows.map((r) => mapKnowledgeRow(r as Record<string, unknown>));
-}
-
-/** List only published translations for a given source FAQ entry. */
-export async function listFaqTranslations(tenantId: string, sourceFaqId: string): Promise<TenantKnowledgeRow[]> {
-  const adapter = await getSaasDbAdapter();
-  const rows = await adapter.queryAll(
-    `SELECT id, language, topic, question, answer, source_type, is_active, updated_at,
-            translation_status, source_faq_id, reviewed_at
-     FROM tenant_faq_entries
-     WHERE tenant_id = ? AND source_faq_id = ?
-     ORDER BY language`,
-    [tenantId, sourceFaqId],
-  );
-  return rows.map((r) => mapKnowledgeRow(r as Record<string, unknown>));
-}
-
-/** Upsert a draft or published translation row. */
-export async function upsertFaqTranslation(
-  tenantId: string,
-  sourceFaqId: string,
-  language: string,
-  question: string,
-  answer: string,
-  status: 'draft' | 'published',
-): Promise<TenantKnowledgeRow> {
-  const adapter = await getSaasDbAdapter();
-  const now = nowIso();
-
-  // Find existing translation for this lang
-  const existing = await adapter.queryOne(
-    `SELECT id FROM tenant_faq_entries WHERE tenant_id = ? AND source_faq_id = ? AND language = ?`,
-    [tenantId, sourceFaqId, language],
-  );
-
-  // Fetch source row for topic
-  const sourceRow = await adapter.queryOne(
-    `SELECT topic FROM tenant_faq_entries WHERE tenant_id = ? AND id = ?`,
-    [tenantId, sourceFaqId],
-  );
-  const topic = sourceRow ? String(sourceRow.topic) : language;
-
-  const reviewed_at = status === 'published' ? now : null;
-
-  if (existing) {
-    const id = String(existing.id);
-    await adapter.execute(
-      `UPDATE tenant_faq_entries
-       SET question = ?, answer = ?, translation_status = ?, reviewed_at = ?, updated_at = ?
-       WHERE tenant_id = ? AND id = ?`,
-      [question, answer, status, reviewed_at, now, tenantId, id],
-    );
-    await adapter.persistIfNeeded();
-    return {
-      id, language, category: topic, question, answer,
-      source_type: 'translation', is_active: true,
-      updated_at: now, translation_status: status,
-      source_faq_id: sourceFaqId, reviewed_at,
-    };
-  } else {
-    const id = randomUUID();
-    await adapter.execute(
-      `INSERT INTO tenant_faq_entries
-       (id, tenant_id, language, topic, question, answer, source_type, keywords_json, tags_json,
-        is_active, updated_at, translation_status, source_faq_id, reviewed_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'translation', '[]', '[]', 1, ?, ?, ?, ?)`,
-      [id, tenantId, language, topic, question, answer, now, status, sourceFaqId, reviewed_at],
-    );
-    await adapter.persistIfNeeded();
-    return {
-      id, language, category: topic, question, answer,
-      source_type: 'translation', is_active: true,
-      updated_at: now, translation_status: status,
-      source_faq_id: sourceFaqId, reviewed_at,
-    };
-  }
+  }));
 }
 
 export async function upsertTenantKnowledgeEntries(
@@ -516,9 +427,8 @@ export async function upsertTenantKnowledgeEntries(
     } else {
       await adapter.execute(
         `INSERT INTO tenant_faq_entries
-         (id, tenant_id, language, topic, question, answer, source_type, keywords_json, tags_json,
-          is_active, updated_at, translation_status, source_faq_id, reviewed_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, '[]', '[]', ?, ?, 'source', NULL, NULL)`,
+         (id, tenant_id, language, topic, question, answer, source_type, keywords_json, tags_json, is_active, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, '[]', '[]', ?, ?)`,
         [
           id,
           tenantId,
@@ -549,48 +459,6 @@ export async function setTenantKnowledgeActiveState(
      SET is_active = ?, updated_at = ?
      WHERE tenant_id = ? AND id = ?`,
     [isActive ? 1 : 0, nowIso(), tenantId, entryId],
-  );
-  await adapter.persistIfNeeded();
-}
-
-export interface TenantProductRow {
-  id: string;
-  tenant_id: string;
-  name: string;
-  created_at: string;
-}
-
-export async function listTenantProducts(tenantId: string): Promise<TenantProductRow[]> {
-  const adapter = await getSaasDbAdapter();
-  const rows = await adapter.queryAll(
-    'SELECT id, tenant_id, name, created_at FROM tenant_products WHERE tenant_id = ? ORDER BY created_at DESC',
-    [tenantId],
-  );
-  return rows.map((r) => ({
-    id: String(r.id),
-    tenant_id: String(r.tenant_id),
-    name: String(r.name),
-    created_at: String(r.created_at),
-  }));
-}
-
-export async function createTenantProduct(tenantId: string, name: string): Promise<TenantProductRow> {
-  const adapter = await getSaasDbAdapter();
-  const id = randomUUID();
-  const now = nowIso();
-  await adapter.execute(
-    'INSERT INTO tenant_products (id, tenant_id, name, created_at) VALUES (?, ?, ?, ?)',
-    [id, tenantId, name.trim(), now],
-  );
-  await adapter.persistIfNeeded();
-  return { id, tenant_id: tenantId, name: name.trim(), created_at: now };
-}
-
-export async function deleteTenantProduct(tenantId: string, productId: string): Promise<void> {
-  const adapter = await getSaasDbAdapter();
-  await adapter.execute(
-    'DELETE FROM tenant_products WHERE tenant_id = ? AND id = ?',
-    [tenantId, productId],
   );
   await adapter.persistIfNeeded();
 }
@@ -1811,97 +1679,6 @@ export async function createLeadFromConversation(args: {
   const lead = await getLeadByConversationId(args.tenant_id, args.conversation.id);
   if (!lead) throw new Error('lead_create_failed');
   return { lead, created: true };
-}
-
-/**
- * Upsert a leave-message lead by session_id.
- * Deduplication key: latest_note starts with "[leave_msg:{session_id}]".
- * If already exists → returns existing lead without creating a duplicate.
- * If not → inserts a new lead with status='new'.
- */
-export async function upsertLeaveMessageLead(args: {
-  tenant_id: string;
-  session_id: string;
-  channel: string;
-  leave_message_text: string;
-  name?: string | null;
-  phone?: string | null;
-  email?: string | null;
-}): Promise<{ lead: LeadRow; created: boolean }> {
-  const adapter = await getSaasDbAdapter();
-  const dedupeMarker = `[leave_msg:${args.session_id}]`;
-  const inquirySummary = `[留言] ${args.leave_message_text.trim()}`;
-
-  // Check for existing lead with this session dedup marker
-  const existing = await adapter.queryOne(
-    `SELECT id, tenant_id, conversation_id, name, phone, email, source_channel,
-            inquiry_summary, status, owner_principal_id, latest_note,
-            converted_at, created_at, updated_at
-     FROM leads
-     WHERE tenant_id = ? AND latest_note = ? LIMIT 1`,
-    [args.tenant_id, dedupeMarker],
-  );
-
-  if (existing) {
-    return {
-      lead: {
-        id: String(existing.id),
-        tenant_id: String(existing.tenant_id),
-        conversation_id: existing.conversation_id == null ? null : String(existing.conversation_id),
-        name: existing.name == null ? null : String(existing.name),
-        phone: existing.phone == null ? null : String(existing.phone),
-        email: existing.email == null ? null : String(existing.email),
-        source_channel: String(existing.source_channel),
-        inquiry_summary: String(existing.inquiry_summary),
-        status: String(existing.status) as LeadStatus,
-        owner_principal_id: existing.owner_principal_id == null ? null : String(existing.owner_principal_id),
-        latest_note: existing.latest_note == null ? null : String(existing.latest_note),
-        converted_at: existing.converted_at == null ? null : String(existing.converted_at),
-        created_at: String(existing.created_at),
-        updated_at: String(existing.updated_at),
-      },
-      created: false,
-    };
-  }
-
-  const id = randomUUID();
-  const now = nowIso();
-  await adapter.execute(
-    `INSERT INTO leads
-     (id, tenant_id, conversation_id, name, phone, email, source_channel, inquiry_summary, status, owner_principal_id, latest_note, converted_at, created_at, updated_at)
-     VALUES (?, ?, NULL, ?, ?, ?, ?, ?, 'new', NULL, ?, NULL, ?, ?)`,
-    [
-      id,
-      args.tenant_id,
-      args.name?.trim() || null,
-      args.phone?.trim() || null,
-      args.email?.trim() || null,
-      args.channel,
-      inquirySummary,
-      dedupeMarker,
-      now,
-      now,
-    ],
-  );
-  await adapter.persistIfNeeded();
-
-  const created: LeadRow = {
-    id,
-    tenant_id: args.tenant_id,
-    conversation_id: null,
-    name: args.name?.trim() || null,
-    phone: args.phone?.trim() || null,
-    email: args.email?.trim() || null,
-    source_channel: args.channel,
-    inquiry_summary: inquirySummary,
-    status: 'new',
-    owner_principal_id: null,
-    latest_note: dedupeMarker,
-    converted_at: null,
-    created_at: now,
-    updated_at: now,
-  };
-  return { lead: created, created: true };
 }
 
 export async function insertLeadEvent(args: {

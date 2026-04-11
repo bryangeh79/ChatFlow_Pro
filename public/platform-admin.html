@@ -26,9 +26,6 @@
     }
     aside a:hover, aside a.active { color: var(--text); background: rgba(59, 130, 246, 0.12); }
     main { flex: 1; padding: 1.25rem 1.5rem; overflow: auto; max-width: 1100px; }
-    .top-auth { display: flex; align-items: end; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
-    .auth-actions { display: flex; align-items: center; gap: 0.45rem; }
-    .auth-status { font-size: 0.78rem; color: var(--muted); }
     h1 { font-size: 1.15rem; margin: 0 0 1rem; font-weight: 600; }
     label { font-size: 0.75rem; color: var(--muted); display: block; margin-bottom: 0.25rem; }
     input[type="password"], input[type="text"] {
@@ -45,24 +42,6 @@
     th, td { text-align: left; padding: 0.5rem 0.4rem; border-bottom: 1px solid var(--border); }
     th { color: var(--muted); font-weight: 500; }
     tr:hover td { background: rgba(255,255,255,0.02); }
-    .compact-col { font-size: 0.68rem; line-height: 1.15; color: var(--muted); width: 74px; max-width: 74px; vertical-align: top; }
-    .ts-two { display: grid; gap: 0.08rem; }
-    .ts-two .d { white-space: nowrap; }
-    .ts-two .t { white-space: nowrap; opacity: 0.9; }
-    .err-two {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      word-break: break-word;
-      max-width: 74px;
-      line-height: 1.15;
-    }
-    .guide-note { margin: 0 0 0.75rem; padding: 0.6rem 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: rgba(59,130,246,0.06); }
-    .guide-note p { margin: 0.25rem 0; font-size: 0.78rem; color: var(--muted); }
-    .tenant-name { font-weight: 600; color: var(--text); }
-    .tenant-slug { font-size: 0.72rem; color: var(--muted); margin-top: 0.15rem; }
     a.link { color: var(--accent); cursor: pointer; text-decoration: none; }
     a.link:hover { text-decoration: underline; }
     .pill { display: inline-block; padding: 0.15rem 0.45rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
@@ -103,17 +82,8 @@
     <a href="/saas/admin" style="margin-top:1rem;">Legacy admin</a>
   </aside>
   <main>
-    <div class="top-auth">
-      <div>
-        <label>Admin Bearer Token</label>
-        <input type="password" id="token" placeholder="CHATFLOW_SAAS_ADMIN_TOKEN" autocomplete="off" />
-      </div>
-      <div class="auth-actions">
-        <button type="button" class="sm primary" id="loginBtn">Login</button>
-        <button type="button" class="sm" id="logoutBtn">Logout</button>
-        <span class="auth-status" id="authStatus">未登录</span>
-      </div>
-    </div>
+    <label>Admin Bearer Token</label>
+    <input type="password" id="token" placeholder="CHATFLOW_SAAS_ADMIN_TOKEN" autocomplete="off" />
     <div id="view"></div>
   </main>
   <script>
@@ -170,30 +140,24 @@
       const rows = r.tenants || [];
       document.getElementById('view').innerHTML =
         '<h1>Tenants</h1>' +
-        '<div class="guide-note">' +
-        '<p><strong>Name</strong> = 租户展示名（给人看）。</p>' +
-        '<p><strong>Slug</strong> = 系统租户标识（用于路由/webhook），与 Name 分列显示。</p>' +
-        '<p><strong>Open</strong> = 打开该租户详情页。<strong>Suspend</strong> = 暂停该租户（阻断运行）。</p>' +
-        '</div>' +
-        '<p style="color:var(--muted);font-size:0.82rem;margin:0 0 0.75rem;">Data from DB (settings + credentials). Click Open for tenant detail.</p>' +
-        '<table><thead><tr><th>Name</th><th>Slug</th><th>Status</th><th>Setup %</th><th>Go-live</th><th>Channels ready</th><th>AI ready</th><th>Knowledge ready</th><th class="compact-col">Last active</th><th class="compact-col">Last error</th><th class="compact-col">Created</th><th>Actions</th></tr></thead><tbody>' +
+        '<p style="color:var(--muted);font-size:0.85rem;margin:0 0 1rem;">Data from DB (settings + credentials). Click name for detail.</p>' +
+        '<table><thead><tr><th>Name</th><th>Status</th><th>Setup %</th><th>Go-live</th><th>Channels ready</th><th>AI ready</th><th>Knowledge ready</th><th>Last active</th><th>Last error</th><th>Created</th><th>Actions</th></tr></thead><tbody>' +
         rows.map((t) =>
           '<tr>' +
-          '<td><a class="link tenant-name" href="/platform/tenants/' + t.id + '">' + escapeHtml(t.name) + '</a></td>' +
-          '<td><div class="tenant-slug" style="margin-top:0;">' + escapeHtml(t.slug) + '</div></td>' +
+          '<td><a class="link" href="/platform/tenants/' + t.id + '">' + escapeHtml(t.name) + '</a><div style="font-size:0.7rem;color:var(--muted);">' + escapeHtml(t.slug) + '</div></td>' +
           '<td>' + statusPill(t.status) + '</td>' +
           '<td>' + t.setup_percentage + '%</td>' +
           '<td>' + t.go_live_status + '</td>' +
           '<td>' + (t.channels_ready ? 'yes' : 'no') + '</td>' +
           '<td>' + (t.ai_enabled ? 'yes' : 'no') + '</td>' +
           '<td>' + (t.knowledge_ready ? 'yes' : 'no') + '</td>' +
-          '<td class="compact-col" title="' + escapeHtml(t.last_active || '—') + '">' + compactTsHtml(t.last_active) + '</td>' +
-          '<td class="compact-col"><span class="err-two" title="' + escapeHtml(t.last_error || '—') + '">' + escapeHtml(t.last_error || '—') + '</span></td>' +
-          '<td class="compact-col" title="' + escapeHtml(t.created_at || '—') + '">' + compactTsHtml(t.created_at) + '</td>' +
-          '<td><button type="button" class="sm" data-open="' + t.id + '">Open detail</button> ' +
+          '<td>' + (t.last_active || '—') + '</td>' +
+          '<td>' + (t.last_error || '—') + '</td>' +
+          '<td>' + (t.created_at || '—') + '</td>' +
+          '<td><button type="button" class="sm" data-open="' + t.id + '">Open</button> ' +
           (t.lifecycle_status === 'suspended'
             ? '<button type="button" class="sm primary" data-activate="' + t.id + '">Activate</button>'
-            : '<button type="button" class="sm danger" data-suspend="' + t.id + '">Suspend tenant</button>') +
+            : '<button type="button" class="sm danger" data-suspend="' + t.id + '">Suspend</button>') +
           '</td>' +
           '</tr>'
         ).join('') + '</tbody></table>';
@@ -219,23 +183,8 @@
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
-    function compactTsHtml(value) {
-      if (!value) return '—';
-      const d = new Date(value);
-      if (Number.isNaN(d.getTime())) return '<span class="err-two" title="' + escapeHtml(String(value)) + '">' + escapeHtml(String(value)) + '</span>';
-      const date = d.toLocaleDateString('en-GB', { month: 'short', day: '2-digit' });
-      const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-      return '<div class="ts-two"><span class="d">' + escapeHtml(date) + '</span><span class="t">' + escapeHtml(time) + '</span></div>';
-    }
-
     let overviewCache = null;
     let tenantIdDetail = null;
-    function setAuthStatus(ok, msg) {
-      const el = document.getElementById('authStatus');
-      if (!el) return;
-      el.textContent = msg || (ok ? '已登录' : '未登录');
-      el.style.color = ok ? 'var(--ok)' : 'var(--muted)';
-    }
 
     async function viewTenantDetail(id) {
       tenantIdDetail = id;
@@ -245,7 +194,7 @@
       const tab = (new URL(location.href)).searchParams.get('tab') || 'summary';
       document.getElementById('view').innerHTML =
         '<h1>' + escapeHtml(t.name) + '</h1>' +
-        '<p style="color:var(--muted);font-size:0.82rem;">slug: <strong style="color:var(--text);font-weight:600;">' + escapeHtml(t.slug) + '</strong> · tenant_id (UUID): <code>' + t.id + '</code></p>' +
+        '<p style="color:var(--muted);font-size:0.85rem;">' + escapeHtml(t.slug) + ' · <code>' + t.id + '</code></p>' +
         '<div class="tabs">' +
         ['summary','inbox','leads','reports','channels','ai','knowledge','activity','team','go-live-check'].map((x) =>
           '<button type="button" class="' + (tab === x ? 'on' : '') + '" data-tab="' + x + '">' + x + '</button>'
@@ -534,28 +483,13 @@
         } else {
           document.getElementById('view').innerHTML = '<p>Unknown route</p>';
         }
-        setAuthStatus(true, '已登录');
       } catch (e) {
-        if (String(e.message || '').toLowerCase().includes('unauthorized')) {
-          setAuthStatus(false, '未授权，请先 Login');
-        }
         document.getElementById('view').innerHTML = '<p style="color:#f87171;">' + escapeHtml(e.message) + '</p>';
       }
     }
 
     document.getElementById('token').value = localStorage.getItem(TOKEN_KEY) || '';
     document.getElementById('token').onchange = () => localStorage.setItem(TOKEN_KEY, document.getElementById('token').value.trim());
-    document.getElementById('token').oninput = () => localStorage.setItem(TOKEN_KEY, document.getElementById('token').value.trim());
-    document.getElementById('loginBtn').onclick = async () => {
-      localStorage.setItem(TOKEN_KEY, document.getElementById('token').value.trim());
-      await route();
-    };
-    document.getElementById('logoutBtn').onclick = () => {
-      document.getElementById('token').value = '';
-      localStorage.removeItem(TOKEN_KEY);
-      setAuthStatus(false, '已退出');
-      document.getElementById('view').innerHTML = '<p style="color:var(--muted);">请先 Login 后继续操作。</p>';
-    };
 
     window.addEventListener('popstate', route);
     document.querySelectorAll('aside a[data-nav]').forEach((a) => {
@@ -573,7 +507,6 @@
         route();
       }
     });
-    setAuthStatus(Boolean(document.getElementById('token').value.trim()), document.getElementById('token').value.trim() ? '待验证' : '未登录');
     route();
   </script>
 </body>
