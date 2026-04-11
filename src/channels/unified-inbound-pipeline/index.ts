@@ -393,10 +393,15 @@ export async function runUnifiedInboundPipeline(
   // --- Welcome message: fire on first contact (no prior messages in session) ---
   let welcomeQuickButtons: string[] = [];
   const botSettings = options?.tenantRuntimeSettings?.bot;
-  const isFirstContact =
+  const hasAnyWelcomeContent =
     botSettings &&
-    !session && // no pre-existing session passed in = brand new
-    botSettings.welcome_message.trim().length > 0;
+    (botSettings.welcome_message.trim().length > 0 ||
+      (botSettings.welcome_by_language
+        ? Object.values(botSettings.welcome_by_language).some((e) => e?.message?.trim().length > 0)
+        : false));
+  const isFirstContact =
+    hasAnyWelcomeContent &&
+    !session; // no pre-existing session passed in = brand new
 
   if (isFirstContact) {
     // Prefer per-language welcome when language is known (e.g. auto-skip resolved it from platform).
