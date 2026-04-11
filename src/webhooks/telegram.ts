@@ -4,6 +4,8 @@ import {
   type TelegramRawInboundEvent,
 } from '../channels/adapters/telegram';
 import { mapTelegramOutboundPayload } from '../channels/adapters/telegram/outbound';
+import { answerTelegramCallbackQuery } from '../channels/adapters/telegram/real-send';
+import { loadTelegramConfigForRealSend } from '../config/telegram';
 import { createChannelSender } from '../channels/outbound-sender';
 import { createOrUpdateSessionContext, commitSessionContext } from '../channels/session-context';
 import type { UnifiedFaqSeedEntry } from '../channels/unified-inbound-pipeline/faq-seed';
@@ -126,6 +128,15 @@ export async function handleTelegramWebhook(rawRequestBody: unknown, opts?: Webh
       },
     });
     const outbound_send_ms = Date.now() - tSend;
+
+    // Acknowledge inline keyboard button click — clears Telegram's loading spinner.
+    // Fire-and-forget: never blocks or fails the response.
+    if (telegramEvent.callback_query_id) {
+      const tgConfig = loadTelegramConfigForRealSend();
+      if (tgConfig) {
+        answerTelegramCallbackQuery(tgConfig.botToken, telegramEvent.callback_query_id).catch(() => undefined);
+      }
+    }
 
     return {
       ok: true,

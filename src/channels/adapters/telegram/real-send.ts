@@ -99,6 +99,29 @@ async function postSendMessage(
   return { ok: false, status: first.status, description: first.description };
 }
 
+/**
+ * Acknowledge a Telegram inline keyboard callback_query.
+ * Must be called after every callback_query to clear the button loading state.
+ * Fire-and-forget safe — errors are swallowed.
+ */
+export async function answerTelegramCallbackQuery(
+  botToken: string,
+  callbackQueryId: string,
+): Promise<void> {
+  if (!callbackQueryId) return;
+  const url = `${TELEGRAM_API}/bot${botToken}/answerCallbackQuery`;
+  try {
+    await undiciFetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ callback_query_id: callbackQueryId }),
+      signal: AbortSignal.timeout(5_000),
+    });
+  } catch {
+    // ignore — non-critical
+  }
+}
+
 export async function sendTelegramTextMessage(
   config: TelegramConfig,
   sessionId: string,
