@@ -15,7 +15,7 @@ import { getLeadCaptureI18n } from '../lead-capture-hook/i18n';
 import { shouldTriggerHandoff, updateHandoffStateIfTriggered } from '../handoff-trigger';
 import { containsHandoffKeyword } from '../../config/handoff';
 import { scheduleHandoffNotify, scheduleHandoffTelegramNotify } from '../handoff-trigger/notify-outbound';
-import { getTelegramBotTokenRaw } from '../../config/telegram';
+import { loadTelegramConfigForTenant } from '../../saas/tenant-channel-config';
 import { resolveConversationPhase } from '../conversation-runtime/phase';
 import { planTurn } from '../conversation-runtime/policy';
 import { emitLeadCaptured, emitQualificationTagsUpdated } from '../conversation-runtime/events';
@@ -361,15 +361,18 @@ export async function runUnifiedInboundPipeline(
 
     // Telegram operator notification (fire-and-forget)
     const opNotify = options?.tenantRuntimeSettings?.operator_notify?.telegram;
-    // eslint-disable-next-line no-console
-    console.log('[pipeline] handoff pending — opNotify:', JSON.stringify(opNotify ?? null));
-    if (opNotify?.enabled && opNotify.chat_id) {
-      const botToken = getTelegramBotTokenRaw();
-      // eslint-disable-next-line no-console
-      console.log('[pipeline] scheduling Telegram operator notify, token present:', !!botToken);
-      if (botToken) {
-        scheduleHandoffTelegramNotify({ botToken, operatorChatId: opNotify.chat_id, payload: notifyPayload });
-      }
+    if (opNotify?.enabled && opNotify.chat_id && tenantId) {
+      // Load bot token from tenant_credentials (per-tenant, not global env)
+      loadTelegramConfigForTenant(tenantId).then((tgConfig) => {
+        // eslint-disable-next-line no-console
+        console.log('[pipeline] operator notify token present:', !!tgConfig?.botToken);
+        if (tgConfig?.botToken) {
+          scheduleHandoffTelegramNotify({ botToken: tgConfig.botToken, operatorChatId: opNotify.chat_id, payload: notifyPayload });
+        }
+      }).catch((e) => {
+        // eslint-disable-next-line no-console
+        console.warn('[pipeline] failed to load telegram config for operator notify:', e instanceof Error ? e.message : String(e));
+      });
     }
   }
   
