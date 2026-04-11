@@ -315,13 +315,13 @@
     .wiz-step-pill.done { border-color: rgba(22, 163, 74, 0.5); color: var(--success); background: rgba(22, 163, 74, 0.06); }
     .legacy-ch-details { margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
     .legacy-ch-details summary { cursor: pointer; color: var(--muted); font-size: 0.8125rem; font-weight: 500; }
-    /* Inbox workspace */
-    .inbox-page { display: flex; flex-direction: column; gap: 0; margin: -0.25rem 0 0; }
-    .inbox-page > .page-header { margin-bottom: 1rem; }
+    /* Inbox workspace — full-height workbench */
+    .inbox-page { display: flex; flex-direction: column; gap: 0; margin: -0.25rem 0 0; height: calc(100vh - 110px); min-height: 500px; }
+    .inbox-page > .page-header { margin-bottom: 0.65rem; flex-shrink: 0; }
     .inbox-toolbar {
       display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.65rem;
-      padding: 0.65rem 0.85rem; background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius) var(--radius) 0 0; border-bottom: none;
+      padding: 0.55rem 0.85rem; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius) var(--radius) 0 0; border-bottom: none; flex-shrink: 0;
     }
     .inbox-toolbar label { font-size: 0.65rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 0.2rem; }
     .inbox-toolbar .fld { display: flex; flex-direction: column; min-width: 0; }
@@ -329,35 +329,42 @@
       font-size: 0.8125rem; padding: 0.35rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fafafa; min-width: 0;
     }
     .inbox-toolbar .fld-grow { flex: 1; min-width: 140px; max-width: 240px; }
+    /* Board takes all remaining height — three columns scroll independently */
     .inbox-board {
-      display: grid; grid-template-columns: minmax(260px, 28%) 1fr minmax(220px, 22%);
-      border: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius); overflow: hidden;
-      background: var(--surface); min-height: 480px; max-height: min(72vh, 720px);
+      display: grid; grid-template-columns: minmax(240px, 26%) 1fr minmax(210px, 22%);
+      border: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius);
+      overflow: hidden; background: var(--surface); flex: 1; min-height: 0;
     }
     @media (max-width: 1100px) {
-      .inbox-board { grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; max-height: none; }
-      .inbox-col-side { grid-column: 1 / -1; border-top: 1px solid var(--border); max-height: 280px; overflow-y: auto; }
+      .inbox-board { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr auto; }
+      .inbox-col-side { grid-column: 1 / -1; border-top: 1px solid var(--border); max-height: 260px; overflow-y: auto; }
     }
     @media (max-width: 720px) {
-      .inbox-board { grid-template-columns: 1fr; }
+      .inbox-page { height: auto; }
+      .inbox-board { grid-template-columns: 1fr; height: auto; }
       .inbox-col-list { max-height: 220px; border-right: none !important; border-bottom: 1px solid var(--border); }
     }
-    .inbox-col-list { border-right: 1px solid var(--border); background: #fafafa; display: flex; flex-direction: column; min-height: 0; }
-    .inbox-col-mid { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--border); }
-    .inbox-col-side { display: flex; flex-direction: column; min-height: 0; background: #fafafa; overflow: hidden; }
-    .inbox-list-head { padding: 0.5rem 0.85rem; font-size: 0.6875rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+    /* Each column fills board height and handles its own scroll */
+    .inbox-col-list { border-right: 1px solid var(--border); background: #fafafa; display: flex; flex-direction: column; overflow: hidden; }
+    .inbox-col-mid { display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid var(--border); }
+    .inbox-col-side { display: flex; flex-direction: column; background: #fafafa; overflow: hidden; }
+    .inbox-list-head { padding: 0.45rem 0.85rem; font-size: 0.6875rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); flex-shrink: 0; }
     .inbox-list-scroll { flex: 1; overflow-y: auto; min-height: 0; }
     .inbox-row {
-      padding: 0.75rem 0.85rem; border-bottom: 1px solid var(--border); cursor: pointer; text-align: left;
+      padding: 0.6rem 0.85rem 0.6rem 0.7rem; border-bottom: 1px solid var(--border); cursor: pointer; text-align: left;
       width: 100%; border-left: 3px solid transparent; background: transparent; font: inherit; color: inherit;
+      display: flex; align-items: flex-start; gap: 0.55rem;
     }
-    .inbox-row:hover { background: #f4f4f5; }
-    .inbox-row.active { background: rgba(79, 70, 229, 0.06); border-left-color: var(--primary); }
-    .inbox-row-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.25rem; }
-    .inbox-row-title { font-size: 0.875rem; font-weight: 600; margin: 0; line-height: 1.25; }
-    .inbox-row-meta { font-size: 0.6875rem; color: var(--muted); white-space: nowrap; }
-    .inbox-row-preview { font-size: 0.8125rem; color: var(--muted); margin: 0; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .inbox-row-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-top: 0.45rem; }
+    .inbox-row:hover { background: #f0f0f2; }
+    .inbox-row.active { background: rgba(79,70,229,0.08); border-left-color: var(--primary); box-shadow: inset 2px 0 0 var(--primary); }
+    .inbox-row.active .inbox-row-name { color: var(--primary); }
+    .inbox-row-icon { flex-shrink: 0; margin-top: 2px; }
+    .inbox-row-body { flex: 1; min-width: 0; }
+    .inbox-row-top { display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin-bottom: 0.15rem; }
+    .inbox-row-name { font-size: 0.875rem; font-weight: 600; margin: 0; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .inbox-row-meta { font-size: 0.6875rem; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+    .inbox-row-preview { font-size: 0.78rem; color: var(--muted); margin: 0; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+    .inbox-row-foot { display: flex; align-items: center; gap: 0.3rem; margin-top: 0.3rem; }
     .inbox-ch-pill { font-size: 0.625rem; font-weight: 600; padding: 0.12rem 0.4rem; border-radius: 999px; background: #e4e4e7; color: #3f3f46; text-transform: capitalize; }
     .inbox-ch-icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 999px; background: #e4e4e7; color: #3f3f46; flex-shrink: 0; }
     .inbox-ch-icon svg { flex-shrink: 0; }
@@ -397,7 +404,7 @@
       margin: 0 1rem; padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.8125rem;
       background: rgba(202, 138, 4, 0.1); color: #854d0e; border: 1px solid rgba(202, 138, 4, 0.25);
     }
-    .inbox-thread { flex: 1; overflow-y: auto; padding: 1rem; min-height: 0; }
+    .inbox-thread { flex: 1; overflow-y: auto; padding: 1rem; min-height: 0; display: flex; flex-direction: column; }
     .msg-line { max-width: 85%; margin: 0.65rem 0; padding: 0.55rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.8125rem; line-height: 1.45; }
     .msg-meta { display: block; font-size: 0.65rem; font-weight: 600; color: var(--muted); margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
     .msg-user { align-self: flex-start; background: #f4f4f5; border: 1px solid var(--border); margin-right: auto; }
@@ -410,7 +417,7 @@
     }
     .inbox-compose .hint { font-size: 0.6875rem; color: var(--muted); margin: 0.35rem 0 0; }
     .inbox-side-head { padding: 0.65rem 0.85rem; font-size: 0.6875rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
-    .inbox-side-body { flex: 1; overflow-y: auto; padding: 0.85rem; font-size: 0.8125rem; }
+    .inbox-side-body { flex: 1; overflow-y: auto; padding: 0.75rem 0.85rem; font-size: 0.8125rem; min-height: 0; }
     .inbox-side-block { margin-bottom: 1.1rem; }
     .inbox-side-block h4 { margin: 0 0 0.4rem; font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
     .inbox-side-block p { margin: 0; color: var(--text); line-height: 1.45; }
@@ -1226,9 +1233,9 @@
       const map = {
         new: ['New', 'st-info'],
         open: ['Active', 'st-progress'],
-        pending_handoff: ['Waiting Human', 'st-warn'],
-        human_handling: ['With Agent', 'st-info'],
-        closed: ['Resolved', 'st-success'],
+        pending_handoff: ['Active', 'st-progress'],
+        human_handling: ['Assigned', 'st-success'],
+        closed: ['Assigned', 'st-success'],
       };
       const x = map[b] || ['Active', 'st-progress'];
       return '<span class="tag ' + x[1] + '">' + esc(x[0]) + '</span>';
@@ -3379,12 +3386,15 @@
               if (!previewText) previewText = '<span style="color:var(--muted);font-style:italic;font-size:0.78rem">No messages yet</span>';
               return (
                 '<button type="button" class="inbox-row' + active + '" data-inbox-pick="' + esc(c.id) + '">' +
+                '<div class="inbox-row-icon">' + channelIconPill(c.channel) + '</div>' +
+                '<div class="inbox-row-body">' +
                 '<div class="inbox-row-top">' +
-                '<p class="inbox-row-title" style="display:flex;align-items:center;gap:0.35rem">' + dot + esc(displayName) + '</p>' +
+                '<p class="inbox-row-name">' + dot + esc(displayName) + '</p>' +
                 '<span class="inbox-row-meta wb-row-time">' + esc(c.last_message_at) + '</span>' +
                 '</div>' +
                 '<p class="inbox-row-preview">' + previewText + '</p>' +
-                '<div class="inbox-row-foot">' + channelIconPill(c.channel) + inboxStatusTag(c) + '</div>' +
+                '<div class="inbox-row-foot">' + inboxStatusTag(c) + '</div>' +
+                '</div>' +
                 '</button>'
               );
             })
@@ -3407,7 +3417,7 @@
           var extIdLabel = selected.external_contact_id
             ? '<span style="color:var(--muted);font-size:0.75rem">' + esc(selected.external_contact_id) + '</span>'
             : '';
-          var resolveLabel = inboxBucket(selected) === 'closed' ? 'Reopen' : 'Resolve';
+          var isAssigned = inboxBucket(selected) === 'human_handling' || inboxBucket(selected) === 'closed';
           midHtml =
             '<div class="inbox-conv-header">' +
             '<div class="inbox-conv-header-row1">' +
@@ -3422,12 +3432,11 @@
             (selected.last_message_at ? '<span style="font-size:0.72rem;color:var(--muted)">· ' + esc(selected.last_message_at) + '</span>' : '') +
             '</div>' +
             '</div>' +
-            (selected.external_contact_id ? '<span class="inbox-hdr-extid">' + esc(selected.external_contact_id) + '</span>' : '') +
             '</div>' +
             '<div class="inbox-conv-header-row2">' +
-            '<button type="button" class="btn btn-sm" data-inbox-act="assign">Assign Owner</button>' +
-            '<button type="button" class="btn btn-sm" data-inbox-act="handoff">Handoff</button>' +
-            '<button type="button" class="btn-sm-primary" data-inbox-act="status">' + esc(resolveLabel) + '</button>' +
+            (isAssigned
+              ? '<span style="font-size:0.78rem;color:var(--muted)">✓ Assigned</span>'
+              : '<button type="button" class="btn-sm-primary" data-inbox-act="assign">Assign</button>') +
             '</div>' +
             '</div>' +
             '<div class="inbox-thread" id="inboxThread" style="display:flex;flex-direction:column;padding:1rem;overflow-y:auto;flex:1">' +
@@ -3501,11 +3510,14 @@
           sideHtml += '<hr class="inbox-side-divider">';
 
           // ── Block 4: Actions ──────────────────────────────────
-          var statusActLabel = inboxBucket(selected) === 'closed' ? 'Reopen' : 'Resolve';
+          var sideIsAssigned = inboxBucket(selected) === 'human_handling' || inboxBucket(selected) === 'closed';
           sideHtml += '<div class="inbox-side-block"><h4>Actions</h4><div class="inbox-side-actions">';
-          sideHtml += '<button type="button" class="btn btn-primary" data-inbox-act="status" style="justify-content:center;width:100%">' + statusActLabel + '</button>';
-          sideHtml += '<button type="button" class="btn" data-inbox-act="handoff" style="justify-content:center;width:100%">Handoff to Owner</button>';
-          sideHtml += '<div style="display:flex;gap:0.5rem;margin-top:0.15rem">';
+          if (sideIsAssigned) {
+            sideHtml += '<div style="padding:0.4rem 0.6rem;background:rgba(22,163,74,0.08);border:1px solid rgba(22,163,74,0.2);border-radius:6px;font-size:0.8rem;color:#166534;text-align:center">✓ Assigned</div>';
+          } else {
+            sideHtml += '<button type="button" class="btn btn-primary" data-inbox-act="assign" style="justify-content:center;width:100%">Assign</button>';
+          }
+          sideHtml += '<div style="display:flex;gap:0.5rem;margin-top:0.5rem">';
           sideHtml += '<a style="flex:1;text-align:center;font-size:0.8rem;color:var(--primary);text-decoration:none" href="/app/leads" data-spa="/app/leads">Open Lead</a>';
           sideHtml += '<a style="flex:1;text-align:center;font-size:0.8rem;color:var(--primary);text-decoration:none" href="/app/knowledge" data-spa="/app/knowledge">Knowledge</a>';
           sideHtml += '</div>';
@@ -3536,9 +3548,8 @@
             ['all', 'All'],
             ['new', 'New'],
             ['open', 'Active'],
-            ['pending_handoff', 'Waiting Human'],
-            ['human_handling', 'With Agent'],
-            ['closed', 'Resolved'],
+            ['human_handling', 'Assigned'],
+            ['closed', 'Closed'],
           ]
             .map(
               ([val, lab]) =>
@@ -3570,7 +3581,7 @@
           '>Unassigned</option><option value="assigned"' +
           (f.owner === 'assigned' ? ' selected' : '') +
           '>Assigned</option></select></div>' +
-          '<div class="wb-toolbar-actions"><button type="button" class="btn" id="inboxSaveView" style="color:var(--muted);font-size:0.78rem">Save view</button></div>' +
+          '' +
           '</div>' +
           '<div class="inbox-board">' +
           '<div class="inbox-col-list"><div class="inbox-list-head">Conversations · ' +
@@ -3637,34 +3648,29 @@
             state.filters.owner = fo.value;
             mount();
           };
-        const sv = document.getElementById('inboxSaveView');
-        if (sv) sv.onclick = () => window.alert('Placeholder: Save view preset is not wired in this round.');
-        const ta = document.getElementById('inboxTopAction');
-        if (ta) ta.onclick = () => window.alert('Placeholder: Assign queue action is not wired in this round.');
+        // Save view and Assign queue removed in P2 simplification
         document.getElementById('view').querySelectorAll('[data-inbox-act]').forEach((b) => {
           b.onclick = async () => {
             if (!selected) return;
-            try {
-              if (b.getAttribute('data-inbox-act') === 'handoff') {
-                const to = window.prompt('to_owner_principal_id (required)', selected.current_owner_principal_id || 'principal_demo');
-                if (!to) return;
+            const act = b.getAttribute('data-inbox-act');
+            if (act === 'assign') {
+              const to = window.prompt('Assign to (owner ID):', selected.current_owner_principal_id || '');
+              if (!to) return;
+              b.disabled = true;
+              b.textContent = 'Assigning…';
+              try {
                 await api(base() + '/conversations/' + encodeURIComponent(selected.id) + '/handoff', {
                   method: 'POST',
-                  body: JSON.stringify({ to_owner_principal_id: to, reason: 'ui_handoff_p0' }),
+                  body: JSON.stringify({ to_owner_principal_id: to, reason: 'ui_assign' }),
                 });
-                window.alert('Handoff submitted successfully.');
-              } else {
-                const bucket = inboxBucket(selected);
-                const endpoint = bucket === 'closed' ? 'reopen' : 'resolve';
-                await api(base() + '/conversations/' + encodeURIComponent(selected.id) + '/' + endpoint, {
-                  method: 'POST',
-                  body: '{}',
-                });
-                window.alert(endpoint === 'resolve' ? 'Conversation resolved.' : 'Conversation reopened.');
+                // Optimistically update local state to Assigned
+                const conv = state.list.find(function(x){ return x.id === selected.id; });
+                if (conv) { conv.status = 'human_handling'; conv.current_owner_principal_id = to; }
+                mount();
+              } catch (e) {
+                window.alert('Assign failed: ' + e.message);
+                mount();
               }
-              await viewInbox();
-            } catch (e) {
-              window.alert('Action failed: ' + e.message);
             }
           };
         });
