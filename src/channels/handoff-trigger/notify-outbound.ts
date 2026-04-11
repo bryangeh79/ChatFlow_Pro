@@ -64,16 +64,20 @@ async function dispatchHandoffTelegramNotify(opts: HandoffTelegramNotifyOptions)
     ? new Date(payload.triggered_at).toLocaleString('zh-CN', { timeZone: 'Asia/Kuala_Lumpur' })
     : new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Kuala_Lumpur' });
 
-  // Use plain text (no Markdown) to avoid parse errors with special characters in user IDs
+  // Build deep link to open chat with the user directly in Telegram
+  const isTelegramChannel = payload.channel === 'telegram';
+  const deepLink = isTelegramChannel
+    ? 'tg://user?id=' + payload.external_user_id
+    : null;
+
   const text = [
     '🔔 新客户正在等待人工客服',
     '',
     '频道：' + ch,
     '用户 ID：' + payload.external_user_id,
+    deepLink ? '👉 点击直接联系客户：' + deepLink : null,
     '时间：' + time,
     payload.reason ? '触发原因：' + payload.reason : null,
-    '',
-    '请前往 Inbox 处理。',
   ].filter(Boolean).join('\n');
 
   // eslint-disable-next-line no-console
