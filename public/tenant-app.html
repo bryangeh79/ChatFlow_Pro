@@ -3222,7 +3222,52 @@
         apiError,
         useMockPreview: apiNote && useMockPreview,
         source: qSource,
+        // Message cache: { [conversationId]: MessageRow[] }
+        messagesCache: {},
+        messagesLoading: false,
       };
+
+      async function loadMessages(convId) {
+        if (!convId || state.messagesCache[convId]) return;
+        state.messagesLoading = true;
+        try {
+          const r = await api(base() + '/conversations/' + encodeURIComponent(convId) + '/messages?limit=100');
+          state.messagesCache[convId] = Array.isArray(r.messages) ? r.messages : [];
+        } catch (e) {
+          state.messagesCache[convId] = [];
+        }
+        state.messagesLoading = false;
+        mount();
+      }
+
+      function buildMessageTimeline(convId) {
+        if (state.messagesLoading && !state.messagesCache[convId]) {
+          return '<div class="wb-loading" style="padding:1rem"><div class="wb-skeleton"></div><div class="wb-skeleton"></div><div class="wb-skeleton"></div></div>';
+        }
+        const msgs = state.messagesCache[convId];
+        if (!msgs) return '<div class="wb-empty" style="padding:1rem;color:var(--muted)">正在加载消息…</div>';
+        if (msgs.length === 0) return '<div class="wb-empty" style="padding:1rem;color:var(--muted)">暂无消息记录。</div>';
+
+        // Messages come newest-first from API, reverse to show oldest-first
+        return msgs.slice().reverse().map(function(m) {
+          var isOutbound = m.direction === 'outbound';
+          var isSystem = m.direction === 'system' || m.sender_type === 'system';
+          var time = m.created_at ? new Date(m.created_at).toLocaleString('zh-CN', { timeZone: 'Asia/Kuala_Lumpur', hour: '2-digit', minute: '2-digit', month: 'numeric', day: 'numeric' }) : '';
+          if (isSystem) {
+            return '<div class="msg-sys" style="text-align:center;color:var(--muted);font-size:0.78rem;margin:0.5rem 0">' + esc(m.body || '') + '</div>';
+          }
+          var label = isOutbound
+            ? (m.sender_type === 'agent' ? '客服' : 'AI')
+            : '访客';
+          var bubbleStyle = isOutbound
+            ? 'background:var(--primary);color:#fff;margin-left:auto'
+            : 'background:var(--surface);border:1px solid var(--border)';
+          return '<div style="display:flex;flex-direction:column;align-items:' + (isOutbound ? 'flex-end' : 'flex-start') + ';margin-bottom:0.75rem">' +
+            '<div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.2rem">' + esc(label) + ' · ' + esc(time) + '</div>' +
+            '<div style="max-width:75%;padding:0.55rem 0.8rem;border-radius:0.75rem;font-size:0.875rem;white-space:pre-wrap;word-break:break-word;' + bubbleStyle + '">' + esc(m.body || '') + '</div>' +
+            '</div>';
+        }).join('');
+      }
 
       function mount() {
         const f = state.filters;
@@ -3291,8 +3336,8 @@
             esc(selected.external_contact_id || selected.id) +
             ' · ' +
             inboxStatusTag(selected) +
-            '</p></div><div class="inbox-thread" style="display:flex;flex-direction:column;">' +
-            buildInboxTimelineHtml(selected) +
+            '</p></div><div class="inbox-thread" id="inboxThread" style="display:flex;flex-direction:column;padding:1rem;overflow-y:auto;flex:1">' +
+            buildMessageTimeline(selected.id) +
             '</div><div class="inbox-compose"><textarea disabled placeholder="回复框占位：发送、模板与内部备注将在后续迭代接入。"></textarea><p class="hint">本轮不接真实发送；不写入后端。</p></div>';
         }
 
@@ -3404,10 +3449,30 @@
 
         document.getElementById('view').querySelectorAll('[data-inbox-pick]').forEach((btn) => {
           btn.onclick = () => {
-            state.selectedId = btn.getAttribute('data-inbox-pick');
+            const convId = btn.getAttribute('data-inbox-pick');
+            state.selectedId = convId;
             mount();
+            // Load messages if not already cached
+            if (convId && !state.messagesCache[convId]) {
+              loadMessages(convId);
+            }
+            // Scroll thread to bottom after render
+            setTimeout(() => {
+              const t = document.getElementById('inboxThread');
+              if (t) t.scrollTop = t.scrollHeight;
+            }, 50);
           };
         });
+
+        // Auto-load messages for initially selected conversation
+        if (state.selectedId && !state.messagesCache[state.selectedId]) {
+          loadMessages(state.selectedId);
+        }
+        // Scroll thread to bottom on initial render
+        setTimeout(() => {
+          const t = document.getElementById('inboxThread');
+          if (t) t.scrollTop = t.scrollHeight;
+        }, 100);
         const sch = document.getElementById('inboxSearch');
         if (sch)
           sch.oninput = () => {
