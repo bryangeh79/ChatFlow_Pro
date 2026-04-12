@@ -759,7 +759,7 @@
     /* Avatar dropdown menu */
     .avatar-menu { position: relative; }
     .avatar-btn { width: 32px; height: 32px; border-radius: 999px; background: linear-gradient(135deg, #a5b4fc, var(--primary)); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.75rem; font-weight: 700; }
-    .avatar-dropdown { position: absolute; right: 0; top: calc(100% + 8px); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,0.12); min-width: 200px; z-index: 200; }
+    .avatar-dropdown { position: absolute; right: 0; top: calc(100% + 8px); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,0.12); min-width: 280px; z-index: 200; }
     .avatar-dropdown-header { padding: 0.85rem 1rem 0.65rem; }
     .avatar-dropdown-header strong { display: block; font-size: 0.875rem; color: var(--text); }
     .avatar-dropdown-header .avd-email { font-size: 0.75rem; color: var(--muted); }
@@ -767,6 +767,11 @@
     .avatar-dropdown a { display: block; padding: 0.6rem 1rem; font-size: 0.8125rem; color: var(--text); text-decoration: none; cursor: pointer; }
     .avatar-dropdown a:hover { background: #f4f4f5; }
     .avatar-dropdown a.avd-danger { color: #dc2626; }
+    .avd-conn-form { padding: 0.7rem 1rem 0.75rem; display: flex; flex-direction: column; gap: 0.3rem; }
+    .avd-conn-form label { font-size: 0.6875rem; font-weight: 600; color: var(--muted); margin-top: 0.2rem; }
+    .avd-input { width: 100%; padding: 0.35rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.78rem; font-family: inherit; background: #fafafa; color: var(--text); box-sizing: border-box; }
+    .avd-input:focus { outline: none; border-color: var(--primary); background: #fff; }
+    .avd-conn-footer { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.35rem; }
     /* Lang tabs for Bot Experience */
     .lang-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 1rem; }
     .lang-tab { padding: 0.45rem 1rem; font-size: 0.8125rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; background: none; border-top: none; border-left: none; border-right: none; }
@@ -806,45 +811,35 @@
     </aside>
     <div class="main-col">
       <header class="topbar">
-        <span class="workspace-pill" id="workspaceLabel">Workspace · 未连接</span>
+        <span class="workspace-pill" id="workspaceLabel">Tenant ID: —</span>
         <div class="search-placeholder" aria-hidden="true">搜索会话、联系人…（即将推出）</div>
         <div class="topbar-right">
           <div class="avatar-menu" id="avatarMenu">
             <button class="avatar-btn" id="avatarBtn" title="Account menu">B</button>
             <div class="avatar-dropdown" id="avatarDropdown" hidden>
               <div class="avatar-dropdown-header">
-                <strong id="avdName">Workspace</strong>
-                <span class="avd-email" id="avdEmail">API Connection required</span>
+                <strong id="avdName">Tenant</strong>
+                <span class="avd-email" id="avdEmail">Not connected</span>
               </div>
               <hr>
-              <a href="#" data-spa="/app/settings/workspace">Workspace</a>
-              <a href="#" id="avdApiConn">API Connection</a>
+              <div class="avd-conn-form">
+                <label for="tenantId">Tenant ID</label>
+                <input class="avd-input" type="text" id="tenantId" placeholder="00000000-0000-4000-8000-000000000000" />
+                <label for="token">Bearer Token</label>
+                <input class="avd-input" type="password" id="token" autocomplete="off" />
+                <div class="avd-conn-footer">
+                  <button type="button" class="btn btn-primary" id="applyConn" style="font-size:0.78rem;padding:0.3rem 0.65rem">Connect</button>
+                  <span id="connStatus" class="muted" style="font-size:0.72rem"></span>
+                </div>
+              </div>
+              <hr>
+              <a href="#" data-spa="/app/settings/workspace">Settings</a>
               <hr>
               <a href="#" id="avdLogout" class="avd-danger">Disconnect</a>
             </div>
           </div>
         </div>
       </header>
-      <details class="connection" id="connectionPanel">
-        <summary>API 连接 · Tenant ID 与 Token</summary>
-        <div class="connection-body">
-          <div>
-            <label class="legacy" for="tenantId">Tenant ID (UUID)</label>
-            <input class="legacy" type="text" id="tenantId" placeholder="00000000-0000-4000-8000-000000000000" />
-          </div>
-          <div>
-            <label class="legacy" for="token">Bearer token</label>
-            <input class="legacy" type="password" id="token" autocomplete="off" />
-          </div>
-          <div>
-            <label class="legacy">Connection</label>
-            <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-              <button type="button" class="btn" id="applyConn">Apply connection</button>
-              <span id="connStatus" class="muted">未应用</span>
-            </div>
-          </div>
-        </div>
-      </details>
       <main class="content">
         <div class="content-inner" id="view"></div>
       </main>
@@ -1038,9 +1033,9 @@
       const id = document.getElementById('tenantId').value.trim();
       const el = document.getElementById('workspaceLabel');
       if (/^[0-9a-f-]{36}$/i.test(id)) {
-        el.textContent = 'Workspace · ' + id.slice(0, 8) + '…';
+        el.textContent = 'Tenant ID: ' + id.slice(0, 8) + '…';
       } else {
-        el.textContent = 'Workspace · 未连接';
+        el.textContent = 'Tenant ID: —';
       }
     }
 
@@ -1142,8 +1137,19 @@
       const setupTag = m.setupPct >= 100 ? '<span class="tag st-success">Closed</span>' : m.setupPct > 0 ? '<span class="tag st-warn">Pending</span>' : '<span class="tag st-danger">Blocked</span>';
       const chTag = m.channelAlerts > 0 ? '<span class="tag st-warn">Pending</span>' : '<span class="tag st-success">Closed</span>';
       const glTag = String(m.goLiveLabel).includes('ready') ? '<span class="tag st-success">Closed</span>' : '<span class="tag st-warn">Pending</span>';
+      const ovTenantId = document.getElementById('tenantId').value.trim();
+      const ovConnected = /^[0-9a-f-]{36}$/i.test(ovTenantId);
+      const ovConnCard =
+        '<div style="display:flex;align-items:center;gap:1rem;padding:0.65rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1rem;font-size:0.8125rem;flex-wrap:wrap">' +
+        '<span style="color:var(--muted);font-weight:500;flex-shrink:0">Tenant ID</span>' +
+        '<span style="font-family:monospace;font-size:0.8rem;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (ovTenantId ? esc(ovTenantId) : '<span style="color:var(--muted)">—</span>') + '</span>' +
+        (ovConnected
+          ? '<span style="display:inline-flex;align-items:center;gap:0.3rem;font-size:0.75rem;color:#166534;background:rgba(22,163,74,0.08);border:1px solid rgba(22,163,74,0.2);border-radius:999px;padding:0.15rem 0.6rem;flex-shrink:0">● Connected</span>'
+          : '<span style="display:inline-flex;align-items:center;gap:0.3rem;font-size:0.75rem;color:#92400e;background:rgba(202,138,4,0.08);border:1px solid rgba(202,138,4,0.2);border-radius:999px;padding:0.15rem 0.6rem;flex-shrink:0">○ Not connected — click avatar ↗ to connect</span>') +
+        '</div>';
       document.getElementById('view').innerHTML =
         '<div class="ov-page"><div class="page-header"><h1 class="page-title">Overview</h1><p class="page-desc">Operational entry: setup progress, runtime readiness, and next actions.</p></div>' +
+        ovConnCard +
         (apiNote ? '<div class="wb-banner">' + esc(apiNote) + '</div>' : '') +
         '<section class="ov-status-grid" aria-label="status">' +
         '<div class="ov-status-card"><p class="ov-status-k">Setup status</p><p class="ov-status-v">' + setupTag + '<span>' + m.setupPct + '%</span></p><p class="ov-status-sub">First-use setup completion.</p></div>' +
@@ -4353,28 +4359,21 @@
       var btn = document.getElementById('avatarBtn');
       var dropdown = document.getElementById('avatarDropdown');
       if (!btn || !dropdown) return;
+      function avdRefreshState() {
+        var tId = document.getElementById('tenantId');
+        var connected = tId && /^[0-9a-f-]{36}$/i.test(tId.value.trim());
+        document.getElementById('avdName').textContent = connected ? ('Tenant: ' + tId.value.trim().slice(0, 8) + '…') : 'Tenant';
+        document.getElementById('avdEmail').textContent = connected ? 'Connected' : 'Not connected';
+      }
       btn.onclick = function(e) {
         e.stopPropagation();
         var hidden = dropdown.hasAttribute('hidden');
-        // Update label based on connection state
-        var tId = document.getElementById('tenantId');
-        if (tId && tId.value.trim()) {
-          document.getElementById('avdName').textContent = 'Workspace · ' + tId.value.trim().slice(0, 8) + '…';
-          document.getElementById('avdEmail').textContent = 'Connected';
-        }
+        avdRefreshState();
         if (hidden) dropdown.removeAttribute('hidden');
         else dropdown.setAttribute('hidden', '');
       };
       document.addEventListener('click', function() { dropdown.setAttribute('hidden', ''); });
       dropdown.addEventListener('click', function(e) { e.stopPropagation(); });
-      // API Connection → open connection panel
-      var avdConn = document.getElementById('avdApiConn');
-      if (avdConn) avdConn.onclick = function(e) {
-        e.preventDefault();
-        dropdown.setAttribute('hidden', '');
-        var panel = document.getElementById('connectionPanel');
-        if (panel) { panel.open = true; panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-      };
       // Disconnect → clear stored credentials
       var avdLogout = document.getElementById('avdLogout');
       if (avdLogout) avdLogout.onclick = function(e) {
@@ -4385,8 +4384,7 @@
         document.getElementById('tenantId').value = '';
         document.getElementById('token').value = '';
         dropdown.setAttribute('hidden', '');
-        document.getElementById('avdName').textContent = 'Workspace';
-        document.getElementById('avdEmail').textContent = 'API Connection required';
+        avdRefreshState();
         updateWorkspaceLabel();
         route();
       };
