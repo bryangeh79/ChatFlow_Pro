@@ -630,6 +630,8 @@
     .st-info { background: rgba(79, 70, 229, 0.12); color: #4338ca; }
     .st-progress { background: rgba(59, 130, 246, 0.12); color: #1d4ed8; }
     .st-success { background: rgba(22, 163, 74, 0.12); color: var(--success); }
+    .st-warning { background: rgba(202, 138, 4, 0.12); color: #a16207; }
+    .st-neutral { background: #e4e4e7; color: #52525b; }
     .st-warn { background: rgba(202, 138, 4, 0.15); color: #a16207; }
     .st-muted { background: #f4f4f5; color: #52525b; }
     .st-danger { background: rgba(220, 38, 38, 0.1); color: var(--danger); }
@@ -1252,9 +1254,9 @@
       const map = {
         new: ['New', 'st-info'],
         open: ['Active', 'st-progress'],
-        pending_handoff: ['Active', 'st-progress'],
-        human_handling: ['Assigned', 'st-success'],
-        closed: ['Assigned', 'st-success'],
+        pending_handoff: ['Waiting Human', 'st-warning'],
+        human_handling: ['With Agent', 'st-success'],
+        closed: ['Resolved', 'st-neutral'],
       };
       const x = map[b] || ['Active', 'st-progress'];
       return '<span class="tag ' + x[1] + '">' + esc(x[0]) + '</span>';
@@ -1282,23 +1284,21 @@
     function inboxDisplayName(c) {
       const name = String(c.customer_name || '');
       const extId = String(c.external_contact_id || '');
-      const ch = String(c.channel || '').toLowerCase();
-      const chPrefix = { telegram: 'TG', whatsapp: 'WA', line: 'LINE', messenger: 'MSG', website: 'Web', zalo: 'ZLO' }[ch] || '';
       // If we have a real human name (not ID-like), return it
       const isIdLike = !name || name === '访客' || /^\d{6,}$/.test(name) || name.includes(':') || name.length > 40;
       if (!isIdLike) return name;
-      // Build "TG #206330" style from external_contact_id
+      // Build short ID from external_contact_id — channel shown via icon, not in title
       if (extId) {
         const parts = extId.split(':');
         const idPart = parts[parts.length - 1] || extId;
         if (/^\d+$/.test(idPart)) {
           const short = idPart.length > 8 ? idPart.slice(-8) : idPart;
-          return (chPrefix ? chPrefix + ' ' : '') + '#' + short;
+          return '#' + short;
         }
-        if (idPart.length <= 16) return (chPrefix ? chPrefix + ' · ' : '') + idPart;
-        return (chPrefix ? chPrefix + ' · ' : '') + '…' + idPart.slice(-8);
+        if (idPart.length <= 16) return idPart;
+        return '…' + idPart.slice(-8);
       }
-      return (chPrefix ? chPrefix + ' · ' : '') + '访客';
+      return 'Visitor';
     }
 
     function normalizeInboxConversation(c) {
@@ -3445,8 +3445,9 @@
             '<div class="inbox-conv-header-row1">' +
             '<div class="inbox-conv-header-avatar">' + esc(convInitial) + '</div>' +
             '<div class="inbox-conv-header-info">' +
-            '<div class="inbox-conv-header-name">' + channelIconPill(selected.channel) + esc(convDisplayName) + '</div>' +
+            '<div class="inbox-conv-header-name">' + esc(convDisplayName) + '</div>' +
             '<div class="inbox-conv-header-sub">' +
+            channelIconPill(selected.channel) +
             inboxStatusTag(selected) +
             (selected.current_owner_principal_id
               ? '<span style="font-size:0.72rem;color:var(--muted)">· <strong style="color:var(--text)">' + esc(selected.current_owner_principal_id) + '</strong></span>'
@@ -3472,9 +3473,10 @@
             '<button type="button" class="inbox-compose-tab">Internal Note</button>' +
             '</div>' +
             '<div class="inbox-compose-body">' +
-            '<textarea disabled placeholder="Type a reply… (sending not yet wired)"></textarea>' +
+            '<textarea disabled placeholder="Coming soon — reply and internal note will be enabled in the next release."></textarea>' +
             '<div class="inbox-compose-footer">' +
-            '<button type="button" class="btn" disabled style="color:var(--muted)">Send</button>' +
+            '<span style="font-size:0.72rem;color:var(--muted);align-self:center;flex:1">Human reply coming soon</span>' +
+            '<button type="button" class="btn" disabled style="color:var(--muted);cursor:not-allowed">Send</button>' +
             '</div>' +
             '</div>' +
             '</div>';
@@ -3515,39 +3517,34 @@
           sideHtml += '</div>';
 
           // ── Block 3: Lead Snapshot ────────────────────────────
-          var summaryPreview = selected.last_message_preview || '';
-          var cachedMsgs = state.messagesCache[selected.id];
-          if (!summaryPreview && cachedMsgs && cachedMsgs.length) {
-            var lastIn = cachedMsgs.slice().reverse().find(function(m){ return m.direction === 'inbound'; });
-            if (lastIn && lastIn.body) summaryPreview = lastIn.body;
-          }
           var rawLead = selected._raw && selected._raw.lead ? selected._raw.lead : null;
+          var hasLeadData = rawLead && (rawLead.name || rawLead.phone || rawLead.email);
           sideHtml += '<div class="inbox-side-block">';
           sideHtml += '<h4>Lead Snapshot</h4>';
           if (inboxBucket(selected) === 'pending_handoff') {
-            sideHtml += '<div style="margin-bottom:0.55rem;padding:0.35rem 0.6rem;background:rgba(202,138,4,0.1);border:1px solid rgba(202,138,4,0.2);border-radius:6px;font-size:0.78rem;color:#92400e">⏳ Waiting for human agent</div>';
+            sideHtml += '<div style="margin-bottom:0.55rem;padding:0.3rem 0.6rem;background:rgba(202,138,4,0.08);border:1px solid rgba(202,138,4,0.18);border-radius:6px;font-size:0.78rem;color:#92400e">⏳ Waiting for human agent</div>';
           }
-          if (rawLead) {
-            if (rawLead.name) sideHtml += '<div class="inbox-side-row"><span class="inbox-side-row-label">Name</span><span class="inbox-side-row-val">' + esc(rawLead.name) + '</span></div>';
+          if (hasLeadData) {
+            if (rawLead.name)  sideHtml += '<div class="inbox-side-row"><span class="inbox-side-row-label">Name</span><span class="inbox-side-row-val">' + esc(rawLead.name) + '</span></div>';
             if (rawLead.phone) sideHtml += '<div class="inbox-side-row"><span class="inbox-side-row-label">Phone</span><span class="inbox-side-row-val">' + esc(rawLead.phone) + '</span></div>';
             if (rawLead.email) sideHtml += '<div class="inbox-side-row"><span class="inbox-side-row-label">Email</span><span class="inbox-side-row-val">' + esc(rawLead.email) + '</span></div>';
+            if (rawLead.need)  sideHtml += '<div class="inbox-side-row"><span class="inbox-side-row-label">Need</span><span class="inbox-side-row-val">' + esc(rawLead.need) + '</span></div>';
+          } else {
+            sideHtml += '<p style="font-size:0.8rem;color:var(--muted);font-style:italic;margin:0">No lead data yet</p>';
           }
-          sideHtml += summaryPreview
-            ? '<p style="font-size:0.8rem;color:var(--text);line-height:1.5;margin:0.4rem 0 0;padding-top:0.4rem;border-top:1px solid var(--border)">' + esc(summaryPreview.slice(0, 140)) + (summaryPreview.length > 140 ? '…' : '') + '</p>'
-            : (!rawLead ? '<p style="font-size:0.8rem;color:var(--muted);font-style:italic;margin:0">No lead data yet</p>' : '');
           sideHtml += '</div>';
 
           // ── Block 4: Actions ──────────────────────────────────
           var sideIsAssigned = inboxBucket(selected) === 'human_handling' || inboxBucket(selected) === 'closed';
           sideHtml += '<div class="inbox-side-block"><h4>Actions</h4><div class="inbox-side-actions">';
           if (sideIsAssigned) {
-            sideHtml += '<div style="padding:0.4rem 0.6rem;background:rgba(22,163,74,0.07);border:1px solid rgba(22,163,74,0.2);border-radius:6px;font-size:0.8rem;color:#166534;text-align:center;font-weight:500">✓ Assigned</div>';
+            sideHtml += '<div style="padding:0.35rem 0.6rem;background:rgba(22,163,74,0.06);border:1px solid rgba(22,163,74,0.18);border-radius:6px;font-size:0.78rem;color:#166534;text-align:center;font-weight:500">✓ With Agent</div>';
           } else {
             sideHtml += '<button type="button" class="btn btn-primary" data-inbox-act="assign" style="justify-content:center;width:100%;font-weight:600">Assign to me</button>';
           }
-          sideHtml += '<div class="btn-row" style="display:flex;gap:0.4rem;margin-top:0.15rem">';
-          sideHtml += '<a class="btn" style="flex:1;text-align:center;font-size:0.78rem" href="/app/leads" data-spa="/app/leads">Open Lead</a>';
-          sideHtml += '<a class="btn" style="flex:1;text-align:center;font-size:0.78rem" href="/app/knowledge" data-spa="/app/knowledge">Knowledge</a>';
+          sideHtml += '<div class="btn-row" style="display:flex;gap:0.4rem;margin-top:0.35rem">';
+          sideHtml += '<a style="flex:1;text-align:center;font-size:0.78rem;padding:0.3rem 0.5rem;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);background:transparent;cursor:pointer;text-decoration:none;display:block" href="/app/leads" data-spa="/app/leads">Open Lead</a>';
+          sideHtml += '<a style="flex:1;text-align:center;font-size:0.78rem;padding:0.3rem 0.5rem;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);background:transparent;cursor:pointer;text-decoration:none;display:block" href="/app/knowledge" data-spa="/app/knowledge">Knowledge</a>';
           sideHtml += '</div>';
           sideHtml += '</div></div>';
         }
