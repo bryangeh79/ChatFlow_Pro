@@ -351,20 +351,24 @@
     .inbox-list-head { padding: 0.45rem 0.85rem; font-size: 0.6875rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); flex-shrink: 0; }
     .inbox-list-scroll { flex: 1; overflow-y: auto; min-height: 0; }
     .inbox-row {
-      padding: 0.6rem 0.85rem 0.6rem 0.7rem; border-bottom: 1px solid var(--border); cursor: pointer; text-align: left;
+      padding: 0.65rem 0.85rem 0.65rem 0.75rem; border-bottom: 1px solid var(--border); cursor: pointer; text-align: left;
       width: 100%; border-left: 3px solid transparent; background: transparent; font: inherit; color: inherit;
-      display: flex; align-items: flex-start; gap: 0.55rem;
+      display: flex; align-items: flex-start; gap: 0.6rem; transition: background 0.1s;
     }
-    .inbox-row:hover { background: #f0f0f2; }
-    .inbox-row.active { background: rgba(79,70,229,0.08); border-left-color: var(--primary); box-shadow: inset 2px 0 0 var(--primary); }
-    .inbox-row.active .inbox-row-name { color: var(--primary); }
-    .inbox-row-icon { flex-shrink: 0; margin-top: 2px; }
+    .inbox-row:hover { background: #ebebed; }
+    .inbox-row.active {
+      background: rgba(79,70,229,0.07); border-left-color: var(--primary);
+      box-shadow: inset 3px 0 0 var(--primary);
+    }
+    .inbox-row.active .inbox-row-name { color: var(--primary); font-weight: 700; }
+    .inbox-row-icon { flex-shrink: 0; margin-top: 1px; }
     .inbox-row-body { flex: 1; min-width: 0; }
-    .inbox-row-top { display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin-bottom: 0.15rem; }
-    .inbox-row-name { font-size: 0.875rem; font-weight: 600; margin: 0; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .inbox-row-top { display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin-bottom: 0.18rem; }
+    .inbox-row-name { font-size: 0.875rem; font-weight: 600; margin: 0; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
     .inbox-row-meta { font-size: 0.6875rem; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
-    .inbox-row-preview { font-size: 0.78rem; color: var(--muted); margin: 0; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
-    .inbox-row-foot { display: flex; align-items: center; gap: 0.3rem; margin-top: 0.3rem; }
+    .inbox-row-preview { font-size: 0.78rem; color: var(--muted); margin: 0 0 0.3rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+    .inbox-row-foot { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
+    .inbox-owner-tag { font-size: 0.6rem; font-weight: 500; padding: 0.1rem 0.35rem; border-radius: 999px; background: #e4e4e7; color: #52525b; white-space: nowrap; }
     .inbox-ch-pill { font-size: 0.625rem; font-weight: 600; padding: 0.12rem 0.4rem; border-radius: 999px; background: #e4e4e7; color: #3f3f46; text-transform: capitalize; }
     .inbox-ch-icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 999px; background: #e4e4e7; color: #3f3f46; flex-shrink: 0; }
     .inbox-ch-icon svg { flex-shrink: 0; }
@@ -404,25 +408,40 @@
       margin: 0 1rem; padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.8125rem;
       background: rgba(202, 138, 4, 0.1); color: #854d0e; border: 1px solid rgba(202, 138, 4, 0.25);
     }
-    .inbox-thread { flex: 1; overflow-y: auto; padding: 1rem; min-height: 0; display: flex; flex-direction: column; }
+    .inbox-thread { flex: 1; overflow-y: auto; padding: 1rem 1.25rem; min-height: 0; display: flex; flex-direction: column; background: #f9f9fb; }
     .msg-line { max-width: 85%; margin: 0.65rem 0; padding: 0.55rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.8125rem; line-height: 1.45; }
     .msg-meta { display: block; font-size: 0.65rem; font-weight: 600; color: var(--muted); margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
-    .msg-user { align-self: flex-start; background: #f4f4f5; border: 1px solid var(--border); margin-right: auto; }
-    .msg-ai { align-self: flex-end; background: rgba(79, 70, 229, 0.08); border: 1px solid rgba(79, 70, 229, 0.2); margin-left: auto; }
-    .msg-sys { text-align: center; font-size: 0.75rem; color: var(--muted); padding: 0.35rem 0.5rem; margin: 0.5rem 0; }
-    .inbox-compose { border-top: 1px solid var(--border); padding: 0.75rem 1rem; flex-shrink: 0; background: var(--surface); }
-    .inbox-compose textarea {
-      width: 100%; min-height: 4rem; resize: vertical; padding: 0.5rem 0.65rem; border: 1px solid var(--border); border-radius: var(--radius-sm);
-      font-size: 0.8125rem; font-family: inherit; background: #fafafa; color: var(--muted);
+    .msg-user { align-self: flex-start; background: #ffffff; border: 1px solid var(--border); margin-right: auto; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    .msg-ai { align-self: flex-end; background: rgba(79, 70, 229, 0.08); border: 1px solid rgba(79, 70, 229, 0.18); margin-left: auto; }
+    .msg-sys { text-align: center; font-size: 0.72rem; color: var(--muted); padding: 0.25rem 0.75rem; margin: 0.5rem auto; background: rgba(0,0,0,0.04); border-radius: 999px; max-width: fit-content; }
+    /* Compose area */
+    .inbox-compose { border-top: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
+    .inbox-compose-tabs { display: flex; gap: 0; padding: 0 1rem; border-bottom: 1px solid var(--border); }
+    .inbox-compose-tab { font-size: 0.8125rem; font-weight: 500; padding: 0.55rem 0.75rem; border: none; background: transparent; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; font: inherit; }
+    .inbox-compose-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+    .inbox-compose-tab:hover:not(.active) { color: var(--text); }
+    .inbox-compose-body { padding: 0.65rem 1rem 0.75rem; }
+    .inbox-compose-body textarea {
+      width: 100%; min-height: 3.5rem; resize: none; padding: 0.55rem 0.7rem; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      font-size: 0.8125rem; font-family: inherit; background: #fafafa; color: var(--text); outline: none; line-height: 1.45;
     }
-    .inbox-compose .hint { font-size: 0.6875rem; color: var(--muted); margin: 0.35rem 0 0; }
-    .inbox-side-head { padding: 0.65rem 0.85rem; font-size: 0.6875rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
-    .inbox-side-body { flex: 1; overflow-y: auto; padding: 0.75rem 0.85rem; font-size: 0.8125rem; min-height: 0; }
-    .inbox-side-block { margin-bottom: 1.1rem; }
-    .inbox-side-block h4 { margin: 0 0 0.4rem; font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .inbox-compose-body textarea:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(79,70,229,0.08); }
+    .inbox-compose-body textarea:disabled { color: var(--muted); cursor: not-allowed; }
+    .inbox-compose-footer { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
+    /* Right sidebar */
+    .inbox-side-head { padding: 0.6rem 0.85rem; font-size: 0.6875rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .inbox-side-body { flex: 1; overflow-y: auto; padding: 0; font-size: 0.8125rem; min-height: 0; }
+    .inbox-side-block { padding: 0.85rem 0.85rem 0.75rem; border-bottom: 1px solid var(--border); }
+    .inbox-side-block:last-child { border-bottom: none; }
+    .inbox-side-block h4 { margin: 0 0 0.55rem; font-size: 0.6875rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
     .inbox-side-block p { margin: 0; color: var(--text); line-height: 1.45; }
-    .inbox-side-actions { display: flex; flex-direction: column; gap: 0.35rem; }
+    .inbox-side-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; padding: 0.15rem 0; font-size: 0.8rem; }
+    .inbox-side-row-label { color: var(--muted); flex-shrink: 0; }
+    .inbox-side-row-val { color: var(--text); font-weight: 500; text-align: right; word-break: break-all; }
+    .inbox-side-actions { display: flex; flex-direction: column; gap: 0.4rem; }
     .inbox-side-actions .btn { justify-content: center; width: 100%; }
+    .inbox-side-actions .btn-row { display: flex; gap: 0.4rem; }
+    .inbox-side-actions .btn-row .btn { flex: 1; font-size: 0.78rem; padding: 0.3rem 0.5rem; }
     .inbox-api-note { font-size: 0.75rem; color: var(--warning); margin: 0 0 0.75rem; padding: 0.5rem 0.75rem; background: rgba(202, 138, 4, 0.08); border-radius: var(--radius-sm); border: 1px solid rgba(202, 138, 4, 0.2); }
     /* Leads workspace (mirrors Inbox layout tokens) */
     .leads-page { display: flex; flex-direction: column; gap: 0; margin: -0.25rem 0 0; }
@@ -3384,16 +3403,19 @@
                 }
               }
               if (!previewText) previewText = '<span style="color:var(--muted);font-style:italic;font-size:0.78rem">No messages yet</span>';
+              var ownerBadge = c.current_owner_principal_id
+                ? '<span class="inbox-owner-tag">' + esc(c.current_owner_principal_id.split('@')[0].slice(0, 16)) + '</span>'
+                : '<span class="inbox-owner-tag" style="background:transparent;color:var(--muted);border:1px solid var(--border)">Unassigned</span>';
               return (
                 '<button type="button" class="inbox-row' + active + '" data-inbox-pick="' + esc(c.id) + '">' +
                 '<div class="inbox-row-icon">' + channelIconPill(c.channel) + '</div>' +
                 '<div class="inbox-row-body">' +
                 '<div class="inbox-row-top">' +
                 '<p class="inbox-row-name">' + dot + esc(displayName) + '</p>' +
-                '<span class="inbox-row-meta wb-row-time">' + esc(c.last_message_at) + '</span>' +
+                '<span class="inbox-row-meta">' + esc(c.last_message_at) + '</span>' +
                 '</div>' +
                 '<p class="inbox-row-preview">' + previewText + '</p>' +
-                '<div class="inbox-row-foot">' + inboxStatusTag(c) + '</div>' +
+                '<div class="inbox-row-foot">' + inboxStatusTag(c) + ownerBadge + '</div>' +
                 '</div>' +
                 '</button>'
               );
@@ -3435,19 +3457,26 @@
             '</div>' +
             '<div class="inbox-conv-header-row2">' +
             (isAssigned
-              ? '<span style="font-size:0.78rem;color:var(--muted)">✓ Assigned</span>'
+              ? '<span style="font-size:0.75rem;color:var(--success);font-weight:500">✓ Assigned</span>'
               : '<button type="button" class="btn-sm-primary" data-inbox-act="assign">Assign</button>') +
+            '<a class="btn btn-sm" href="/app/leads" data-spa="/app/leads">Open Lead</a>' +
+            '<a class="btn btn-sm" href="/app/knowledge" data-spa="/app/knowledge">Knowledge</a>' +
             '</div>' +
             '</div>' +
             '<div class="inbox-thread" id="inboxThread" style="display:flex;flex-direction:column;padding:1rem;overflow-y:auto;flex:1">' +
             buildMessageTimeline(selected.id) +
             '</div>' +
             '<div class="inbox-compose">' +
-            '<div style="display:flex;gap:0.5rem;margin-bottom:0.5rem">' +
-            '<button type="button" class="btn btn-sm" style="border-bottom:2px solid var(--primary);font-weight:600">Reply</button>' +
-            '<button type="button" class="btn btn-sm" style="color:var(--muted)">Internal Note</button>' +
+            '<div class="inbox-compose-tabs">' +
+            '<button type="button" class="inbox-compose-tab active">Reply</button>' +
+            '<button type="button" class="inbox-compose-tab">Internal Note</button>' +
             '</div>' +
-            '<textarea disabled placeholder="Type a reply…"></textarea>' +
+            '<div class="inbox-compose-body">' +
+            '<textarea disabled placeholder="Type a reply… (sending not yet wired)"></textarea>' +
+            '<div class="inbox-compose-footer">' +
+            '<button type="button" class="btn" disabled style="color:var(--muted)">Send</button>' +
+            '</div>' +
+            '</div>' +
             '</div>';
         }
 
@@ -3465,61 +3494,60 @@
           // ── Block 1: Contact ──────────────────────────────────
           sideHtml += '<div class="inbox-side-block">';
           sideHtml += '<h4>Contact</h4>';
-          sideHtml += '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">';
-          sideHtml += '<div style="width:32px;height:32px;border-radius:999px;background:linear-gradient(135deg,#a5b4fc,var(--primary));display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:0.875rem;flex-shrink:0">' + esc(sideInitial) + '</div>';
-          sideHtml += '<div style="min-width:0"><div style="font-weight:600;font-size:0.875rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(sideName) + '</div>';
-          sideHtml += '<div style="display:flex;align-items:center;gap:0.3rem;margin-top:0.2rem">' + channelIconPill(selected.channel) + '<span style="font-size:0.7rem;color:var(--muted)">' + esc(sideChannelLabel) + '</span></div>';
+          sideHtml += '<div style="display:flex;align-items:center;gap:0.55rem;margin-bottom:0.6rem">';
+          sideHtml += '<div style="width:34px;height:34px;border-radius:999px;background:linear-gradient(135deg,#a5b4fc,var(--primary));display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:0.9375rem;flex-shrink:0">' + esc(sideInitial) + '</div>';
+          sideHtml += '<div style="min-width:0">';
+          sideHtml += '<div style="font-weight:600;font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(sideName) + '</div>';
+          sideHtml += '<div style="display:flex;align-items:center;gap:0.3rem;margin-top:0.15rem">' + channelIconPill(selected.channel) + '<span style="font-size:0.72rem;color:var(--muted)">' + esc(sideChannelLabel) + '</span></div>';
           sideHtml += '</div></div>';
           if (selected.external_contact_id) {
-            sideHtml += '<div style="font-size:0.7rem;color:var(--muted);word-break:break-all;margin-top:0.1rem">' + esc(selected.external_contact_id) + '</div>';
+            sideHtml += '<div class="inbox-side-row"><span class="inbox-side-row-label">External ID</span><span class="inbox-side-row-val" style="font-size:0.7rem;color:var(--muted)">' + esc(selected.external_contact_id) + '</span></div>';
           }
           sideHtml += '</div>';
-
-          sideHtml += '<hr class="inbox-side-divider">';
 
           // ── Block 2: Conversation ─────────────────────────────
           sideHtml += '<div class="inbox-side-block">';
           sideHtml += '<h4>Conversation</h4>';
-          sideHtml += '<table style="width:100%;font-size:0.8125rem;border-collapse:collapse">';
-          sideHtml += '<tr><td style="color:var(--muted);padding:0.18rem 0;width:68px">Status</td><td>' + inboxStatusTag(selected) + '</td></tr>';
-          sideHtml += '<tr><td style="color:var(--muted);padding:0.18rem 0">Owner</td><td style="font-weight:500">' + esc(selected.current_owner_principal_id || 'Unassigned') + '</td></tr>';
-          sideHtml += '<tr><td style="color:var(--muted);padding:0.18rem 0">Last active</td><td style="font-size:0.78rem">' + esc(selected.last_message_at || '—') + '</td></tr>';
-          sideHtml += '<tr><td style="color:var(--muted);padding:0.18rem 0">ID</td><td style="font-size:0.68rem;word-break:break-all;color:var(--muted)">' + esc(selected.id) + '</td></tr>';
-          sideHtml += '</table>';
+          sideHtml += '<div class="inbox-side-row"><span class="inbox-side-row-label">Status</span><span>' + inboxStatusTag(selected) + '</span></div>';
+          sideHtml += '<div class="inbox-side-row"><span class="inbox-side-row-label">Owner</span><span class="inbox-side-row-val">' + esc(selected.current_owner_principal_id || 'Unassigned') + '</span></div>';
+          sideHtml += '<div class="inbox-side-row"><span class="inbox-side-row-label">Last active</span><span class="inbox-side-row-val">' + esc(selected.last_message_at || '—') + '</span></div>';
+          sideHtml += '<div class="inbox-side-row" style="margin-top:0.2rem"><span class="inbox-side-row-label">ID</span><span style="font-size:0.68rem;color:var(--muted);word-break:break-all;text-align:right">' + esc(selected.id.slice(0, 18)) + '…</span></div>';
           sideHtml += '</div>';
 
-          sideHtml += '<hr class="inbox-side-divider">';
-
-          // ── Block 3: Summary ──────────────────────────────────
+          // ── Block 3: Lead Snapshot ────────────────────────────
           var summaryPreview = selected.last_message_preview || '';
           var cachedMsgs = state.messagesCache[selected.id];
           if (!summaryPreview && cachedMsgs && cachedMsgs.length) {
             var lastIn = cachedMsgs.slice().reverse().find(function(m){ return m.direction === 'inbound'; });
             if (lastIn && lastIn.body) summaryPreview = lastIn.body;
           }
+          var rawLead = selected._raw && selected._raw.lead ? selected._raw.lead : null;
           sideHtml += '<div class="inbox-side-block">';
-          sideHtml += '<h4>Summary</h4>';
+          sideHtml += '<h4>Lead Snapshot</h4>';
           if (inboxBucket(selected) === 'pending_handoff') {
-            sideHtml += '<div style="margin-bottom:0.5rem;padding:0.35rem 0.55rem;background:rgba(202,138,4,0.1);border:1px solid rgba(202,138,4,0.25);border-radius:6px;font-size:0.78rem;color:#92400e">⏳ Waiting for human agent</div>';
+            sideHtml += '<div style="margin-bottom:0.55rem;padding:0.35rem 0.6rem;background:rgba(202,138,4,0.1);border:1px solid rgba(202,138,4,0.2);border-radius:6px;font-size:0.78rem;color:#92400e">⏳ Waiting for human agent</div>';
+          }
+          if (rawLead) {
+            if (rawLead.name) sideHtml += '<div class="inbox-side-row"><span class="inbox-side-row-label">Name</span><span class="inbox-side-row-val">' + esc(rawLead.name) + '</span></div>';
+            if (rawLead.phone) sideHtml += '<div class="inbox-side-row"><span class="inbox-side-row-label">Phone</span><span class="inbox-side-row-val">' + esc(rawLead.phone) + '</span></div>';
+            if (rawLead.email) sideHtml += '<div class="inbox-side-row"><span class="inbox-side-row-label">Email</span><span class="inbox-side-row-val">' + esc(rawLead.email) + '</span></div>';
           }
           sideHtml += summaryPreview
-            ? '<p style="font-size:0.8125rem;color:var(--text);line-height:1.45;margin:0">' + esc(summaryPreview.slice(0, 120)) + (summaryPreview.length > 120 ? '…' : '') + '</p>'
-            : '<p style="font-size:0.8125rem;color:var(--muted);font-style:italic;margin:0">No summary yet</p>';
+            ? '<p style="font-size:0.8rem;color:var(--text);line-height:1.5;margin:0.4rem 0 0;padding-top:0.4rem;border-top:1px solid var(--border)">' + esc(summaryPreview.slice(0, 140)) + (summaryPreview.length > 140 ? '…' : '') + '</p>'
+            : (!rawLead ? '<p style="font-size:0.8rem;color:var(--muted);font-style:italic;margin:0">No lead data yet</p>' : '');
           sideHtml += '</div>';
-
-          sideHtml += '<hr class="inbox-side-divider">';
 
           // ── Block 4: Actions ──────────────────────────────────
           var sideIsAssigned = inboxBucket(selected) === 'human_handling' || inboxBucket(selected) === 'closed';
           sideHtml += '<div class="inbox-side-block"><h4>Actions</h4><div class="inbox-side-actions">';
           if (sideIsAssigned) {
-            sideHtml += '<div style="padding:0.4rem 0.6rem;background:rgba(22,163,74,0.08);border:1px solid rgba(22,163,74,0.2);border-radius:6px;font-size:0.8rem;color:#166534;text-align:center">✓ Assigned</div>';
+            sideHtml += '<div style="padding:0.4rem 0.6rem;background:rgba(22,163,74,0.07);border:1px solid rgba(22,163,74,0.2);border-radius:6px;font-size:0.8rem;color:#166534;text-align:center;font-weight:500">✓ Assigned</div>';
           } else {
-            sideHtml += '<button type="button" class="btn btn-primary" data-inbox-act="assign" style="justify-content:center;width:100%">Assign</button>';
+            sideHtml += '<button type="button" class="btn btn-primary" data-inbox-act="assign" style="justify-content:center;width:100%;font-weight:600">Assign to me</button>';
           }
-          sideHtml += '<div style="display:flex;gap:0.5rem;margin-top:0.5rem">';
-          sideHtml += '<a style="flex:1;text-align:center;font-size:0.8rem;color:var(--primary);text-decoration:none" href="/app/leads" data-spa="/app/leads">Open Lead</a>';
-          sideHtml += '<a style="flex:1;text-align:center;font-size:0.8rem;color:var(--primary);text-decoration:none" href="/app/knowledge" data-spa="/app/knowledge">Knowledge</a>';
+          sideHtml += '<div class="btn-row" style="display:flex;gap:0.4rem;margin-top:0.15rem">';
+          sideHtml += '<a class="btn" style="flex:1;text-align:center;font-size:0.78rem" href="/app/leads" data-spa="/app/leads">Open Lead</a>';
+          sideHtml += '<a class="btn" style="flex:1;text-align:center;font-size:0.78rem" href="/app/knowledge" data-spa="/app/knowledge">Knowledge</a>';
           sideHtml += '</div>';
           sideHtml += '</div></div>';
         }
